@@ -17,7 +17,7 @@ export type State = {
 const productSchema = z.object({
   name: z
     .string()
-    .min(3, { message: "The name has to be a min charackter length of 5" }),
+    .min(3, { message: "The name has to be a min charackter length of 3" }),
   category: z.string().min(1, { message: "Category is required" }),
   price: z.number().min(1, { message: "The Price has to be bigger then 1" }),
   smallDescription: z
