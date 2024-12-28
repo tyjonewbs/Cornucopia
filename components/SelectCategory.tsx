@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardHeader } from "@/components/ui/card";
-import { categoryItems } from "../lib/categroyItems";
+import { categoryItems } from "@/lib/categroyItems";
 import { useState } from "react";
 
 export function SelectCategory() {

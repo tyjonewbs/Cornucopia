@@ -12,18 +12,18 @@ export const navbarLinks = [
   },
   {
     id: 1,
-    name: "Templates",
-    href: "/products/template",
+    name: "Map",
+    href: "/products/map",  // Updated from template
   },
   {
     id: 2,
-    name: "Ui Kits",
-    href: "/products/uikit",
+    name: "How it Works",
+    href: "/products/how-it-works",  // Updated from uikit
   },
   {
     id: 3,
-    name: "Icons",
-    href: "/products/icon",
+    name: "Our Mission",
+    href: "/products/our-mission",  // Updated from icon
   },
 ];
 

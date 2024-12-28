@@ -36,7 +36,7 @@ model Product {
 }
 
 enum CategoryTypes {
-  template
-  uikit
-  icon
+  map
+  FAQ
+  mission
 }

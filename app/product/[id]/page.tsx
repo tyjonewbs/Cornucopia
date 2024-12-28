@@ -1,7 +1,7 @@
 import { BuyProduct } from "@/app/actions";
-import { ProductDescription } from "@/app/components/ProductDescription";
-import { BuyButton } from "@/app/components/SubmitButtons";
-import prisma from "@/app/lib/db";
+import { ProductDescription } from "@/components/ProductDescription";
+import { BuyButton } from "@/components/SubmitButtons";
+import prisma from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { unstable_noStore as noStore } from "next/cache";
 

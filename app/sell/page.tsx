@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 
-import { SellForm } from "../components/form/Sellform";
+import { SellForm } from "@/components/form/Sellform";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import prisma from "../lib/db";
+import prisma from "@/lib/db";
 import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 

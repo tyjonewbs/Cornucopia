@@ -1,4 +1,4 @@
-import { ProductRow } from "./components/ProductRow";
+import { ProductRow } from "@/components/ProductRow";
 
 export default function Home() {
   return (
@@ -12,10 +12,9 @@ export default function Home() {
           buyers alike.
         </p>
       </div>
-      <ProductRow category="newest" />
-      <ProductRow category="templates" />
-      <ProductRow category="icons" />
-      <ProductRow category="uikits" />
+      <ProductRow category="map" />
+      <ProductRow category="how-it-works" />
+      <ProductRow category="our-mission" />
     </section>
   );
 }

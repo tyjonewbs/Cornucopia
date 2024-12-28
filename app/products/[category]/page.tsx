@@ -1,26 +1,30 @@
-import { ProductCard } from "@/app/components/ProductCard";
-import prisma from "@/app/lib/db";
+import { ProductCard } from "@/components/ProductCard";
+import prisma from "@/lib/db";
 import { type CategoryTypes } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 
 async function getData(category: string) {
-  let input;
+  let input: CategoryTypes | undefined;
 
   switch (category) {
-    case "template": {
-      input = "template";
+    case "map": {
+      input = "map";
       break;
     }
-    case "uikit": {
-      input = "uikit";
+    case "how-it-works": {
+      input = "FAQ";
       break;
     }
-    case "icon": {
-      input = "icon";
+    case "our-mission": {
+      input = "mission";
       break;
     }
     case "all": {
+      input = undefined;
+      break; 
+    }
+    case "home": {
       input = undefined;
       break;
     }
@@ -30,9 +34,7 @@ async function getData(category: string) {
   }
 
   const data = await prisma.product.findMany({
-    where: {
-      category: input as CategoryTypes,
-    },
+    where: input ? { category: input } : {},
     select: {
       id: true,
       images: true,

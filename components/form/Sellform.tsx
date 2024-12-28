@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { SelectCategory } from "../SelectCategory";
 import { Textarea } from "@/components/ui/textarea";
 import { TipTapEditor } from "../Editor";
-import { UploadDropzone } from "@/app/lib/uploadthing";
+import { UploadDropzone } from "@/lib/uploadthing";
 import { Submitbutton } from "../SubmitButtons";
 
 export function SellForm() {

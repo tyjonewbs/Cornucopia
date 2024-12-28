@@ -1,4 +1,4 @@
-import { LoadingProductCard } from "../components/ProductCard";
+import { LoadingProductCard } from "@/components/ProductCard";
 
 export default function LoadingFile() {
   return (
