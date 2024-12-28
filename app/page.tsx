@@ -1,6 +1,30 @@
-import { ProductRow } from "@/components/ProductRow";
+import { ProductRow } from "../components/ProductRow";
+import dynamic from 'next/dynamic';
+import prisma from "../lib/db";
 
-export default function Home() {
+const MapView = dynamic(() => import('../components/MapView'), {
+  ssr: false,
+  loading: () => <p>Loading map...</p>
+});
+
+async function getProducts() {
+  const products = await prisma.product.findMany({
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      description: true,
+      images: true,
+      latitude: true,
+      longitude: true,
+    },
+  });
+  return products;
+}
+
+export default async function Home() {
+  const products = await getProducts();
+
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8 mb-24">
       <div className="max-w-3xl mx-auto text-2xl sm:text-5xl lg:text-6xl font-semibold text-center">
@@ -12,9 +36,10 @@ export default function Home() {
           buyers alike.
         </p>
       </div>
-      <ProductRow category="map" />
-      <ProductRow category="how-it-works" />
-      <ProductRow category="our-mission" />
+      <div className="mt-8">
+        <MapView products={products} />
+      </div>
+      <ProductRow title="Nearby Products" link="/products" />
     </section>
   );
 }

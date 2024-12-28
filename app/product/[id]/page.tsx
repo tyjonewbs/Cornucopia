@@ -23,7 +23,7 @@ async function getData(id: string) {
     select: {
       category: true,
       description: true,
-      smallDescription: true,
+      description: true,
       name: true,
       images: true,
       price: true,
@@ -73,7 +73,7 @@ export default async function ProductPage({
           {data?.name}
         </h1>
 
-        <p className="mt-2 text-muted-foreground">{data?.smallDescription}</p>
+        <p className="mt-2 text-muted-foreground">{data?.description}</p>
         <form action={BuyProduct}>
           <input type="hidden" name="id" value={data?.id} />
           <BuyButton price={data?.price as number} />

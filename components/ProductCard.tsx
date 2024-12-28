@@ -7,6 +7,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -14,16 +15,22 @@ interface iAppProps {
   images: string[];
   name: string;
   price: number;
-  smallDescription: string;
+  description: string;
   id: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  distance?: number;
 }
 
 export function ProductCard({
   images,
   id,
   price,
-  smallDescription,
+  description,
   name,
+  latitude,
+  longitude,
+  distance,
 }: iAppProps) {
   return (
     <div className="rounded-lg">
@@ -48,14 +55,25 @@ export function ProductCard({
 
       <div className="flex justify-between items-center mt-2">
         <h1 className="font-semibold text-xl">{name}</h1>
-        <h3 className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset  ring-primary/10">
+        <h3 className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/10">
           ${price}
         </h3>
       </div>
 
       <p className="text-gray-600 line-clamp-2 text-sm mt-2">
-        {smallDescription}
+        {description}
       </p>
+
+      {(latitude && longitude) && (
+        <div className="flex items-center gap-x-2 text-sm text-muted-foreground mt-2">
+          <MapPin className="h-4 w-4" />
+          {distance !== undefined ? (
+            <span>{distance.toFixed(1)} km away</span>
+          ) : (
+            <span>{latitude.toFixed(2)}, {longitude.toFixed(2)}</span>
+          )}
+        </div>
+      )}
 
       <Button asChild className="w-full mt-5">
         <Link href={`/product/${id}`}>Learn More!</Link>

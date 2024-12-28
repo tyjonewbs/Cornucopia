@@ -1,32 +1,30 @@
 "use client";
 
-import { SellProduct, type State } from "@/app/actions";
+import { SellProduct, type State } from "app/actions";
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { type JSONContent } from "@tiptap/react";
+} from "components/ui/card";
+import { Input } from "components/ui/input";
+import { Label } from "components/ui/label";
+import { Button } from "components/ui/button";
 import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { toast } from "sonner";
-import { SelectCategory } from "../SelectCategory";
-import { Textarea } from "@/components/ui/textarea";
-import { TipTapEditor } from "../Editor";
-import { UploadDropzone } from "@/lib/uploadthing";
+import { Textarea } from "components/ui/textarea";
+import { UploadDropzone } from "lib/uploadthing";
 import { Submitbutton } from "../SubmitButtons";
+import { MapPin } from "lucide-react";
 
 export function SellForm() {
   const initalState: State = { message: "", status: undefined };
   const [state, formAction] = useFormState(SellProduct, initalState);
-  const [json, setJson] = useState<null | JSONContent>(null);
   const [images, setImages] = useState<null | string[]>(null);
-  const [productFile, SetProductFile] = useState<null | string>(null);
+  const [location, setLocation] = useState<{lat: number; lng: number} | null>(null);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -35,6 +33,7 @@ export function SellForm() {
       toast.error(state.message);
     }
   }, [state]);
+
   return (
     <form action={formAction}>
       <CardHeader>
@@ -57,12 +56,41 @@ export function SellForm() {
             <p className="text-destructive">{state?.errors?.["name"]?.[0]}</p>
           )}
         </div>
+
         <div className="flex flex-col gap-y-2">
-          <Label>Category</Label>
-          <SelectCategory />
-          {state?.errors?.["category"]?.[0] && (
-            <p className="text-destructive">
-              {state?.errors?.["category"]?.[0]}
+          <Label>Location</Label>
+          <input type="hidden" name="latitude" value={location?.lat ?? ''} />
+          <input type="hidden" name="longitude" value={location?.lng ?? ''} />
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2"
+            onClick={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    setLocation({
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude
+                    });
+                    toast.success("Location set successfully");
+                  },
+                  (error) => {
+                    console.error('Error getting location:', error);
+                    toast.error("Failed to get location. Please try again.");
+                  }
+                );
+              } else {
+                toast.error("Geolocation is not supported by your browser");
+              }
+            }}
+          >
+            <MapPin className="h-4 w-4" />
+            {location ? 'Update Location' : 'Get My Location'}
+          </Button>
+          {location && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Location set: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
             </p>
           )}
         </div>
@@ -82,28 +110,13 @@ export function SellForm() {
         </div>
 
         <div className="flex flex-col gap-y-2">
-          <Label>Small Summary</Label>
+          <Label>Description</Label>
           <Textarea
-            name="smallDescription"
-            placeholder="Pleae describe your product shortly right here..."
+            name="description"
+            placeholder="Please describe your product in detail..."
             required
             minLength={10}
           />
-          {state?.errors?.["smallDescription"]?.[0] && (
-            <p className="text-destructive">
-              {state?.errors?.["smallDescription"]?.[0]}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-y-2">
-          <input
-            type="hidden"
-            name="description"
-            value={JSON.stringify(json)}
-          />
-          <Label>Description</Label>
-          <TipTapEditor json={json} setJson={setJson} />
           {state?.errors?.["description"]?.[0] && (
             <p className="text-destructive">
               {state?.errors?.["description"]?.[0]}
@@ -116,8 +129,8 @@ export function SellForm() {
           <Label>Product Images</Label>
           <UploadDropzone
             endpoint="imageUploader"
-            onClientUploadComplete={(res) => {
-              setImages(res.map((item) => item.url));
+            onClientUploadComplete={(res: { url: string }[]) => {
+              setImages(res.map((item: { url: string }) => item.url));
               toast.success("Your images have been uploaded");
             }}
             onUploadError={(error: Error) => {
@@ -126,26 +139,6 @@ export function SellForm() {
           />
           {state?.errors?.["images"]?.[0] && (
             <p className="text-destructive">{state?.errors?.["images"]?.[0]}</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-y-2">
-          <input type="hidden" name="productFile" value={productFile ?? ""} />
-          <Label>Product File</Label>
-          <UploadDropzone
-            onClientUploadComplete={(res) => {
-              SetProductFile(res[0].url);
-              toast.success("Your Product file has been uplaoded!");
-            }}
-            endpoint="productFileUpload"
-            onUploadError={(error: Error) => {
-              toast.error("Something went wrong, try again");
-            }}
-          />
-          {state?.errors?.["productFile"]?.[0] && (
-            <p className="text-destructive">
-              {state?.errors?.["productFile"]?.[0]}
-            </p>
           )}
         </div>
       </CardContent>

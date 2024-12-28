@@ -6,11 +6,12 @@ async function getData() {
   const data = await prisma.product.findMany({
     select: {
       price: true,
-      smallDescription: true,
-      category: true,
+      description: true,
       name: true,
       id: true,
       images: true,
+      latitude: true,
+      longitude: true,
     },
     take: 4,
     orderBy: {
@@ -45,7 +46,9 @@ export async function NewestProducts() {
             id={product.id}
             name={product.name}
             price={product.price}
-            smallDescription={product.smallDescription}
+            description={product.description}
+            latitude={product.latitude}
+            longitude={product.longitude}
           />
         ))}
       </div>

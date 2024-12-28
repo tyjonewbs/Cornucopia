@@ -1,8 +1,7 @@
 "use server";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { ZodStringDef, z } from "zod";
+import { z } from "zod";
 import prisma from "@/lib/db";
-import { type CategoryTypes } from "@prisma/client";
 import { stripe } from "@/lib/stripe";
 import { redirect } from "next/navigation";
 
@@ -17,19 +16,17 @@ export type State = {
 const productSchema = z.object({
   name: z
     .string()
-    .min(3, { message: "The name has to be a min charackter length of 3" }),
-  category: z.string().min(1, { message: "Category is required" }),
-  price: z.number().min(1, { message: "The Price has to be bigger then 1" }),
-  smallDescription: z
+    .min(3, { message: "The name has to be a min character length of 3" }),
+  price: z.number().min(1, { message: "The Price has to be bigger than 1" }),
+  description: z
     .string()
-    .min(10, { message: "Please summerize your product more" }),
-  description: z.string().min(10, { message: "Description is required" }),
+    .min(10, { message: "Please describe your product in detail" }),
   images: z.array(z.string(), { message: "Images are required" }),
-  productFile: z
-    .string()
-    .min(1, { message: "Pleaes upload a zip of your product" }),
+  latitude: z.number().nullable(),
+  longitude: z.number().nullable()
 });
 
+// Rest of the schemas remain unchanged
 const userSettingsSchema = z.object({
   firstName: z
     .string()
@@ -54,12 +51,11 @@ export async function SellProduct(prevState: any, formData: FormData) {
 
   const validateFields = productSchema.safeParse({
     name: formData.get("name"),
-    category: formData.get("category"),
     price: Number(formData.get("price")),
-    smallDescription: formData.get("smallDescription"),
     description: formData.get("description"),
     images: JSON.parse(formData.get("images") as string),
-    productFile: formData.get("productFile"),
+    latitude: formData.get("latitude") ? Number(formData.get("latitude")) : null,
+    longitude: formData.get("longitude") ? Number(formData.get("longitude")) : null
   });
 
   if (!validateFields.success) {
@@ -75,58 +71,16 @@ export async function SellProduct(prevState: any, formData: FormData) {
   const data = await prisma.product.create({
     data: {
       name: validateFields.data.name,
-      category: validateFields.data.category as CategoryTypes,
-      smallDescription: validateFields.data.smallDescription,
+      description: validateFields.data.description,
       price: validateFields.data.price,
       images: validateFields.data.images,
-      productFile: validateFields.data.productFile,
       userId: user.id,
-      description: JSON.parse(validateFields.data.description),
+      latitude: validateFields.data.latitude,
+      longitude: validateFields.data.longitude
     },
   });
 
   return redirect(`/product/${data.id}`);
-}
-
-export async function UpdateUserSettings(prevState: any, formData: FormData) {
-  const { getUser } = getKindeServerSession();
-  const user = await getUser();
-
-  if (!user) {
-    throw new Error("something went wrong");
-  }
-
-  const validateFields = userSettingsSchema.safeParse({
-    firstName: formData.get("firstName"),
-    lastName: formData.get("lastName"),
-  });
-
-  if (!validateFields.success) {
-    const state: State = {
-      status: "error",
-      errors: validateFields.error.flatten().fieldErrors,
-      message: "Oops, I think there is a mistake with your inputs.",
-    };
-
-    return state;
-  }
-
-  const data = await prisma.user.update({
-    where: {
-      id: user.id,
-    },
-    data: {
-      firstName: validateFields.data.firstName,
-      lastName: validateFields.data.lastName,
-    },
-  });
-
-  const state: State = {
-    status: "success",
-    message: "Your Settings have been updated",
-  };
-
-  return state;
 }
 
 export async function BuyProduct(formData: FormData) {
@@ -137,10 +91,9 @@ export async function BuyProduct(formData: FormData) {
     },
     select: {
       name: true,
-      smallDescription: true,
+      description: true,
       price: true,
       images: true,
-      productFile: true,
       User: {
         select: {
           connectedAccountId: true,
@@ -158,16 +111,13 @@ export async function BuyProduct(formData: FormData) {
           unit_amount: Math.round((data?.price as number) * 100),
           product_data: {
             name: data?.name as string,
-            description: data?.smallDescription,
+            description: data?.description,
             images: data?.images,
           },
         },
         quantity: 1,
       },
     ],
-    metadata: {
-      link: data?.productFile as string,
-    },
 
     payment_intent_data: {
       application_fee_amount: Math.round((data?.price as number) * 100) * 0.1,
@@ -187,6 +137,7 @@ export async function BuyProduct(formData: FormData) {
 
   return redirect(session.url as string);
 }
+
 
 export async function CreateStripeAccoutnLink() {
   const { getUser } = getKindeServerSession();
