@@ -1,159 +1,156 @@
-"use client"
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Button } from "./ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import { MapPin } from "lucide-react";
+import { useEffect, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { debounce } from 'lodash';
 
-const customIcon = L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
-
-interface Product {
+interface Location {
   id: string;
   name: string;
-  price: number;
-  description: string;
-  images: string[];
-  latitude: number | null;
-  longitude: number | null;
-  distance?: number;
+  latitude: number;
+  longitude: number;
+  locationName: string;
+  locationGuide: string;
 }
 
 interface MapViewProps {
-  products: Product[];
+  marketStands: Location[];
 }
 
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; // Earth's radius in km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
+export default function MapView({ marketStands }: MapViewProps) {
+  const mapRef = useRef<L.Map | null>(null);
 
-export default function MapView({ products }: MapViewProps) {
-  const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([51.505, -0.09]); // Default to London
-  const [mapKey, setMapKey] = useState(0); // Used to force map re-render
+  // Create custom marker icon
+  const createCustomIcon = () => {
+    return L.divIcon({
+      className: 'custom-marker',
+      html: `
+        <div style="
+          width: 2rem;
+          height: 2rem;
+          background: hsl(var(--primary));
+          color: hsl(var(--primary-foreground));
+          border-radius: 9999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          transform: translate(-50%, -50%);
+        ">
+          <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    });
+  };
+
+  // Handle map resize
+  const handleResize = useCallback(
+    debounce(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    }, 100),
+    []
+  );
 
   useEffect(() => {
-    // Get user's location when component mounts
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const newLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          setUserLocation(newLocation);
-          setMapCenter([newLocation.lat, newLocation.lng]);
-          setMapKey(prev => prev + 1);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-        }
-      );
-    }
-  }, []);
+    if (typeof window !== 'undefined') {
+      if (!mapRef.current) {
+        mapRef.current = L.map('map', {
+          zoomControl: false, // We'll add it manually to the top-right
+          attributionControl: false // We'll add it manually to the bottom-right
+        }).setView([marketStands[0].latitude, marketStands[0].longitude], 13);
 
-  const productsWithDistance = products.map(product => ({
-    ...product,
-    distance: userLocation && product.latitude && product.longitude
-      ? calculateDistance(
-          userLocation.lat,
-          userLocation.lng,
-          product.latitude,
-          product.longitude
-        )
-      : undefined
-  }));
+        // Add zoom control to the top-right
+        L.control.zoom({ position: 'topright' }).addTo(mapRef.current);
+
+        // Add attribution control to the bottom-right
+        L.control.attribution({
+          position: 'bottomright',
+          prefix: '© OpenStreetMap contributors'
+        }).addTo(mapRef.current);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapRef.current);
+      }
+
+      // Clear existing markers
+      mapRef.current.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+          mapRef.current?.removeLayer(layer);
+        }
+      });
+
+      const customIcon = createCustomIcon();
+
+      // Add markers for each market stand
+      marketStands.forEach((stand) => {
+        const marker = L.marker([stand.latitude, stand.longitude], { icon: customIcon })
+          .addTo(mapRef.current!)
+          .bindPopup(`
+            <div class="p-2">
+              <h3 class="font-bold text-lg mb-1">${stand.name}</h3>
+              <p class="font-medium text-sm mb-1">${stand.locationName}</p>
+              <p class="text-sm text-gray-600">${stand.locationGuide}</p>
+            </div>
+          `, {
+            maxWidth: 300,
+            className: 'rounded-lg shadow-lg'
+          });
+      });
+
+      // If only one market stand, center on it
+      if (marketStands.length === 1) {
+        mapRef.current.setView([marketStands[0].latitude, marketStands[0].longitude], 15);
+      }
+      // If multiple stands, fit bounds to include all
+      else if (marketStands.length > 1) {
+        const bounds = L.latLngBounds(marketStands.map(stand => [stand.latitude, stand.longitude]));
+        mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+      }
+
+      // Add resize listener
+      window.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [marketStands, handleResize]);
 
   return (
-    <div className="space-y-4">
-      <Button 
-        variant="outline"
-        onClick={() => {
-          if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                const newLocation = {
-                  lat: position.coords.latitude,
-                  lng: position.coords.longitude
-                };
-                setUserLocation(newLocation);
-                setMapCenter([newLocation.lat, newLocation.lng]);
-                setMapKey(prev => prev + 1);
-              }
-            );
-          }
-        }}
-      >
-        <MapPin className="h-4 w-4 mr-2" />
-        Update My Location
-      </Button>
-
-      <div className="h-[600px] rounded-lg overflow-hidden">
-        <MapContainer
-          key={mapKey}
-          center={mapCenter}
-          zoom={13}
-          className="h-full w-full"
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {productsWithDistance.map((product) => (
-            product.latitude && product.longitude ? (
-              <Marker 
-                key={product.id}
-                position={[product.latitude, product.longitude]}
-                icon={customIcon}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <h3 className="font-semibold">{product.name}</h3>
-                    <p className="text-sm text-gray-600">${product.price}</p>
-                    {userLocation && product.distance && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        {product.distance.toFixed(1)} km away
-                      </p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ) : null
-          ))}
-          {userLocation && (
-            <Marker
-              position={[userLocation.lat, userLocation.lng]}
-              icon={customIcon}
-            >
-              <Popup>Your Location</Popup>
-            </Marker>
-          )}
-        </MapContainer>
-      </div>
+    <div id="map" className="w-full h-full">
+      <style jsx global>{`
+        .custom-marker {
+          background: none;
+          border: none;
+        }
+        .leaflet-popup-content-wrapper {
+          border-radius: 0.75rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          padding: 0;
+          overflow: hidden;
+        }
+        .leaflet-popup-content {
+          margin: 0;
+        }
+        .leaflet-popup-tip {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .leaflet-container {
+          font-family: inherit;
+        }
+      `}</style>
     </div>
   );
 }
