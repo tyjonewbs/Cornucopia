@@ -78,7 +78,7 @@ export default async function ProductPage({
 }) {
   noStore();
   const isQRAccess = searchParams.qr === 'true';
-  const data = await getData(params.id, isQRAccess);
+  const data = await getData(decodeURIComponent(params.id), isQRAccess);
 
   // Convert string description to JSONContent format
   const descriptionContent: JSONContent = {
@@ -146,7 +146,7 @@ export default async function ProductPage({
                 </p>
               </div>
               <Link 
-                href={`/navigate/${data.marketStand.id}`}
+                href={`/navigate/${encodeURIComponent(data.marketStand.id)}`}
                 className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors text-center"
               >
                 <MapPin className="h-4 w-4" />

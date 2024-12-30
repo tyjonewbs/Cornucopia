@@ -1,0 +1,23 @@
+<svg width="400" height="100" viewBox="0 0 400 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Wave line -->
+  <path 
+    d="M20 40 Q100 40, 150 20, 200 30, 250 20, 300 30, 350 20, 380 30" 
+    stroke="#2E7D32" 
+    stroke-width="8" 
+    stroke-linecap="round"
+    fill="none"
+  />
+  
+  <!-- Text with better positioning -->
+  <text 
+    x="20" 
+    y="85" 
+    font-family="Arial" 
+    font-size="48" 
+    font-weight="bold" 
+    fill="#2E7D32"
+    letter-spacing="2"
+  >
+    CORNUCOPIA
+  </text>
+</svg>

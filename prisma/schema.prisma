@@ -9,25 +9,44 @@ datasource db {
 }
 
 model User {
-  id                    String    @id @unique
+  id                    String       @id @unique
   email                 String
   firstName             String
   lastName              String
   profileImage          String
-  connectedAccountId    String    @unique
-  stripeConnectedLinked Boolean   @default(false)
-  Product               Product[]
+  connectedAccountId    String?
+  stripeConnectedLinked Boolean      @default(false)
+  products             Product[]
+  marketStand          MarketStand?
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  name        String
-  price       Int
-  description String
-  images      String[]
-  createdAt   DateTime @default(now())
-  userId      String?
-  latitude    Float?
-  longitude   Float?
-  User        User?    @relation(fields: [userId], references: [id])
+  id            String      @id @default(uuid())
+  name          String
+  price         Int
+  description   String
+  images        String[]
+  inventory         Int         @default(0)
+  inventoryUpdatedAt DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  marketStand   MarketStand @relation("ProductToMarketStand", fields: [marketStandId], references: [id])
+  marketStandId String
+}
+
+model MarketStand {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  images        String[]
+  latitude      Float
+  longitude     Float
+  locationName  String
+  locationGuide String
+  createdAt     DateTime  @default(now())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  products      Product[] @relation("ProductToMarketStand")
 }

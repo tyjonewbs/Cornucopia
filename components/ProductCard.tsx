@@ -1,97 +1,110 @@
-import { Button } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin } from "lucide-react";
+'use client';
+
+import { Skeleton } from "./ui/skeleton";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface iAppProps {
   images: string[];
   name: string;
-  price: number;
-  description: string;
   id: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  distance?: number;
+  locationName: string;
+  updatedAt: Date;
+  inventory?: number;
+  marketStandId: string;
+  isQRAccess?: boolean;
 }
 
 export function ProductCard({
   images,
   id,
-  price,
-  description,
   name,
-  latitude,
-  longitude,
-  distance,
+  locationName,
+  updatedAt,
+  inventory,
+  marketStandId,
+  isQRAccess = false,
 }: iAppProps) {
+  const [timeElapsed, setTimeElapsed] = useState('00:00');
+
+  useEffect(() => {
+    const calculateTime = () => {
+      const now = new Date();
+      const updated = new Date(updatedAt);
+      const diff = Math.floor((now.getTime() - updated.getTime()) / 1000); // difference in seconds
+      
+      const days = Math.floor(diff / 86400);
+      const hours = Math.floor((diff % 86400) / 3600);
+      const minutes = Math.floor((diff % 3600) / 60);
+      const seconds = diff % 60;
+
+      // First hour: show minutes:seconds
+      if (diff < 3600) {
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+      // Next two days: show hours:minutes
+      else if (days < 2) {
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      }
+      // After two days: show days
+      else {
+        return `${days}d ago`;
+      }
+    };
+
+    // Initial calculation
+    setTimeElapsed(calculateTime());
+
+    // Update every second
+    const interval = setInterval(() => {
+      setTimeElapsed(calculateTime());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [updatedAt]);
+
   return (
-    <div className="rounded-lg">
-      <Carousel className="w-full mx-auto">
-        <CarouselContent>
-          {images.map((item, index) => (
-            <CarouselItem key={index}>
-              <div className="relative h-[230px]">
-                <Image
-                  alt="Product image"
-                  src={item}
-                  fill
-                  className="object-cover w-full h-full rounded-lg"
-                />
+    <Link 
+      href={`/product/${encodeURIComponent(id)}${isQRAccess ? '?qr=true' : ''}`}
+      className="block"
+    >
+      <div className="rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+        <div className="relative h-[200px]">
+          <div className="absolute top-2 right-2 flex gap-2 z-10">
+            <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-1.5 rounded-md text-sm font-mono">
+              {timeElapsed}
+            </div>
+            {typeof inventory === 'number' && (
+              <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-1.5 rounded-md text-sm">
+                {inventory} left
               </div>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious className="ml-16" />
-        <CarouselNext className="mr-16" />
-      </Carousel>
-
-      <div className="flex justify-between items-center mt-2">
-        <h1 className="font-semibold text-xl">{name}</h1>
-        <h3 className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/10">
-          ${price}
-        </h3>
-      </div>
-
-      <p className="text-gray-600 line-clamp-2 text-sm mt-2">
-        {description}
-      </p>
-
-      {(latitude && longitude) && (
-        <div className="flex items-center gap-x-2 text-sm text-muted-foreground mt-2">
-          <MapPin className="h-4 w-4" />
-          {distance !== undefined ? (
-            <span>{distance.toFixed(1)} km away</span>
-          ) : (
-            <span>{latitude.toFixed(2)}, {longitude.toFixed(2)}</span>
-          )}
+            )}
+          </div>
+          <Image
+            alt={name}
+            src={images[0]}
+            fill
+            className="object-cover"
+          />
         </div>
-      )}
-
-      <Button asChild className="w-full mt-5">
-        <Link href={`/product/${id}`}>Learn More!</Link>
-      </Button>
-    </div>
+        <div className="p-3 bg-white">
+          <h2 className="font-semibold text-lg">{name}</h2>
+          <p className="text-gray-600 text-sm mt-1">{locationName}</p>
+        </div>
+      </div>
+    </Link>
   );
 }
 
 export function LoadingProductCard() {
   return (
-    <div className="flex flex-col">
-      <Skeleton className="w-full h-[230px]" />
-      <div className="flex flex-col mt-2 gap-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="w-full h-6" />
+    <div className="rounded-lg overflow-hidden shadow-md">
+      <Skeleton className="w-full h-[200px]" />
+      <div className="p-3">
+        <Skeleton className="h-6 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-1/2" />
       </div>
-
-      <Skeleton className="w-full h-10 mt-5" />
     </div>
   );
 }

@@ -1,61 +1,84 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+"use client";
+
+import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
+} from "./ui/dropdown-menu";
+import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import Link from "next/link";
+import { LogIn } from "lucide-react";
 
-interface iAppProps {
-  email: string;
-  name: string;
-  userImage: string | undefined;
-}
+export function UserNav() {
+  const { user, isAuthenticated, isLoading } = useKindeBrowserClient();
 
-export function UserNav({ email, name, userImage }: iAppProps) {
+  if (isLoading) {
+    return (
+      <Button variant="ghost" size="sm" className="relative">
+        <Avatar className="h-8 w-8">
+          <AvatarFallback>...</AvatarFallback>
+        </Avatar>
+      </Button>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center gap-4">
+        <Link href="/api/auth/login">
+          <Button variant="secondary" size="sm">
+            Login
+          </Button>
+        </Link>
+        <Link href="/api/auth/register">
+          <Button variant="default" size="sm">
+            Sign Up
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={userImage} alt="User Image" />
-            <AvatarFallback>{name.slice(0, 3)}</AvatarFallback>
+        <Button variant="ghost" size="sm" className="relative">
+          <Avatar className="h-8 w-8">
+            <img
+              src={user?.picture || ''}
+              alt={user?.given_name || 'User'}
+              className="h-full w-full rounded-full"
+            />
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{name}</p>
+            <p className="text-sm font-medium leading-none">{user?.given_name}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              jan@alenix.de
+              {user?.email}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="/sell">Sell your Product</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/settings">Settings</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="my-products">My Products</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/billing">Billing</Link>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
+        <DropdownMenuItem asChild>
+          <Link href="/sell">Sell My Products</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard">Dashboard</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/settings">Settings</Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <LogoutLink>Log out</LogoutLink>
+          <Link href="/api/auth/logout">Logout</Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

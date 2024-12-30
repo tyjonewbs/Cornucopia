@@ -59,7 +59,7 @@ export default async function NavigatePage({
   params: { id: string };
 }) {
   noStore();
-  const marketStand = await getData(params.id);
+  const marketStand = await getData(decodeURIComponent(params.id));
 
   if (!marketStand) {
     return (

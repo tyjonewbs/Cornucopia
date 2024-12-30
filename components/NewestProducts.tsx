@@ -1,5 +1,5 @@
 import Link from "next/link";
-import prisma from "@/lib/db";
+import prisma from "../lib/db";
 import { ProductCard } from "./ProductCard";
 
 async function getData() {
@@ -10,12 +10,18 @@ async function getData() {
       name: true,
       id: true,
       images: true,
-      latitude: true,
-      longitude: true,
+      updatedAt: true,
+      inventory: true,
+      marketStand: {
+        select: {
+          id: true,
+          locationName: true
+        }
+      }
     },
     take: 4,
     orderBy: {
-      createdAt: "desc",
+      updatedAt: "desc",
     },
   });
 
@@ -45,10 +51,10 @@ export async function NewestProducts() {
             key={product.id}
             id={product.id}
             name={product.name}
-            price={product.price}
-            description={product.description}
-            latitude={product.latitude}
-            longitude={product.longitude}
+            locationName={product.marketStand.locationName}
+            updatedAt={product.updatedAt}
+            inventory={product.inventory}
+            marketStandId={product.marketStand.id}
           />
         ))}
       </div>

@@ -1,13 +1,19 @@
-import prisma from "@/lib/db";
+import prisma from "../lib/db";
 import { LoadingProductCard, ProductCard } from "./ProductCard";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "./ui/skeleton";
 
 interface ProductRowProps {
   title: string;
   link: string;
   userLocation?: { lat: number; lng: number } | null;
+}
+
+interface MarketStand {
+  name: string;
+  latitude: number;
+  longitude: number;
 }
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -25,32 +31,45 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 async function getData({ userLocation }: { userLocation?: { lat: number; lng: number } | null }) {
   const data = await prisma.product.findMany({
     select: {
-      price: true,
       name: true,
-      description: true,
       id: true,
       images: true,
-      latitude: true,
-      longitude: true,
+      updatedAt: true,
+      marketStand: {
+        select: {
+          id: true,
+          name: true,
+          latitude: true,
+          longitude: true,
+        }
+      }
     },
     take: 6,
+    orderBy: {
+      updatedAt: 'desc'
+    }
   });
 
   if (userLocation && userLocation.lat && userLocation.lng) {
-    return data.map(product => ({
-      ...product,
-      distance: product.latitude && product.longitude 
-        ? calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
-            product.latitude,
-            product.longitude
-          )
-        : Infinity
-    })).sort((a, b) => a.distance - b.distance);
+    return data.map(product => {
+      const distance = product.marketStand ? calculateDistance(
+        userLocation.lat,
+        userLocation.lng,
+        product.marketStand.latitude,
+        product.marketStand.longitude
+      ) : Infinity;
+
+      return {
+        ...product,
+        locationName: product.marketStand ? product.marketStand.name : 'Unknown Location'
+      };
+    });
   }
 
-  return data;
+  return data.map(product => ({
+    ...product,
+    locationName: product.marketStand?.name || 'Unknown Location'
+  }));
 }
 
 export function ProductRow({ title, link, userLocation }: ProductRowProps) {
@@ -86,11 +105,9 @@ async function LoadRows({ title, link, userLocation }: ProductRowProps) {
             images={product.images}
             id={product.id}
             name={product.name}
-            price={product.price}
-            description={product.description}
-            latitude={product.latitude}
-            longitude={product.longitude}
-            distance={'distance' in product ? product.distance : undefined}
+            locationName={product.locationName}
+            updatedAt={product.updatedAt}
+            marketStandId={product.marketStand.id}
           />
         ))}
       </div>
