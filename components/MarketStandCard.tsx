@@ -1,4 +1,5 @@
 import { Card } from "./ui/card";
+import { Button } from "./ui/button";
 import Image from "next/image";
 import { MapPin, Package, QrCode } from "lucide-react";
 import Link from "next/link";
@@ -91,13 +92,16 @@ export function MarketStandCard({
               <Package className="h-4 w-4" />
               {products.length} products
             </div>
-            <button
+            <Button
               onClick={() => setShowQR(!showQR)}
-              className="flex items-center gap-1 hover:text-primary transition-colors"
+              variant="ghost"
+              size="sm"
+              className="h-auto p-0 font-normal hover:bg-transparent"
+              aria-label={showQR ? 'Hide QR code' : 'Show QR code'}
             >
-              <QrCode className="h-4 w-4" />
-              {showQR ? 'Hide QR' : 'Show QR'}
-            </button>
+              <QrCode className="h-4 w-4 mr-1" />
+              <span>{showQR ? 'Hide QR' : 'Show QR'}</span>
+            </Button>
           </div>
         </div>
 

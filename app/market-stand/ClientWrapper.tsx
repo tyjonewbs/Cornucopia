@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { MapPin, List } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import {
@@ -12,15 +11,7 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 import { MarketStandCard } from "../../components/MarketStandCard";
-
-// Dynamic import for MapView to handle SSR
-const MapView = dynamic(
-  () => import('../../components/MapView'),
-  {
-    ssr: false,
-    loading: () => <div className="h-[600px] animate-pulse bg-gray-200 rounded-lg" />
-  }
-);
+import MarketStandsMap from "../../components/MarketStandsMap";
 
 interface Product {
   id: string;
@@ -151,7 +142,7 @@ export function ClientWrapper({ marketStands }: ClientWrapperProps) {
 
       {/* Current View */}
       {currentView === 'map' ? (
-        <MapView marketStands={sortedStands} />
+        <MarketStandsMap marketStands={sortedStands} />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 gap-6">
           {sortedStands.map((stand) => (

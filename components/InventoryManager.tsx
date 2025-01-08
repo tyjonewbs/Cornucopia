@@ -71,27 +71,39 @@ export function InventoryManager({ productId, currentInventory, lastUpdated, isO
           <h3 className="text-sm font-medium">Update Inventory</h3>
           <div className="flex items-center gap-4">
             <Input
+              id="inventory-amount"
               type="number"
               min="0"
               value={inventory}
               onChange={(e) => setInventory(Number(e.target.value))}
               className="w-24"
+              aria-label="New inventory amount"
+              aria-describedby={error ? "inventory-error" : undefined}
             />
             <Button 
               onClick={handleUpdate} 
               disabled={isLoading || inventory === currentInventory}
+              size="sm"
+              aria-label={isLoading ? "Updating inventory..." : "Update inventory"}
             >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
+                  <span>Updating...</span>
                 </>
               ) : (
                 "Update"
               )}
             </Button>
           </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && (
+            <p 
+              id="inventory-error" 
+              className="text-sm font-medium text-destructive mt-1.5"
+            >
+              {error}
+            </p>
+          )}
         </div>
       )}
     </div>

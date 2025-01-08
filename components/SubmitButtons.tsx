@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "components/ui/button";
+import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 import { useFormStatus } from "react-dom";
 
@@ -10,12 +10,22 @@ export function Submitbutton({ title, disabled }: { title: string; disabled?: bo
   return (
     <>
       {pending || disabled ? (
-        <Button disabled={true}>
+        <Button 
+          disabled={true}
+          aria-label="Form submission in progress"
+          className="min-w-[100px]"
+        >
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Please Wait
+          Submitting...
         </Button>
       ) : (
-        <Button type="submit">{title}</Button>
+        <Button 
+          type="submit"
+          aria-label={title}
+          className="min-w-[100px]"
+        >
+          {title}
+        </Button>
       )}
     </>
   );
@@ -27,13 +37,23 @@ export function BuyButton({ price }: { price: number }) {
   return (
     <>
       {pending ? (
-        <Button disabled size="lg" className="w-full mt-10">
+        <Button 
+          disabled 
+          size="lg" 
+          className="w-full mt-10"
+          aria-label="Purchase in progress"
+        >
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Please Wait
+          Processing...
         </Button>
       ) : (
-        <Button type="submit" size="lg" className="w-full mt-10">
-          Buy for ${price}
+        <Button 
+          type="submit" 
+          size="lg" 
+          className="w-full mt-10"
+          aria-label={`Buy for ${price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`}
+        >
+          Buy for {price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
         </Button>
       )}
     </>

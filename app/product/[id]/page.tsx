@@ -4,7 +4,7 @@ import { BuyButton } from "../../../components/SubmitButtons";
 import prisma from "../../../lib/db";
 import { Button } from "../../../components/ui/button";
 import { unstable_noStore as noStore } from "next/cache";
-import { MapPin, Package } from "lucide-react";
+import { MapPin, Package, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { ProductCard } from "../../../components/ProductCard";
 import { InventoryManager } from "../../../components/InventoryManager";
@@ -39,6 +39,8 @@ async function getData(id: string, isQRAccess: boolean) {
           id: true,
           profileImage: true,
           firstName: true,
+          connectedAccountId: true,
+          stripeConnectedLinked: true,
         },
       },
       marketStand: {
@@ -125,15 +127,30 @@ export default async function ProductPage({
         <p className="mt-2 text-muted-foreground mb-6">{data?.description}</p>
         <div className="flex flex-col gap-4">
           {isQRAccess ? (
-            <form action={async (formData: FormData) => {
-              await SellProduct({
-                status: undefined,
-                message: null
-              }, formData);
-            }}>
-              <input type="hidden" name="id" value={data?.id} />
-              <BuyButton price={Number(data?.price)} />
-            </form>
+            <>
+              {!data?.user?.stripeConnectedLinked && (
+                <div className="bg-yellow-50 text-yellow-800 p-4 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Payment Not Available</p>
+                    <p className="text-sm mt-1">
+                      This seller hasn&apos;t set up their payment account yet. You can view the product details, but purchases are temporarily unavailable.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {data?.user?.stripeConnectedLinked && (
+                <form action={async (formData: FormData) => {
+                  await SellProduct({
+                    status: undefined,
+                    message: null
+                  }, formData);
+                }}>
+                  <input type="hidden" name="id" value={data?.id} />
+                  <BuyButton price={Number(data?.price)} />
+                </form>
+              )}
+            </>
           ) : data?.marketStand ? (
             <>
               <div className="bg-muted p-4 rounded-lg text-sm">

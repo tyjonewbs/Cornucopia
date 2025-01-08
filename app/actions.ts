@@ -89,7 +89,6 @@ function validateMarketStandData(data: any): MarketStandData {
   };
 }
 
-
 const productSchema = z.object({
   name: z
     .string()
@@ -238,46 +237,8 @@ export async function SellProduct(
     throw new Error("Failed to create/update product");
   }
 
-  if (!product.user.connectedAccountId) {
-    throw new Error("Seller has not set up their payment account yet");
-  }
-
-  // Price is already in cents from our schema transformation
-  const sessionConfig: Stripe.Checkout.SessionCreateParams = {
-    mode: 'payment' as const,
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          unit_amount: product.price,
-          product_data: {
-            name: product.name,
-            description: product.description,
-            images: product.images,
-          },
-        },
-        quantity: 1,
-      },
-    ],
-    payment_intent_data: {
-      application_fee_amount: Math.round(product.price * 0.1),
-      transfer_data: {
-        destination: asStripeAccountId(product.user.connectedAccountId),
-      },
-    },
-    success_url:
-      process.env.NODE_ENV === "development"
-        ? "http://localhost:3000/payment/success"
-        : "https://cornucopia.vercel.app/payment/success",
-    cancel_url:
-      process.env.NODE_ENV === "development"
-        ? "http://localhost:3000/payment/cancel"
-        : "https://cornucopia.vercel.app/payment/cancel",
-  };
-
-  const session = await stripe.checkout.sessions.create(sessionConfig);
-
-  return redirect(session.url as string);
+  // Redirect to dashboard after successful product creation/update
+  return redirect("/dashboard");
 }
 
 export async function CreateStripeAccoutnLink() {
@@ -526,7 +487,7 @@ export async function CreateMarketStand(prevState: any, formData: FormData): Pro
       return { error: "Failed to create market stand" };
     }
 
-    return redirect("/sell");
+    return redirect("/dashboard");
   } catch (error) {
     console.error('Market stand creation error:', error);
     if (error instanceof Error) {

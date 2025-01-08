@@ -22,8 +22,11 @@ export function PaymentTab({ marketStand, stripeConnected }: PaymentTabProps) {
               <CreditCard className="w-6 h-6 text-primary" />
             </div>
             <h2 className="text-xl font-semibold">Payment Processing</h2>
-            <p className="text-muted-foreground mt-2 mb-6 max-w-md">
-              Connect your Stripe account to receive payments directly from customers. Stripe provides secure payment processing and automatic transfers to your bank account.
+            <p className="text-muted-foreground mt-2 mb-4 max-w-md">
+              You can list products without connecting a Stripe account, but you&apos;ll need to connect one to receive payments from customers.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6 max-w-md">
+              When connected, Stripe provides secure payment processing and automatic transfers to your bank account.
             </p>
           </div>
 
@@ -36,6 +39,12 @@ export function PaymentTab({ marketStand, stripeConnected }: PaymentTabProps) {
             </div>
           ) : (
             <div className="w-full max-w-md">
+              <div className="bg-yellow-50 text-yellow-800 p-4 rounded-lg mb-6">
+                <p className="font-medium">Optional Setup</p>
+                <p className="text-sm mt-1">
+                  You can list products now, but customers won&apos;t be able to make purchases until you connect a Stripe account.
+                </p>
+              </div>
               <StripeConnectButton />
               <p className="text-sm text-muted-foreground mt-4">
                 You&apos;ll be redirected to Stripe to complete the account setup
@@ -53,7 +62,7 @@ export function PaymentTab({ marketStand, stripeConnected }: PaymentTabProps) {
             </div>
             <h2 className="text-xl font-semibold">Market Stand QR Code</h2>
             <p className="text-muted-foreground mt-2 mb-6 max-w-md">
-              Display this QR code at your market stand. When customers scan it, they&apos;ll be able to view your products and make purchases.
+              Display this QR code at your market stand. When customers scan it, they&apos;ll be able to view your products and make purchases once you&apos;ve connected your Stripe account.
             </p>
           </div>
 
@@ -71,11 +80,17 @@ export function PaymentTab({ marketStand, stripeConnected }: PaymentTabProps) {
               <p className="text-muted-foreground">
                 Set up your market stand to get your QR code
               </p>
-              <Link href="/market-stand/setup" className="inline-block mt-4">
-                <Button variant="secondary" size="sm">
+              <Button 
+                variant="secondary" 
+                size="sm"
+                className="mt-4"
+                asChild
+                aria-label="Set up your market stand"
+              >
+                <Link href="/market-stand/setup">
                   Set Up Market Stand
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           )}
         </div>

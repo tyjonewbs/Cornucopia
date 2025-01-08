@@ -1,24 +1,25 @@
 "use client";
 
-import { SellProduct, type State } from "app/actions";
+import { SellProduct, type State } from "../../app/actions";
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "components/ui/card";
-import { Input } from "components/ui/input";
-import { Label } from "components/ui/label";
-import { Button } from "components/ui/button";
+} from "../ui/card";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Button } from "../ui/button";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { MapPin, Plus } from "lucide-react";
+import { MapPin, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { Textarea } from "components/ui/textarea";
-import { UploadDropzone } from "lib/uploadthing";
+import { Textarea } from "../ui/textarea";
+import { UploadDropzone } from "../../lib/uploadthing";
+import { UploadThingError } from "uploadthing/server";
 import { Submitbutton } from "../SubmitButtons";
 import {
   Select,
@@ -26,7 +27,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "components/ui/select";
+} from "../ui/select";
 
 interface MarketStand {
   id: string;
@@ -53,12 +54,10 @@ interface SellFormProps {
   productId?: string;
 }
 
-// Helper function to check if the state is a State type
 function isState(state: State | Response): state is State {
   return (state as State).status !== undefined;
 }
 
-// Wrapper for the server action to handle the correct types
 const sellProductAction = async (state: State | Response, formData: FormData) => {
   const result = await SellProduct(state as State, formData);
   return result;
@@ -96,19 +95,21 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
           Please describe your product here in detail so that it can be sold
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-y-10">
+      <CardContent className="flex flex-col gap-y-8">
         <div className="flex flex-col gap-y-2">
-          <Label>Name</Label>
+          <Label htmlFor="name">Name</Label>
           <Input
+            id="name"
             name="name"
             type="text"
             placeholder="Name of your Product"
             required
             minLength={3}
             defaultValue={initialData?.name}
+            aria-label="Product name"
           />
           {isState(state) && state.errors?.name?.[0] && (
-            <p className="text-destructive">{state.errors.name[0]}</p>
+            <p className="text-sm font-medium text-destructive mt-1.5">{state.errors.name[0]}</p>
           )}
         </div>
 
@@ -131,45 +132,51 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div className="flex flex-col gap-y-2">
-            <Label>Price</Label>
+            <Label htmlFor="price">Price</Label>
             <Input
+              id="price"
               placeholder="29$"
               type="number"
               name="price"
               required
               min={1}
               defaultValue={initialData?.price}
+              aria-label="Product price"
             />
             {isState(state) && state.errors?.price?.[0] && (
-              <p className="text-destructive">{state.errors.price[0]}</p>
+              <p className="text-sm font-medium text-destructive mt-1.5">{state.errors.price[0]}</p>
             )}
           </div>
 
           <div className="flex flex-col gap-y-2">
-            <Label>Initial Inventory</Label>
+            <Label htmlFor="inventory">Initial Inventory</Label>
             <Input
+              id="inventory"
               placeholder="0"
               type="number"
               name="inventory"
               min={0}
               defaultValue={initialData?.inventory ?? 0}
+              aria-label="Initial inventory amount"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-y-2">
-          <Label>Description</Label>
+          <Label htmlFor="description">Description</Label>
           <Textarea
+            id="description"
             name="description"
             placeholder="Please describe your product in detail..."
             required
             minLength={10}
             defaultValue={initialData?.description}
+            aria-label="Product description"
           />
           {isState(state) && state.errors?.description?.[0] && (
-            <p className="text-destructive">
+            <p className="text-sm font-medium text-destructive mt-1.5">
               {state.errors.description[0]}
             </p>
           )}
@@ -179,22 +186,23 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
           <input type="hidden" name="images" value={JSON.stringify(images)} />
           <Label>Product Images</Label>
           {images.length > 0 && (
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               {images.map((url, index) => (
-                <div key={index} className="relative aspect-square">
+                <div key={index} className="relative aspect-square group">
                   <img
                     src={url}
                     alt={`Product image ${index + 1}`}
-                    className="object-cover rounded-lg"
+                    className="object-cover rounded-lg w-full h-full"
                   />
                   <Button
                     type="button"
                     variant="destructive"
                     size="icon"
-                    className="absolute top-2 right-2"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => setImages(images.filter((_, i) => i !== index))}
+                    aria-label={`Remove image ${index + 1}`}
                   >
-                    ×
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
@@ -202,16 +210,23 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
           )}
           <UploadDropzone
             endpoint="imageUploader"
-            onClientUploadComplete={(res: { url: string }[]) => {
-              setImages([...images, ...res.map((item: { url: string }) => item.url)]);
-              toast.success("Your images have been uploaded");
+            onClientUploadComplete={(res: Array<{ url: string }>) => {
+              if (!res) return;
+              const newImages = res.map(file => file.url);
+              setImages(prev => [...prev, ...newImages]);
+              toast.success("Images uploaded successfully");
             }}
-            onUploadError={(error: Error) => {
-              toast.error("Something went wrong, try again");
+            onUploadError={(error: UploadThingError) => {
+              toast.error(`Error: ${error.message}`);
             }}
+            config={{ mode: "auto" }}  // Add this
+            appearance={{
+              button: "bg-primary text-white",
+              allowedContent: "hidden"
+            }} 
           />
           {isState(state) && state.errors?.images?.[0] && (
-            <p className="text-destructive">{state.errors.images[0]}</p>
+            <p className="text-sm font-medium text-destructive mt-1.5">{state.errors.images[0]}</p>
           )}
         </div>
       </CardContent>
