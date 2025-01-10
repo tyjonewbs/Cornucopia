@@ -1,53 +1,124 @@
-import prisma from "../../../lib/db";
-import { unstable_noStore as noStore } from "next/cache";
+'use client';
+
+import { useState, useEffect } from 'react';
 import MarketStandsMap from "../../../components/MarketStandsMap";
-import { Button } from "../../../components/ui/button";
-import { MapIcon, List } from "lucide-react";
-import Link from "next/link";
+import { MarketStandViewNav } from "../../../components/MarketStandViewNav";
 
-async function getData() {
-  const marketStands = await prisma.marketStand.findMany({
-    select: {
-      id: true,
-      name: true,
-      locationName: true,
-      latitude: true,
-      longitude: true,
-    }
-  });
-
-  return marketStands;
+interface MarketStand {
+  id: string;
+  name: string;
+  description: string | null;
+  images: string[];
+  latitude: number;
+  longitude: number;
+  locationName: string;
+  locationGuide: string;
+  createdAt: Date;
+  products: Array<{
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    images: string[];
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
+  user: {
+    firstName: string;
+    profileImage: string;
+  };
 }
 
-export default async function MarketStandsMapPage() {
-  noStore();
-  const marketStands = await getData();
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+async function getData() {
+  const res = await fetch('/api/market-stand', { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error('Failed to fetch market stands');
+  }
+  return res.json();
+}
+
+export default function MarketStandsMapPage() {
+  const [marketStands, setMarketStands] = useState<MarketStand[]>([]);
+  const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    getData()
+      .then(data => {
+        setMarketStands(data);
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching market stands:', error);
+        setIsLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+        }
+      );
+    }
+  }, []);
+
+  const standsWithDistance = marketStands.map(stand => ({
+    ...stand,
+    distance: userLocation
+      ? calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          stand.latitude,
+          stand.longitude
+        )
+      : undefined
+  }));
+
+  if (isLoading) {
+    return (
+      <section className="max-w-7xl mx-auto px-4 md:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Market Stands Map</h1>
+          <p className="text-muted-foreground mt-2">Loading...</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Market Stands</h1>
-          <p className="text-muted-foreground mt-2">
-            Discover local market stands near you
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <Link href="/market-stand">
-            <Button variant="outline" size="sm">
-              <List className="h-4 w-4 mr-2" />
-              List View
-            </Button>
-          </Link>
-          <Button variant="default" size="sm" disabled>
-            <MapIcon className="h-4 w-4 mr-2" />
-            Map View
-          </Button>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Market Stands Map</h1>
+        <p className="text-muted-foreground mt-2">
+          Discover local market stands near you
+        </p>
       </div>
 
-      <MarketStandsMap marketStands={marketStands} />
+      <div className="mb-6">
+        <MarketStandViewNav currentView="map" />
+      </div>
+
+      <MarketStandsMap marketStands={standsWithDistance} />
     </section>
   );
 }

@@ -1,9 +1,3 @@
-"use client";
-
-import { useEffect, useRef } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-
 interface MapViewProps {
   latitude: number;
   longitude: number;
@@ -11,38 +5,30 @@ interface MapViewProps {
 }
 
 export default function MapView({ latitude, longitude, locationName }: MapViewProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
+  // Validate coordinates
+  if (typeof latitude !== 'number' || typeof longitude !== 'number' || 
+      isNaN(latitude) || isNaN(longitude)) {
+    console.error('Invalid coordinates:', { latitude, longitude });
+    return (
+      <div className="w-full h-full min-h-[200px] flex items-center justify-center">
+        Invalid coordinates
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (!mapContainer.current) return;
-
-    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
-
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: [longitude, latitude],
-      zoom: 14,
-      interactive: false,
-    });
-
-    // Add marker
-    new mapboxgl.Marker()
-      .setLngLat([longitude, latitude])
-      .setPopup(new mapboxgl.Popup().setHTML(`<h3>${locationName}</h3>`))
-      .addTo(map.current);
-
-    // Cleanup
-    return () => {
-      map.current?.remove();
-    };
-  }, [latitude, longitude, locationName]);
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS || '';
+  const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${latitude},${longitude}&zoom=14`;
 
   return (
-    <div 
-      ref={mapContainer} 
-      className="w-full h-full min-h-[200px]"
+    <iframe
+      width="100%"
+      height="100%"
+      style={{ minHeight: '200px', border: 0 }}
+      loading="lazy"
+      allowFullScreen
+      referrerPolicy="no-referrer-when-downgrade"
+      src={mapUrl}
+      title={`Map showing location of ${locationName}`}
     />
   );
 }

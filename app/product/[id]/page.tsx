@@ -100,23 +100,25 @@ export default async function ProductPage({
 
   return (
     <section className="mx-auto px-4 lg:mt-10 max-w-7xl lg:px-8 lg:grid lg:grid-rows-1 lg:grid-cols-7 lg:gap-x-8 lg:gap-y-10 xl:gap-x-16">
-      <Carousel className="lg:row-end-1 lg:col-span-4">
+      <Carousel className="lg:row-end-1 lg:col-span-4 relative group rounded-lg">
         <CarouselContent>
           {data?.images.map((item, index) => (
             <CarouselItem key={index}>
-              <div className="aspect-w-4 aspect-h-3 rounded-lg bg-gray-100 overflow-hidden">
+              <div className="relative aspect-[4/3] w-full rounded-lg bg-gray-100 overflow-hidden group-hover:shadow-lg transition-all">
                 <Image
                   src={item as string}
                   alt={data?.name || "Product image"}
                   fill
-                  className="object-cover w-full h-full rounded-lg"
+                  className="object-cover rounded-lg transition-transform group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  priority={index === 0}
                 />
               </div>
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="ml-16" />
-        <CarouselNext className="mr-16" />
+        <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white opacity-0 group-hover:opacity-100 transition-all shadow-md hover:scale-110 hover:shadow-lg" />
+        <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white opacity-0 group-hover:opacity-100 transition-all shadow-md hover:scale-110 hover:shadow-lg" />
       </Carousel>
 
       <div className="max-w-2xl mx-auto mt-5 lg:max-w-none lg:mt-0 lg:row-end-2 lg:row-span-2 lg:col-span-3">

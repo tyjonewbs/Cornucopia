@@ -1,12 +1,13 @@
 import prisma from "../../../lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
-import { MapPin, Package, Edit, Clock, Navigation } from "lucide-react";
+import { MapPin, Package, Edit, Clock, Navigation, ChevronLeft, ChevronRight } from "lucide-react";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import Link from "next/link";
 import { Button } from "../../../components/ui/button";
 import { ProductCard } from "../../../components/ProductCard";
 import { Card, CardContent } from "../../../components/ui/card";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../../../components/ui/carousel";
 import MapView from "../../../components/MapView";
 import { Separator } from "../../../components/ui/separator";
 
@@ -79,20 +80,12 @@ export default async function MarketStandPage({
       {/* Header Section */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <img
-            src={marketStand.user.profileImage}
-            alt={marketStand.user.firstName}
-            className="w-12 h-12 rounded-full border-2 border-primary/10"
-          />
           <div>
             <h1 className="text-3xl font-bold">{marketStand.name}</h1>
-            <p className="text-muted-foreground">
-              {marketStand.user.firstName}&apos;s Stand
-            </p>
           </div>
         </div>
         {user?.id === marketStand.userId && (
-          <Link href={`/market-stand/edit/${params.id}`}>
+          <Link href={`/market-stand/${params.id}/edit`}>
             <Button variant="outline" size="sm" className="flex items-center gap-2">
               <Edit className="h-4 w-4" />
               Edit Stand
@@ -104,27 +97,27 @@ export default async function MarketStandPage({
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Image Gallery */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 aspect-video relative rounded-lg overflow-hidden">
-              <Image
-                src={marketStand.images[0]}
-                alt={marketStand.name}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            {marketStand.images.slice(1, 5).map((image, index) => (
-              <div key={index} className="aspect-square relative rounded-lg overflow-hidden">
-                <Image
-                  src={image}
-                  alt={`${marketStand.name} ${index + 2}`}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ))}
+          {/* Image Carousel */}
+          <div className="relative">
+            <Carousel className="w-full">
+              <CarouselContent>
+                {marketStand.images.map((image, index) => (
+                  <CarouselItem key={index}>
+                    <div className="aspect-video relative rounded-lg overflow-hidden">
+                      <Image
+                        src={image}
+                        alt={`${marketStand.name} ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        priority={index === 0}
+                      />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-4" />
+              <CarouselNext className="right-4" />
+            </Carousel>
           </div>
 
           {/* Description */}
@@ -157,7 +150,7 @@ export default async function MarketStandPage({
                   updatedAt={product.updatedAt}
                   inventory={product.inventory}
                   marketStandId={marketStand.id}
-                  isQRAccess={true}
+                  isQRAccess={false}
                 />
               ))}
             </div>
