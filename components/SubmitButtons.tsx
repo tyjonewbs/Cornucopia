@@ -51,9 +51,9 @@ export function BuyButton({ price }: { price: number }) {
           type="submit" 
           size="lg" 
           className="w-full mt-10"
-          aria-label={`Buy for ${price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`}
+          aria-label={`Buy for ${(price / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`}
         >
-          Buy for {price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+          Buy for {(price / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
         </Button>
       )}
     </>

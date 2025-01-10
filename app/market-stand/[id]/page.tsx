@@ -151,6 +151,7 @@ export default async function MarketStandPage({
                   inventory={product.inventory}
                   marketStandId={marketStand.id}
                   isQRAccess={false}
+                  price={product.price}
                 />
               ))}
             </div>

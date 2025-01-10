@@ -10,6 +10,7 @@ interface Product {
   name: string;
   images: string[];
   updatedAt: Date;
+  price: number;
 }
 
 interface MarketStandCardProps {
@@ -71,6 +72,7 @@ export function MarketStandCard({
                   locationName={locationName}
                   updatedAt={product.updatedAt}
                   marketStandId={id}
+                  price={product.price}
                 />
               ))}
             </div>

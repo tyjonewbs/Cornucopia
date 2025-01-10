@@ -137,13 +137,14 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
             <Label htmlFor="price">Price</Label>
             <Input
               id="price"
-              placeholder="29$"
-              type="number"
+              placeholder="29.99"
+              type="text"
+              pattern="^\d*\.?\d{0,2}$"
               name="price"
               required
-              min={1}
               defaultValue={initialData?.price}
               aria-label="Product price"
+              title="Enter a valid price with up to 2 decimal places"
             />
             {isState(state) && state.errors?.price?.[0] && (
               <p className="text-sm font-medium text-destructive mt-1.5">{state.errors.price[0]}</p>

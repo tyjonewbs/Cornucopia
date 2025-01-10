@@ -35,6 +35,7 @@ async function getData({ userLocation }: { userLocation?: { lat: number; lng: nu
       id: true,
       images: true,
       updatedAt: true,
+      price: true,
       marketStand: {
         select: {
           id: true,
@@ -108,6 +109,7 @@ async function LoadRows({ title, link, userLocation }: ProductRowProps) {
             locationName={product.locationName}
             updatedAt={product.updatedAt}
             marketStandId={product.marketStand.id}
+            price={product.price}
           />
         ))}
       </div>

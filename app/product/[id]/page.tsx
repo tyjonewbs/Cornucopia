@@ -61,6 +61,7 @@ async function getData(id: string, isQRAccess: boolean) {
               name: true,
               images: true,
               updatedAt: true,
+              price: true,
             },
             take: isQRAccess ? 4 : 0
           }
@@ -126,7 +127,10 @@ export default async function ProductPage({
           {data?.name}
         </h1>
 
-        <p className="mt-2 text-muted-foreground mb-6">{data?.description}</p>
+        <p className="text-xl font-bold mt-2 mb-6">
+          ${((data?.price || 0) / 100).toFixed(2)}
+        </p>
+
         <div className="flex flex-col gap-4">
           {isQRAccess ? (
             <>
@@ -242,6 +246,7 @@ export default async function ProductPage({
                 updatedAt={product.updatedAt}
                 marketStandId={data.marketStand.id}
                 isQRAccess={true}
+                price={product.price}
               />
             ))}
           </div>
