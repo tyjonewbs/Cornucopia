@@ -70,7 +70,7 @@ export function ProductCard({
       className="block"
     >
       <div className="rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-        <div className="relative h-[200px]">
+        <div className="relative aspect-[4/3] w-full">
           <div className="absolute top-2 right-2 flex gap-2 z-10">
             <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-1.5 rounded-md text-sm font-mono">
               {timeElapsed}
@@ -85,7 +85,10 @@ export function ProductCard({
             alt={name}
             src={images[0]}
             fill
-            className="object-cover"
+            className="object-cover rounded-t-lg"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            priority={false}
+            loading="lazy"
           />
         </div>
         <div className="p-3 bg-white">

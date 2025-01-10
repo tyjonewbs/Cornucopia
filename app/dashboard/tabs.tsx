@@ -75,7 +75,7 @@ export function DashboardTabs({ marketStand, products }: DashboardTabsProps) {
                   </div>
                 </div>
               </div>
-              <Link href="/market-stand/edit">
+              <Link href={`/market-stand/${marketStand.id}/edit`}>
                 <Button variant="outline" size="sm">
                   Edit Market Stand
                 </Button>
