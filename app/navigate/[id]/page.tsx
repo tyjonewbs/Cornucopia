@@ -175,7 +175,11 @@ export default async function NavigatePage({
 
         {/* Right Column - Map */}
         <div className="lg:h-[calc(100vh-12rem)] h-[400px] bg-white rounded-lg shadow-md overflow-hidden">
-          <MapView marketStands={[marketStand]} />
+          <MapView 
+            latitude={marketStand.latitude}
+            longitude={marketStand.longitude}
+            locationName={marketStand.locationName}
+          />
         </div>
       </div>
     </div>

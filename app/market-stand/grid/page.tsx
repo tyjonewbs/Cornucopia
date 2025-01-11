@@ -80,9 +80,27 @@ async function getData() {
 
 export default function MarketStandsGridPage() {
   const [marketStands, setMarketStands] = useState<MarketStand[]>([]);
-  const [sortOrder, setSortOrder] = useState<'newest' | 'products'>('newest');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'distance'>('newest');
+  const [userLocation, setUserLocation] = useState<{latitude: number; longitude: number} | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get user's location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+        }
+      );
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -127,12 +145,27 @@ export default function MarketStandsGridPage() {
     );
   }
 
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  };
+
   const sortedStands = [...marketStands].sort((a, b) => {
     switch (sortOrder) {
       case 'newest':
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case 'products':
-        return b.products.length - a.products.length;
+      case 'distance':
+        if (!userLocation) return 0;
+        const distA = calculateDistance(userLocation.latitude, userLocation.longitude, a.latitude, a.longitude);
+        const distB = calculateDistance(userLocation.latitude, userLocation.longitude, b.latitude, b.longitude);
+        return distA - distB;
       default:
         return 0;
     }
@@ -174,14 +207,14 @@ export default function MarketStandsGridPage() {
           <MarketStandViewNav currentView="grid" />
           <Select
             value={sortOrder}
-            onValueChange={(value: 'newest' | 'products') => setSortOrder(value)}
+            onValueChange={(value: 'newest' | 'distance') => setSortOrder(value)}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="products">Most Products</SelectItem>
+              <SelectItem value="distance">Nearest</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -195,6 +228,13 @@ export default function MarketStandsGridPage() {
               description={stand.description}
               images={stand.images}
               locationName={stand.locationName}
+              distance={userLocation ? 
+                calculateDistance(
+                  userLocation.latitude, 
+                  userLocation.longitude, 
+                  stand.latitude, 
+                  stand.longitude
+                ) : undefined}
               products={stand.products}
             />
           ))}

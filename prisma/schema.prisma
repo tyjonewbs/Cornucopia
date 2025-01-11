@@ -17,7 +17,22 @@ model User {
   connectedAccountId    String?
   stripeConnectedLinked Boolean      @default(false)
   products             Product[]
-  marketStand          MarketStand?
+  marketStand          MarketStand[]
+}
+
+model MarketStand {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  images        String[]
+  latitude      Float
+  longitude     Float
+  locationName  String
+  locationGuide String
+  createdAt     DateTime  @default(now())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  products      Product[] @relation("ProductToMarketStand")
 }
 
 model Product {
@@ -34,19 +49,4 @@ model Product {
   user          User        @relation(fields: [userId], references: [id])
   marketStand   MarketStand @relation("ProductToMarketStand", fields: [marketStandId], references: [id])
   marketStandId String
-}
-
-model MarketStand {
-  id            String    @id @default(uuid())
-  name          String
-  description   String?
-  images        String[]
-  latitude      Float
-  longitude     Float
-  locationName  String
-  locationGuide String
-  createdAt     DateTime  @default(now())
-  userId        String    @unique
-  user          User      @relation(fields: [userId], references: [id])
-  products      Product[] @relation("ProductToMarketStand")
 }

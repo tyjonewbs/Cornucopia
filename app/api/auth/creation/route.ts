@@ -1,5 +1,5 @@
-import prisma from "@/lib/db";
-import { stripe } from "@/lib/stripe";
+import prisma from "../../../lib/db.ts";
+import { stripe } from "../../../lib/stripe.ts";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { NextResponse } from "next/server";
 import { unstable_noStore as noStore } from "next/cache";

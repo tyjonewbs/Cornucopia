@@ -5,6 +5,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-04-10", // Keep the version that matches the installed package
+  apiVersion: "2023-10-16", // API version for Stripe v15.12.0
   typescript: true,
 });
