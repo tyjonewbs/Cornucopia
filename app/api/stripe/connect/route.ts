@@ -43,14 +43,35 @@ export async function POST() {
       account = await stripe.accounts.create({
         type: "express",
         country: "US",
+        email: user.email || undefined,
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
         },
-        business_type: "individual",
+        tos_acceptance: {
+          service_agreement: 'recipient'
+        }
       });
     } catch (error) {
-      console.error("[STRIPE_CONNECT_ERROR] Failed to create Stripe account:", error);
+      console.error("[STRIPE_CONNECT_ERROR] Failed to create Stripe account:", {
+        error,
+        user: {
+          id: user.id,
+          email: user.email,
+        },
+        requestData: {
+          type: "express",
+          country: "US",
+          email: user.email || undefined,
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+          tos_acceptance: {
+            service_agreement: 'recipient'
+          }
+        }
+      });
       return new NextResponse("Failed to create Stripe account", { status: 500 });
     }
 

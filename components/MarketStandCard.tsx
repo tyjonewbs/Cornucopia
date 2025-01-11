@@ -1,7 +1,7 @@
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import Image from "next/image";
-import { Package } from "lucide-react";
+import { MapPin, Package } from "lucide-react";
 import Link from "next/link";
 import { ProductCard } from "./ProductCard";
 
@@ -18,7 +18,8 @@ interface MarketStandCardProps {
   name: string;
   description: string | null | undefined;
   images: string[];
-  locationName: string; // Kept for ProductCard
+  locationName: string;
+  distance?: number;
   products: Product[];
 }
 
@@ -28,6 +29,7 @@ export function MarketStandCard({
   description,
   images,
   locationName,
+  distance,
   products,
 }: MarketStandCardProps) {
   return (
@@ -54,9 +56,19 @@ export function MarketStandCard({
           )}
         </Link>
 
-        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
-          <Package className="h-4 w-4" />
-          {products.length} products
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+          {distance !== undefined && (
+            <div className="flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              {distance < 1 ? 
+                `${Math.round(distance * 1000)} meters away` : 
+                `${distance.toFixed(1)} km away`}
+            </div>
+          )}
+          <div className="flex items-center gap-1">
+            <Package className="h-4 w-4" />
+            {products.length} products
+          </div>
         </div>
 
         {products.length > 0 && (

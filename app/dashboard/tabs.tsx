@@ -112,7 +112,9 @@ export function DashboardTabs({ marketStand, products }: DashboardTabsProps) {
                   <div>
                     <h3 className="font-semibold">{product.name}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
-                    <p className="text-sm font-medium mt-2">${product.price}</p>
+                    <p className="text-sm font-medium mt-2">
+                      {(product.price / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                    </p>
                   </div>
                   <Link href={`/product/${product.id}/edit`}>
                     <Button variant="ghost" size="sm">Edit</Button>

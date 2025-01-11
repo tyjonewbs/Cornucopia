@@ -118,7 +118,10 @@ export default function MarketStandsMapPage() {
         <MarketStandViewNav currentView="map" />
       </div>
 
-      <MarketStandsMap marketStands={standsWithDistance} />
+      <MarketStandsMap 
+        marketStands={standsWithDistance}
+        userLocation={userLocation}
+      />
     </section>
   );
 }

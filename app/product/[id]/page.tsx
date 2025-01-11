@@ -43,13 +43,14 @@ async function getData(id: string, isQRAccess: boolean) {
           stripeConnectedLinked: true,
         },
       },
-      marketStand: {
+          marketStand: {
         select: {
           id: true,
           name: true,
           latitude: true,
           longitude: true,
           locationName: true,
+          createdAt: true,
           products: {
             where: {
               NOT: {
@@ -189,12 +190,12 @@ export default async function ProductPage({
         <div className="border-t border-gray-200 mt-10 pt-10">
           <div className="grid grid-cols-2 w-full gap-y-3">
             <h3 className="text-sm font-medium text-muted-foreground col-span-1">
-              Last Updated:
+              Member since:
             </h3>
             <h3 className="text-sm font-medium col-span-1">
               {new Intl.DateTimeFormat("en-US", {
                 dateStyle: "long",
-              }).format(data?.updatedAt)}
+              }).format(data?.marketStand?.createdAt)}
             </h3>
 
             <h3 className="text-sm font-medium text-muted-foreground col-span-1">
