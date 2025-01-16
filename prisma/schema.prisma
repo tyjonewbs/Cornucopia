@@ -8,45 +8,215 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
 model User {
-  id                    String       @id @unique
+  id                    String                @id @unique
   email                 String
   firstName             String
   lastName              String
   profileImage          String
   connectedAccountId    String?
-  stripeConnectedLinked Boolean      @default(false)
-  products             Product[]
-  marketStand          MarketStand[]
+  stripeConnectedLinked Boolean               @default(false)
+  role                  UserRole              @default(USER)
+  products              Product[]
+  marketStands          MarketStand[]
+  productStatusChanges  ProductStatusHistory[]
+  standStatusChanges    StandStatusHistory[]
+  productReviews        ProductReview[]
+  standReviews          StandReview[]
+  engagement           UserEngagement?
+  sessions             VisitorSession[]      
 }
 
 model MarketStand {
-  id            String    @id @default(uuid())
-  name          String
-  description   String?
-  images        String[]
-  latitude      Float
-  longitude     Float
-  locationName  String
-  locationGuide String
-  createdAt     DateTime  @default(now())
-  userId        String    @unique
-  user          User      @relation(fields: [userId], references: [id])
-  products      Product[] @relation("ProductToMarketStand")
+  id              String               @id @default(uuid())
+  name            String
+  description     String?
+  images          String[]
+  tags            String[]
+  latitude        Float
+  longitude       Float
+  locationName    String
+  locationGuide   String
+  status          Status               @default(PENDING)
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  userId          String
+  user            User                 @relation(fields: [userId], references: [id])
+  products        Product[]            @relation("ProductToMarketStand")
+  statusHistory   StandStatusHistory[]
+  reviews         StandReview[]
+  averageRating   Float?
+  totalReviews    Int                  @default(0)
+  metrics         StandMetrics?
 }
 
 model Product {
-  id            String      @id @default(uuid())
-  name          String
-  price         Int
-  description   String
-  images        String[]
-  inventory         Int         @default(0)
+  id                String                @id @default(uuid())
+  name              String
+  price             Int
+  description       String
+  images            String[]
+  tags              String[]
+  inventory         Int                   @default(0)
   inventoryUpdatedAt DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  userId        String
-  user          User        @relation(fields: [userId], references: [id])
-  marketStand   MarketStand @relation("ProductToMarketStand", fields: [marketStandId], references: [id])
+  status            Status                @default(PENDING)
+  isActive          Boolean               @default(true)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  userId            String
+  user              User                  @relation(fields: [userId], references: [id])
+  marketStand       MarketStand          @relation("ProductToMarketStand", fields: [marketStandId], references: [id])
+  marketStandId     String
+  statusHistory     ProductStatusHistory[]
+  reviews           ProductReview[]
+  averageRating     Float?
+  totalReviews      Int                  @default(0)
+  metrics           ProductMetrics?
+}
+
+model ProductReview {
+  id                 String    @id @default(uuid())
+  rating             Int
+  comment            String
+  images             String[]
+  isVerifiedPurchase Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  productId          String
+  product            Product   @relation(fields: [productId], references: [id])
+  userId             String
+  user               User      @relation(fields: [userId], references: [id])
+  helpfulVotes       Int       @default(0)
+  reportCount        Int       @default(0)
+  isVisible          Boolean   @default(true)
+}
+
+model StandReview {
+  id                 String      @id @default(uuid())
+  rating             Int
+  comment            String
+  images             String[]
+  isVerifiedCustomer Boolean     @default(false)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  marketStandId      String
+  marketStand        MarketStand @relation(fields: [marketStandId], references: [id])
+  userId             String
+  user               User        @relation(fields: [userId], references: [id])
+  helpfulVotes       Int         @default(0)
+  reportCount        Int         @default(0)
+  isVisible          Boolean     @default(true)
+}
+
+model ProductStatusHistory {
+  id          String    @id @default(uuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  oldStatus   Status
+  newStatus   Status
+  changedById String
+  changedBy   User      @relation(fields: [changedById], references: [id])
+  note        String
+  createdAt   DateTime  @default(now())
+}
+
+model StandStatusHistory {
+  id            String      @id @default(uuid())
   marketStandId String
+  marketStand   MarketStand @relation(fields: [marketStandId], references: [id])
+  oldStatus     Status
+  newStatus     Status
+  changedById   String
+  changedBy     User        @relation(fields: [changedById], references: [id])
+  note          String
+  createdAt     DateTime    @default(now())
+}
+
+model ProductMetrics {
+  id              String    @id @default(uuid())
+  productId       String    @unique
+  product         Product   @relation(fields: [productId], references: [id])
+  views           Int       @default(0)
+  uniqueViews     Int       @default(0)
+  addedToCart     Int       @default(0)
+  purchases       Int       @default(0)
+  revenue         Int       @default(0)
+  conversionRate  Float?
+  dailyMetrics    ProductDailyMetrics[]
+}
+
+model ProductDailyMetrics {
+  id              String         @id @default(uuid())
+  productMetricId String
+  productMetrics  ProductMetrics @relation(fields: [productMetricId], references: [id])
+  date            DateTime
+  views           Int           @default(0)
+  uniqueViews     Int           @default(0)
+  addedToCart     Int           @default(0)
+  purchases       Int           @default(0)
+  revenue         Int           @default(0)
+}
+
+model StandMetrics {
+  id                String    @id @default(uuid())
+  marketStandId     String    @unique
+  marketStand       MarketStand @relation(fields: [marketStandId], references: [id])
+  totalViews        Int       @default(0)
+  uniqueViews       Int       @default(0)
+  totalOrders       Int       @default(0)
+  totalRevenue      Int       @default(0)
+  averageOrderValue Float?
+  returningCustomers Int      @default(0)
+  dailyMetrics      StandDailyMetrics[]
+}
+
+model StandDailyMetrics {
+  id              String       @id @default(uuid())
+  standMetricId   String
+  standMetrics    StandMetrics @relation(fields: [standMetricId], references: [id])
+  date            DateTime
+  views           Int         @default(0)
+  uniqueViews     Int         @default(0)
+  orders          Int         @default(0)
+  revenue         Int         @default(0)
+}
+
+model UserEngagement {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+  lastVisit       DateTime
+  totalVisits     Int       @default(0)
+  totalPurchases  Int       @default(0)
+  totalSpent      Int       @default(0)
+  favoriteStands  String[]
+  searchHistory   String[]
+  categoryViews   Json
+}
+
+model VisitorSession {
+  id           String    @id @default(uuid())
+  sessionId    String    @unique
+  userId       String?
+  user         User?     @relation(fields: [userId], references: [id])
+  startTime    DateTime  @default(now())
+  endTime      DateTime?
+  deviceType   String?
+  browser      String?
+  ipAddress    String?
+  pagesViewed  Json
 }

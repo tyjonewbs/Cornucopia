@@ -1,37 +1,36 @@
 import { Card } from "../../components/ui/card";
-import { SellForm } from "../../components/form/Sellform";
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "../../lib/db";
+import { getUser } from "@/lib/auth";
+import { SellPageClient } from "@/app/sell/sell-client";
 
-async function getUserMarketStand(userId: string) {
-  const marketStand = await prisma.marketStand.findUnique({
+async function getUserMarketStands(userId: string) {
+  const marketStands = await prisma.marketStand.findMany({
     where: {
       userId: userId
     }
   });
-  return marketStand;
+  return marketStands;
 }
 
 export default async function SellRoute() {
   noStore();
-  const { getUser } = getKindeServerSession();
   const user = await getUser();
 
   if (!user) {
-    throw new Error("Unauthorized");
+    return redirect('/');
   }
 
-  const marketStand = await getUserMarketStand(user.id);
-  if (!marketStand) {
+  const marketStands = await getUserMarketStands(user.id);
+  if (!marketStands.length) {
     return redirect("/market-stand/setup");
   }
 
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8 mb-14">
-      <Card>
-        <SellForm marketStand={marketStand} />
+      <Card className="p-6 space-y-6">
+        <SellPageClient marketStands={marketStands} />
       </Card>
     </section>
   );

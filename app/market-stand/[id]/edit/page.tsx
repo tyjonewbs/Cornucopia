@@ -1,7 +1,7 @@
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 import prisma from "../../../../lib/db";
+import { getUser } from "@/lib/auth";
 import { Card } from "../../../../components/ui/card";
 import { MarketStandForm } from "../../../../components/form/MarketStandForm";
 
@@ -39,17 +39,18 @@ async function getData(encodedId: string) {
     // Fetch market stand with Prisma
     const marketStand = await prisma.marketStand.findUnique({
       where: { id },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        images: true,
-        locationName: true,
-        locationGuide: true,
-        latitude: true,
-        longitude: true,
-        userId: true
-      }
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      images: true,
+      locationName: true,
+      locationGuide: true,
+      latitude: true,
+      longitude: true,
+      userId: true,
+      tags: true
+    }
     });
 
     console.log('Prisma query result:', {
@@ -88,7 +89,6 @@ export default async function EditMarketStandPage({
   });
 
   // Authentication check
-  const { getUser } = getKindeServerSession();
   const user = await getUser();
 
   console.log('Authentication check:', {

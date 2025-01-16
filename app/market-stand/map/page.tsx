@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import MarketStandsMap from "../../../components/MarketStandsMap";
-import { MarketStandViewNav } from "../../../components/MarketStandViewNav";
+import MarketStandsMap from "@components/MarketStandsMap";
+import { MarketStandViewNav } from "@components/MarketStandViewNav";
 
 interface MarketStand {
   id: string;
@@ -13,15 +13,16 @@ interface MarketStand {
   longitude: number;
   locationName: string;
   locationGuide: string;
-  createdAt: Date;
+  createdAt: string;
+  tags: string[];
   products: Array<{
     id: string;
     name: string;
     description: string;
     price: number;
     images: string[];
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: string;
+    updatedAt: string;
   }>;
   user: {
     firstName: string;
@@ -82,17 +83,30 @@ export default function MarketStandsMapPage() {
     }
   }, []);
 
-  const standsWithDistance = marketStands.map(stand => ({
-    ...stand,
-    distance: userLocation
-      ? calculateDistance(
-          userLocation.lat,
-          userLocation.lng,
-          stand.latitude,
-          stand.longitude
-        )
-      : undefined
-  }));
+  const standsWithDistance = marketStands.map(stand => {
+    // Ensure dates are serialized as strings
+    const serializedStand = {
+      ...stand,
+      createdAt: new Date(stand.createdAt).toISOString(),
+      products: stand.products.map(product => ({
+        ...product,
+        createdAt: new Date(product.createdAt).toISOString(),
+        updatedAt: new Date(product.updatedAt).toISOString(),
+      }))
+    };
+
+    return {
+      ...serializedStand,
+      distance: userLocation
+        ? calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            stand.latitude,
+            stand.longitude
+          )
+        : undefined
+    };
+  });
 
   if (isLoading) {
     return (

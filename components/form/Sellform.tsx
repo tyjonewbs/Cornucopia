@@ -1,33 +1,33 @@
 "use client";
 
-import { SellProduct, type State } from "../../app/actions";
+import { SellProduct, type State } from "@/app/actions";
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../ui/card";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Button } from "../ui/button";
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { MapPin, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { Textarea } from "../ui/textarea";
-import { UploadDropzone } from "../../lib/uploadthing";
-import { UploadThingError } from "uploadthing/server";
-import { Submitbutton } from "../SubmitButtons";
+import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ImageUpload";
+import { Submitbutton } from "@/components/SubmitButtons";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "@/components/ui/select";
+import Image from "next/image";
 
 interface MarketStand {
   id: string;
@@ -47,6 +47,7 @@ interface SellFormProps {
     price: number;
     description: string;
     images: string[];
+    tags: string[];
     marketStandId: string;
     inventory?: number;
     inventoryUpdatedAt?: Date | null;
@@ -67,6 +68,30 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
   const initialState: State = { message: null, status: undefined };
   const [state, formAction] = useFormState(sellProductAction, initialState);
   const [images, setImages] = useState<string[]>(initialData?.images || []);
+  const [tags, setTags] = useState<string[]>(initialData?.tags || []);
+  const [currentTag, setCurrentTag] = useState('');
+
+  const handleAddTag = () => {
+    const tag = currentTag.trim();
+    if (tag) {
+      const capitalizedTag = tag.charAt(0).toUpperCase() + tag.slice(1).toLowerCase();
+      if (!tags.includes(capitalizedTag)) {
+        setTags(prev => [...prev, capitalizedTag]);
+        setCurrentTag('');
+      }
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(prev => prev.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleTagKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
   
   useEffect(() => {
     if (isState(state) && state.status === "success" && state.message) {
@@ -142,7 +167,7 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
               pattern="^\d*\.?\d{0,2}$"
               name="price"
               required
-              defaultValue={initialData?.price}
+              defaultValue={initialData ? (initialData.price / 100).toFixed(2) : undefined}
               aria-label="Product price"
               title="Enter a valid price with up to 2 decimal places"
             />
@@ -183,17 +208,59 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
           )}
         </div>
 
+        <div className="flex flex-col gap-y-2 mb-8">
+          <Label>Tags</Label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {tags.map((tag, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-md"
+              >
+                <span>{tag}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 hover:bg-transparent"
+                  onClick={() => handleRemoveTag(tag)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-x-2">
+            <Input
+              type="text"
+              placeholder="Add a tag"
+              value={currentTag}
+              onChange={(e) => setCurrentTag(e.target.value)}
+              onKeyPress={handleTagKeyPress}
+            />
+            <Button
+              type="button"
+              onClick={handleAddTag}
+              disabled={!currentTag.trim()}
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-y-2">
           <input type="hidden" name="images" value={JSON.stringify(images)} />
+          <input type="hidden" name="tags" value={JSON.stringify(tags)} />
           <Label>Product Images</Label>
           {images.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               {images.map((url, index) => (
-                <div key={index} className="relative aspect-square group">
-                  <img
+                <div key={index} className="relative w-full h-48 group">
+                  <Image
                     src={url}
                     alt={`Product image ${index + 1}`}
-                    className="object-cover rounded-lg w-full h-full"
+                    fill
+                    sizes="(max-width: 768px) 50vw, 33vw"
+                    className="rounded-lg object-cover"
                   />
                   <Button
                     type="button"
@@ -209,22 +276,12 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
               ))}
             </div>
           )}
-          <UploadDropzone
-            endpoint="imageUploader"
-            onClientUploadComplete={(res: Array<{ url: string }>) => {
-              if (!res) return;
-              const newImages = res.map(file => file.url);
-              setImages(prev => [...prev, ...newImages]);
+          <ImageUpload
+            onUploadComplete={(urls) => {
+              setImages(prev => [...prev, ...urls]);
               toast.success("Images uploaded successfully");
             }}
-            onUploadError={(error: UploadThingError) => {
-              toast.error(`Error: ${error.message}`);
-            }}
-            config={{ mode: "auto" }}  // Add this
-            appearance={{
-              button: "bg-primary text-white",
-              allowedContent: "hidden"
-            }} 
+            maxFiles={5}
           />
           {isState(state) && state.errors?.images?.[0] && (
             <p className="text-sm font-medium text-destructive mt-1.5">{state.errors.images[0]}</p>

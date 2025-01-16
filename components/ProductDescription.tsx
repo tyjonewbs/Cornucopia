@@ -4,16 +4,17 @@ import { type JSONContent, useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 
 export function ProductDescription({ content }: { content: JSONContent }) {
-  const editor = useEditor({
-    editable: false,
-    extensions: [StarterKit],
-    content: content,
-    editorProps: {
-      attributes: {
-        class: "prose prose-sm sm:prose-base",
-      },
+const editor = useEditor({
+  editable: false,
+  extensions: [StarterKit],
+  content: content,
+  editorProps: {
+    attributes: {
+      class: "prose prose-sm sm:prose-base",
     },
-  });
+  },
+  immediatelyRender: false,
+});
 
   if (!editor) {
     return null;

@@ -1,13 +1,11 @@
-import { stripe } from "../../../../lib/stripe";
+import { stripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import prisma from "../../../../lib/db";
+import prisma from "@/lib/db";
 import Stripe from "stripe";
 
 export async function POST() {
   try {
     // 1. Verify user authentication
-    const { getUser } = getKindeServerSession();
     const user = await getUser();
 
     if (!user || !user.id) {

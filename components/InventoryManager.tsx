@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 interface InventoryManagerProps {
   productId: string;
   currentInventory: number;
-  lastUpdated: Date | null;
+  lastUpdated: Date | string | null;
   isOwner: boolean;
 }
 
@@ -61,7 +61,7 @@ export function InventoryManager({ productId, currentInventory, lastUpdated, isO
             {new Intl.DateTimeFormat("en-US", {
               dateStyle: "medium",
               timeStyle: "short",
-            }).format(new Date(lastUpdated))}
+            }).format(typeof lastUpdated === 'string' ? new Date(lastUpdated) : lastUpdated)}
           </span>
         </div>
       )}

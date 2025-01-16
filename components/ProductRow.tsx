@@ -1,8 +1,27 @@
-import prisma from "../lib/db";
 import { LoadingProductCard, ProductCard } from "./ProductCard";
 import Link from "next/link";
 import { Suspense } from "react";
+import { cache } from 'react';
 import { Skeleton } from "./ui/skeleton";
+import prisma from "../lib/db";
+import type { Product, MarketStand } from "@prisma/client";
+
+interface SerializedProduct {
+  id: string;
+  name: string;
+  images: string[];
+  updatedAt: string;
+  price: number;
+  tags: string[];
+  locationName: string;
+  distance?: number;
+  marketStand: {
+    id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+  };
+}
 
 interface ProductRowProps {
   title: string;
@@ -10,11 +29,6 @@ interface ProductRowProps {
   userLocation?: { lat: number; lng: number } | null;
 }
 
-interface MarketStand {
-  name: string;
-  latitude: number;
-  longitude: number;
-}
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Earth's radius in km
@@ -28,50 +42,52 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-async function getData({ userLocation }: { userLocation?: { lat: number; lng: number } | null }) {
-  const data = await prisma.product.findMany({
-    select: {
-      name: true,
-      id: true,
-      images: true,
-      updatedAt: true,
-      price: true,
-      marketStand: {
-        select: {
-          id: true,
-          name: true,
-          latitude: true,
-          longitude: true,
+const getData = cache(async ({ userLocation }: { userLocation?: { lat: number; lng: number } | null }) => {
+  try {
+    const products = await prisma.product.findMany({
+      select: {
+        name: true,
+        id: true,
+        images: true,
+        updatedAt: true,
+        price: true,
+        tags: true,
+        marketStand: {
+          select: {
+            id: true,
+            name: true,
+            latitude: true,
+            longitude: true,
+          }
         }
+      },
+      take: 6,
+      orderBy: {
+        updatedAt: 'desc'
       }
-    },
-    take: 6,
-    orderBy: {
-      updatedAt: 'desc'
-    }
-  });
-
-  if (userLocation && userLocation.lat && userLocation.lng) {
-    return data.map(product => {
-      const distance = product.marketStand ? calculateDistance(
-        userLocation.lat,
-        userLocation.lng,
-        product.marketStand.latitude,
-        product.marketStand.longitude
-      ) : Infinity;
-
-      return {
-        ...product,
-        locationName: product.marketStand ? product.marketStand.name : 'Unknown Location'
-      };
     });
-  }
 
-  return data.map(product => ({
-    ...product,
-    locationName: product.marketStand?.name || 'Unknown Location'
-  }));
-}
+    // Serialize dates and transform data
+    const serializedProducts = products.map(product => ({
+      ...product,
+      updatedAt: product.updatedAt.toISOString(),
+      locationName: product.marketStand?.name || 'Unknown Location',
+      distance: userLocation && userLocation.lat && userLocation.lng && product.marketStand
+        ? calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            product.marketStand.latitude,
+            product.marketStand.longitude
+          )
+        : undefined
+    }));
+
+    return serializedProducts;
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
+});
 
 export function ProductRow({ title, link, userLocation }: ProductRowProps) {
   return (
@@ -100,7 +116,7 @@ async function LoadRows({ title, link, userLocation }: ProductRowProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 mt-4 gap-10">
-        {data.map((product) => (
+        {data.map((product: SerializedProduct) => (
           <ProductCard
             key={product.id}
             images={product.images}
@@ -110,6 +126,7 @@ async function LoadRows({ title, link, userLocation }: ProductRowProps) {
             updatedAt={product.updatedAt}
             marketStandId={product.marketStand.id}
             price={product.price}
+            tags={product.tags}
           />
         ))}
       </div>

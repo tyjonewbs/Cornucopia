@@ -1,13 +1,13 @@
-import { SellProduct } from "../../../app/actions";
-import { ProductDescription } from "../../../components/ProductDescription";
-import { BuyButton } from "../../../components/SubmitButtons";
-import prisma from "../../../lib/db";
-import { Button } from "../../../components/ui/button";
+import { SellProduct } from "@/app/actions";
+import { ProductDescription } from "@/components/ProductDescription";
+import { BuyButton } from "@/components/SubmitButtons";
+import prisma from "@/lib/db";
+import { Button } from "@/components/ui/button";
 import { unstable_noStore as noStore } from "next/cache";
 import { MapPin, Package, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { ProductCard } from "../../../components/ProductCard";
-import { InventoryManager } from "../../../components/InventoryManager";
+import { ProductCard } from "@/components/ProductCard";
+import { InventoryManager } from "@/components/InventoryManager";
 
 import {
   Carousel,
@@ -15,7 +15,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "../../../components/ui/carousel";
+} from "@/components/ui/carousel";
 import { JSONContent } from "@tiptap/react";
 import Image from "next/image";
 
@@ -34,6 +34,7 @@ async function getData(id: string, isQRAccess: boolean) {
       userId: true,
       inventory: true,
       inventoryUpdatedAt: true,
+      tags: true,
       user: {
         select: {
           id: true,
@@ -43,7 +44,7 @@ async function getData(id: string, isQRAccess: boolean) {
           stripeConnectedLinked: true,
         },
       },
-          marketStand: {
+      marketStand: {
         select: {
           id: true,
           name: true,
@@ -63,6 +64,7 @@ async function getData(id: string, isQRAccess: boolean) {
               images: true,
               updatedAt: true,
               price: true,
+              tags: true,
             },
             take: isQRAccess ? 4 : 0
           }
@@ -70,7 +72,23 @@ async function getData(id: string, isQRAccess: boolean) {
       }
     },
   });
-  return data;
+
+  if (!data) return null;
+
+  // Serialize dates
+  return {
+    ...data,
+    updatedAt: data.updatedAt.toISOString(),
+    inventoryUpdatedAt: data.inventoryUpdatedAt?.toISOString() ?? null,
+    marketStand: data.marketStand ? {
+      ...data.marketStand,
+      createdAt: data.marketStand.createdAt.toISOString(),
+      products: data.marketStand.products.map(product => ({
+        ...product,
+        updatedAt: product.updatedAt.toISOString()
+      }))
+    } : null
+  };
 }
 
 export default async function ProductPage({
@@ -128,9 +146,23 @@ export default async function ProductPage({
           {data?.name}
         </h1>
 
-        <p className="text-xl font-bold mt-2 mb-6">
-          ${((data?.price || 0) / 100).toFixed(2)}
-        </p>
+        <div className="mt-2 mb-6 space-y-4">
+          <p className="text-xl font-bold">
+            ${((data?.price || 0) / 100).toFixed(2)}
+          </p>
+          {data?.tags && data.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {data.tags.map((tag, index) => (
+                <div
+                  key={index}
+                  className="bg-secondary px-2 py-1 rounded-md text-xs"
+                >
+                  {tag}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-col gap-4">
           {isQRAccess ? (
@@ -193,9 +225,9 @@ export default async function ProductPage({
               Member since:
             </h3>
             <h3 className="text-sm font-medium col-span-1">
-              {new Intl.DateTimeFormat("en-US", {
+              {data?.marketStand?.createdAt && new Intl.DateTimeFormat("en-US", {
                 dateStyle: "long",
-              }).format(data?.marketStand?.createdAt)}
+              }).format(new Date(data.marketStand.createdAt))}
             </h3>
 
             <h3 className="text-sm font-medium text-muted-foreground col-span-1">
@@ -248,6 +280,7 @@ export default async function ProductPage({
                 marketStandId={data.marketStand.id}
                 isQRAccess={true}
                 price={product.price}
+                tags={product.tags}
               />
             ))}
           </div>

@@ -25,6 +25,11 @@ const nextConfig = {
         hostname: 'bzkj7i8mse.ufs.sh',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'fzlelklnibjzpgrquzrq.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
     ],
   },
 }

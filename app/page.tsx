@@ -1,6 +1,47 @@
 import { ProductRow } from "../components/ProductRow";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { redirect } from "next/navigation";
+import { getSupabaseServer } from "@/lib/supabase-server";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: { returnUrl?: string };
+}) {
+  const supabase = getSupabaseServer();
+  
+  // Get session
+  const { data: { session }, error } = await supabase.auth.getSession();
+
+  // Log auth state for debugging
+  console.log('Auth state:', {
+    hasSession: !!session,
+    returnUrl: searchParams.returnUrl,
+    error: error?.message
+  });
+
+  // Handle authenticated users with returnUrl
+  if (session && searchParams.returnUrl) {
+    const decodedUrl = decodeURIComponent(searchParams.returnUrl);
+    const protectedRoutes = [
+      '/sell',
+      '/settings',
+      '/market-stand/setup',
+      '/billing',
+      '/product',
+      '/dashboard/market-stand',
+      '/dashboard/sell',
+      '/dashboard/settings'
+    ];
+
+    // Only redirect to protected routes
+    if (protectedRoutes.some(route => decodedUrl.startsWith(route))) {
+      redirect(decodedUrl);
+    }
+  }
+
+  // If user is authenticated but no returnUrl, show home page
+  // If user is not authenticated, show home page
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8 mb-24">
       <div className="max-w-3xl mx-auto text-2xl sm:text-5xl lg:text-6xl font-semibold text-center">

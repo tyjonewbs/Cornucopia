@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "../components/Navbar";
-import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
-import { extractRouterConfig } from "uploadthing/server";
-import { ourFileRouter } from "./api/uploadthing/core";
-import { Toaster } from "../components/ui/sonner";
+import { Navbar } from "@/components/Navbar";
+import { Toaster } from "@/components/ui/sonner";
+import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: 'swap',
+  preload: true,
+  adjustFontFallback: true,
+});
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -30,17 +33,11 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <Navbar />
-        <NextSSRPlugin
-          /**
-           * The `extractRouterConfig` will extract **only** the route configs
-           * from the router to prevent additional information from being
-           * leaked to the client.
-           */
-          routerConfig={extractRouterConfig(ourFileRouter)}
-        />
-        {children}
-        <Toaster />
+        <SupabaseProvider>
+          <Navbar />
+          {children}
+          <Toaster />
+        </SupabaseProvider>
       </body>
     </html>
   );

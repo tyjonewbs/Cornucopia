@@ -13,6 +13,7 @@ interface MarketStand {
   latitude: number;
   longitude: number;
   distance?: number;
+  tags: string[];
 }
 
 interface MarketStandsMapProps {
@@ -129,6 +130,18 @@ export default function MarketStandsMap({ marketStands, userLocation }: MarketSt
                   {selectedStand.distance.toFixed(1)} km away
                 </p>
               )}
+              {selectedStand.tags && selectedStand.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {selectedStand.tags.map((tag, index) => (
+                    <div
+                      key={index}
+                      className="bg-secondary px-2 py-0.5 rounded-md text-xs"
+                    >
+                      {tag}
+                    </div>
+                  ))}
+                </div>
+              )}
               <Link
                 href={`/market-stand/${selectedStand.id}`}
                 className="text-sm text-primary hover:underline"
@@ -156,6 +169,18 @@ export default function MarketStandsMap({ marketStands, userLocation }: MarketSt
                 <p className="text-sm text-primary mt-1">
                   {stand.distance.toFixed(1)} km away
                 </p>
+              )}
+              {stand.tags && stand.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {stand.tags.map((tag, index) => (
+                    <div
+                      key={index}
+                      className="bg-secondary px-2 py-0.5 rounded-md text-xs"
+                    >
+                      {tag}
+                    </div>
+                  ))}
+                </div>
               )}
             </Link>
           ))}

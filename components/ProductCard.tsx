@@ -10,11 +10,12 @@ interface iAppProps {
   name: string;
   id: string;
   locationName: string;
-  updatedAt: Date;
+  updatedAt: string;
   inventory?: number;
   marketStandId: string;
   isQRAccess?: boolean;
   price?: number;
+  tags?: string[];
 }
 
 export function ProductCard({
@@ -27,6 +28,7 @@ export function ProductCard({
   marketStandId,
   isQRAccess = false,
   price,
+  tags = [],
 }: iAppProps) {
   const [timeElapsed, setTimeElapsed] = useState('00:00');
 
@@ -103,6 +105,18 @@ export function ProductCard({
             )}
           </div>
           <p className="text-gray-600 text-sm mt-1">{locationName}</p>
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {tags.map((tag: string, index: number) => (
+                <div
+                  key={index}
+                  className="bg-secondary px-2 py-1 rounded-md text-xs"
+                >
+                  {tag}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Link>

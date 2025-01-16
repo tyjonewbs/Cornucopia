@@ -14,7 +14,7 @@ import { useFormState } from "react-dom";
 
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { type State, UpdateUserSettings } from "@/app/actions";
+import { type State, UpdateUserSettings } from "@/app/actions/settings";
 import { Submitbutton } from "../SubmitButtons";
 
 interface iAppProps {

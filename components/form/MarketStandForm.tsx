@@ -1,27 +1,23 @@
 "use client";
 
-import { CreateMarketStand, UpdateMarketStand, type State } from "../../app/actions";
+import { CreateMarketStand, UpdateMarketStand, type State } from "@/app/actions";
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../ui/card";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
-import { Textarea } from "../ui/textarea";
-import { UploadDropzone } from "../../lib/uploadthing";
-import { UploadThingError } from "uploadthing/server";
-import type { OurFileRouter } from "../../app/api/uploadthing/core";
-import { Submitbutton } from "../SubmitButtons";
-import { Button } from "../ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ImageUpload";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useFormStatus } from "react-dom";
-
+import { SubmitStandButton } from "./SubmitStandButton";
 
 interface MarketStandFormProps {
   userId: string;
@@ -30,6 +26,7 @@ interface MarketStandFormProps {
     name: string;
     description: string | null;
     images: string[];
+    tags: string[];
     latitude: number;
     longitude: number;
     locationName: string;
@@ -45,6 +42,8 @@ interface FormState {
     locationGuide: string;
     latitude: string;
     longitude: string;
+    tags: string[];
+    currentTag: string;
   };
   errors: {
     name?: string;
@@ -57,7 +56,10 @@ interface FormState {
   };
 }
 
-const validateField = (name: string, value: string): string | undefined => {
+const validateField = (name: string, value: string | string[]): string | undefined => {
+  // Skip validation for array values (tags)
+  if (Array.isArray(value)) return undefined;
+  
   if (!value || value.trim() === '') return "This field is required";
   
   switch (name) {
@@ -82,10 +84,9 @@ const validateField = (name: string, value: string): string | undefined => {
   }
 };
 
-export function MarketStandForm({ userId, marketStand }: MarketStandFormProps) {
+export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): JSX.Element {
   const router = useRouter();
   const [images, setImages] = useState<string[]>(marketStand?.images || []);
-  const { pending  } = useFormStatus();
   const [formState, setFormState] = useState<FormState>({
     values: {
       name: marketStand?.name || '',
@@ -94,6 +95,8 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps) {
       locationGuide: marketStand?.locationGuide || '',
       latitude: marketStand?.latitude?.toString() || '',
       longitude: marketStand?.longitude?.toString() || '',
+      tags: marketStand?.tags || [],
+      currentTag: ''
     },
     errors: {}
   });
@@ -125,8 +128,10 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps) {
     const newErrors: FormState['errors'] = {};
     let isValid = true;
 
-    // Validate all fields
-    Object.entries(formState.values).forEach(([name, value]) => {
+    // Validate required fields only
+    const fieldsToValidate = ['name', 'description', 'locationName', 'locationGuide', 'latitude', 'longitude'];
+    fieldsToValidate.forEach(name => {
+      const value = formState.values[name as keyof typeof formState.values];
       const error = validateField(name, value);
       if (error) {
         newErrors[name as keyof FormState['errors']] = error;
@@ -148,34 +153,78 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps) {
     return isValid;
   };
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleAddTag = () => {
+    const tag = formState.values.currentTag.trim();
+    if (tag) {
+      const capitalizedTag = tag.charAt(0).toUpperCase() + tag.slice(1).toLowerCase();
+      if (!formState.values.tags.includes(capitalizedTag)) {
+        setFormState(prev => ({
+          ...prev,
+          values: {
+            ...prev.values,
+            tags: [...prev.values.tags, capitalizedTag],
+            currentTag: ''
+          }
+        }));
+      }
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormState(prev => ({
+      ...prev,
+      values: {
+        ...prev.values,
+        tags: prev.values.tags.filter(tag => tag !== tagToRemove)
+      }
+    }));
+  };
+
+  const handleTagKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
     if (!validateForm()) {
       toast.error("Please fix the validation errors");
       return;
     }
 
+    const formData = new FormData(e.currentTarget);
+    formData.append('images', JSON.stringify(images));
+    formData.append('tags', JSON.stringify(formState.values.tags));
+
     try {
-      formData.set('images', JSON.stringify(images));
-      const initialState: State = { status: undefined, message: null };
-      
       if (marketStand) {
         formData.append("id", marketStand.id);
-        const result = await UpdateMarketStand(initialState, formData);
-        if (result instanceof Response) {
-          // Handle redirect response
-          router.push(result.url);
-        } else if (result.error) {
-          // Handle error response
-          toast.error(result.error);
+        const result = await UpdateMarketStand({ status: undefined, message: null }, formData);
+        // console.log('result:\n', result)
+        if (!result.ok) {
+          const data = await result.json();
+          toast.error(data.error);
+          return;
+        }
+        if (result.redirected) {
+          window.location.href = result.url;
+          return;
         }
       } else {
-        const result = await CreateMarketStand(initialState, formData);
-        if (result instanceof Response) {
-          // Handle redirect response
-          router.push(result.url);
-        } else if (result.error) {
-          // Handle error response
-          toast.error(result.error);
+        const result = await CreateMarketStand({ status: undefined, message: null }, formData);
+        if (!result.ok) {
+          console.log('first')
+          const data = await result.json();
+          toast.error(data.error);
+          return;
+        }
+        if (result.redirected) {
+          console.log('second')
+          window.location.href = result.url;
+          return;
         }
       }
     } catch (error) {
@@ -202,7 +251,7 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps) {
   const isFormValid = Object.keys(formState.errors).length === 0;
 
   return (
-    <form action={handleSubmit} className="w-full max-w-4xl mx-auto">
+    <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle>{marketStand ? 'Edit your market stand' : 'Create your market stand'}</CardTitle>
         <CardDescription>
@@ -276,6 +325,48 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps) {
           )}
         </div>
 
+        <div className="flex flex-col gap-y-2 mb-8">
+          <Label>Tags</Label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {formState.values.tags.map((tag, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-md"
+              >
+                <span>{tag}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 hover:bg-transparent"
+                  onClick={() => handleRemoveTag(tag)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-x-2">
+            <Input
+              type="text"
+              placeholder="Add a tag"
+              value={formState.values.currentTag}
+              onChange={(e) => setFormState(prev => ({
+                ...prev,
+                values: { ...prev.values, currentTag: e.target.value }
+              }))}
+              onKeyPress={handleTagKeyPress}
+            />
+            <Button
+              type="button"
+              onClick={handleAddTag}
+              disabled={!formState.values.currentTag.trim()}
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div className="flex flex-col gap-y-2">
             <Label>Latitude</Label>
@@ -339,30 +430,20 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps) {
               ))}
             </div>
           )}
-          <UploadDropzone
-            endpoint="imageUploader"
-            onClientUploadComplete={(res: { url: string }[]) => {
-              if (!res) return;
-              const newImages = res.map(file => file.url);
-              setImages(prev => [...prev, ...newImages]);
+          <ImageUpload
+            onUploadComplete={(urls) => {
+              setImages(prev => [...prev, ...urls]);
               toast.success("Images uploaded successfully");
             }}
-            onUploadError={(error: UploadThingError) => {
-              toast.error(`Error: ${error.message}`);
-            }}
-            config={{ mode: "auto" }}  
-            appearance={{
-              button: "bg-primary text-white",
-              allowedContent: "hidden"
-            }}
+            maxFiles={5}
           />
         </div>
       </CardContent>
       <CardFooter className="mt-5">
         <div className="flex-1 flex justify-end">
-          <Submitbutton 
+          <SubmitStandButton 
             title={marketStand ? "Save Changes" : "Create Market Stand"}
-            disabled={!isFormValid || pending}
+            isFormValid={isFormValid}
           />
         </div>
       </CardFooter>

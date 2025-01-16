@@ -1,15 +1,15 @@
-import prisma from "../../../lib/db";
+import prisma from "@/lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
-import { MapPin, Package, Edit, Clock, Navigation, ChevronLeft, ChevronRight } from "lucide-react";
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { MapPin, Package, Clock, Navigation } from "lucide-react";
+import { getUser } from "@/lib/auth";
 import Link from "next/link";
-import { Button } from "../../../components/ui/button";
-import { ProductCard } from "../../../components/ProductCard";
-import { Card, CardContent } from "../../../components/ui/card";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../../../components/ui/carousel";
-import MapView from "../../../components/MapView";
-import { Separator } from "../../../components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { ProductCard } from "@/components/ProductCard";
+import { Card, CardContent } from "@/components/ui/card";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import MapView from "@/components/MapView";
+import { Separator } from "@/components/ui/separator";
 
 async function getData(encodedId: string) {
   try {
@@ -29,6 +29,7 @@ async function getData(encodedId: string) {
         longitude: true,
         userId: true,
         createdAt: true,
+        tags: true,
         products: {
           select: {
             id: true,
@@ -37,6 +38,7 @@ async function getData(encodedId: string) {
             updatedAt: true,
             price: true,
             inventory: true,
+            tags: true,
           }
         },
         user: {
@@ -49,7 +51,17 @@ async function getData(encodedId: string) {
       }
     });
 
-    return marketStand;
+    if (!marketStand) return null;
+
+    // Serialize dates
+    return {
+      ...marketStand,
+      createdAt: marketStand.createdAt.toISOString(),
+      products: marketStand.products.map(product => ({
+        ...product,
+        updatedAt: product.updatedAt.toISOString()
+      }))
+    };
   } catch (error) {
     console.error('getData error:', error);
     return null;
@@ -63,7 +75,6 @@ export default async function MarketStandPage({
 }) {
   noStore();
   
-  const { getUser } = getKindeServerSession();
   const user = await getUser();
   const marketStand = await getData(params.id);
 
@@ -78,19 +89,25 @@ export default async function MarketStandPage({
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
       {/* Header Section */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">{marketStand.name}</h1>
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">{marketStand.name}</h1>
+            </div>
           </div>
         </div>
-        {user?.id === marketStand.userId && (
-          <Link href={`/market-stand/${params.id}/edit`}>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <Edit className="h-4 w-4" />
-              Edit Stand
-            </Button>
-          </Link>
+        {marketStand.tags && marketStand.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {marketStand.tags.map((tag, index) => (
+              <div
+                key={index}
+                className="bg-secondary px-2 py-1 rounded-md text-xs"
+              >
+                {tag}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -152,6 +169,7 @@ export default async function MarketStandPage({
                   marketStandId={marketStand.id}
                   isQRAccess={false}
                   price={product.price}
+                  tags={product.tags}
                 />
               ))}
             </div>

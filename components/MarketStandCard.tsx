@@ -1,96 +1,79 @@
-import { Card } from "./ui/card";
-import { Button } from "./ui/button";
-import Image from "next/image";
-import { MapPin, Package } from "lucide-react";
-import Link from "next/link";
-import { ProductCard } from "./ProductCard";
+"use client";
 
-interface Product {
-  id: string;
-  name: string;
-  images: string[];
-  updatedAt: Date;
-  price: number;
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MapPin, Package } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 interface MarketStandCardProps {
-  id: string;
-  name: string;
-  description: string | null | undefined;
-  images: string[];
-  locationName: string;
-  distance?: number;
-  products: Product[];
+  stand: {
+    id: string;
+    name: string;
+    description: string | null;
+    locationName: string;
+    locationGuide: string;
+    latitude: number;
+    longitude: number;
+    images: string[];
+    tags: string[];
+    _count: {
+      products: number;
+    };
+  };
 }
 
-export function MarketStandCard({
-  id,
-  name,
-  description,
-  images,
-  locationName,
-  distance,
-  products,
-}: MarketStandCardProps) {
+export function MarketStandCard({ stand }: MarketStandCardProps) {
+  if (!stand) {
+    return null;
+  }
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-<Link href={`/market-stand/${encodeURIComponent(id)}`} className="block">
-  <div className="relative aspect-[16/9] w-full overflow-hidden rounded-t-lg">
-    <Image
-      src={images[0]}
-      alt={name}
-      fill
-      className="object-cover transition-transform hover:scale-105"
-      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-      priority={true}
-    />
-  </div>
-</Link>
-      <div className="p-4">
-        <Link href={`/market-stand/${encodeURIComponent(id)}`} className="block">
-          <h3 className="text-lg font-semibold mb-1">{name}</h3>
-          {description && (
-            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-              {description}
-            </p>
-          )}
-        </Link>
-
-        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-          {distance !== undefined && (
-            <div className="flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
-              {distance < 1 ? 
-                `${Math.round(distance * 1000)} meters away` : 
-                `${distance.toFixed(1)} km away`}
+    <Link href={`/market-stand/${stand.id}`} className="block transition-transform hover:scale-[1.02]">
+      <Card key={stand.id} className="h-full hover:shadow-lg transition-shadow">
+        <CardHeader>
+          <CardTitle>{stand.name}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stand.images?.[0] && (
+            <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden">
+              <Image
+                src={stand.images[0]}
+                alt={stand.name}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
             </div>
           )}
-          <div className="flex items-center gap-1">
-            <Package className="h-4 w-4" />
-            {products.length} products
-          </div>
-        </div>
-
-        {products.length > 0 && (
-          <div className="mt-4">
-            <h4 className="text-sm font-medium mb-2">Latest Products:</h4>
-            <div className="grid grid-cols-2 gap-4">
-              {products.slice(0, 2).map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  images={product.images}
-                  locationName={locationName}
-                  updatedAt={product.updatedAt}
-                  marketStandId={id}
-                  price={product.price}
-                />
-              ))}
+          <p className="text-sm text-muted-foreground mb-4">
+            {stand.description}
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                {stand.locationName}
+              </div>
+              <div className="flex items-center gap-1">
+                <Package className="h-4 w-4" />
+                {stand._count.products} products
+              </div>
             </div>
+            {stand.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {stand.tags.map((tag, index) => (
+                  <div
+                    key={index}
+                    className="bg-secondary px-2 py-1 rounded-md text-xs"
+                  >
+                    {tag}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

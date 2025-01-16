@@ -1,9 +1,9 @@
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
-import prisma from "../../../../lib/db";
-import { Card } from "../../../../components/ui/card";
-import { SellForm } from "../../../../components/form/Sellform";
+import prisma from "@/lib/db";
+import { Card } from "@/components/ui/card";
+import { SellForm } from "@/components/form/Sellform";
+import { getUser } from "@/lib/auth";
 
 async function getProduct(id: string, userId: string) {
   const product = await prisma.product.findUnique({
@@ -43,11 +43,10 @@ export default async function EditProductPage({
   params: { id: string };
 }) {
   noStore();
-  const { getUser } = getKindeServerSession();
   const user = await getUser();
 
   if (!user) {
-    return redirect("/");
+    throw new Error("Authentication required");
   }
 
   const product = await getProduct(params.id, user.id);

@@ -6,13 +6,14 @@ import { MarketStandQR } from "./MarketStandQR";
 import { StripeConnectButton } from "./StripeConnectButton";
 
 interface PaymentTabProps {
-  marketStand: {
+  marketStands: {
     id: string;
-  } | null;
+    name: string;
+  }[];
   stripeConnected: boolean;
 }
 
-export function PaymentTab({ marketStand, stripeConnected }: PaymentTabProps) {
+export function PaymentTab({ marketStands, stripeConnected }: PaymentTabProps) {
   return (
     <div className="space-y-4">
       <Card className="p-6">
@@ -60,20 +61,27 @@ export function PaymentTab({ marketStand, stripeConnected }: PaymentTabProps) {
             <div className="inline-block p-3 bg-primary/10 rounded-full mb-4">
               <QrCode className="w-6 h-6 text-primary" />
             </div>
-            <h2 className="text-xl font-semibold">Market Stand QR Code</h2>
+            <h2 className="text-xl font-semibold">Market Stand QR Codes</h2>
             <p className="text-muted-foreground mt-2 mb-6 max-w-md">
-              Display this QR code at your market stand. When customers scan it, they&apos;ll be able to view your products and make purchases once you&apos;ve connected your Stripe account.
+              Display these QR codes at your market stands. When customers scan them, they&apos;ll be able to view your products and make purchases once you&apos;ve connected your Stripe account.
             </p>
           </div>
 
-          {marketStand ? (
-            <div className="space-y-6">
-              <MarketStandQR marketStandId={marketStand.id} size={200} />
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>• Place this QR code where customers can easily scan it</p>
-                <p>• Customers need to scan this to make purchases</p>
-                <p>• The QR code helps verify product availability</p>
-              </div>
+          {marketStands.length > 0 ? (
+            <div className="space-y-8 w-full">
+              {marketStands.map(stand => (
+                <div key={stand.id} className="space-y-4">
+                  <h3 className="font-medium">{stand.name}</h3>
+                  <div className="flex flex-col items-center space-y-6">
+                    <MarketStandQR marketStandId={stand.id} size={200} />
+                    <div className="text-sm text-muted-foreground space-y-2">
+                      <p>• Place this QR code where customers can easily scan it</p>
+                      <p>• Customers need to scan this to make purchases</p>
+                      <p>• The QR code helps verify product availability</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="bg-muted p-4 rounded-lg text-center">

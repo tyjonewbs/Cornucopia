@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MarketStandViewNav } from "../../../components/MarketStandViewNav";
-import { Button } from "../../../components/ui/button";
+import { MarketStandViewNav } from "@components/MarketStandViewNav";
+import { Button } from "@components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../components/ui/select";
-import { MarketStandCard } from "../../../components/MarketStandCard";
+} from "@components/ui/select";
+import { MarketStandCard } from "@components/MarketStandCard";
 import Link from "next/link";
 
 interface Product {
@@ -33,6 +33,7 @@ interface MarketStand {
   locationName: string;
   locationGuide: string;
   createdAt: Date;
+  tags: string[];
   products: Product[];
   user: {
     firstName: string;
@@ -223,19 +224,20 @@ export default function MarketStandsGridPage() {
           {sortedStands.map((stand) => (
             <MarketStandCard
               key={stand.id}
-              id={stand.id}
-              name={stand.name}
-              description={stand.description}
-              images={stand.images}
-              locationName={stand.locationName}
-              distance={userLocation ? 
-                calculateDistance(
-                  userLocation.latitude, 
-                  userLocation.longitude, 
-                  stand.latitude, 
-                  stand.longitude
-                ) : undefined}
-              products={stand.products}
+              stand={{
+                id: stand.id,
+                name: stand.name,
+                description: stand.description,
+                locationName: stand.locationName,
+                locationGuide: stand.locationGuide,
+                latitude: stand.latitude,
+                longitude: stand.longitude,
+                images: stand.images,
+                tags: stand.tags,
+                _count: {
+                  products: stand.products.length
+                }
+              }}
             />
           ))}
         </div>

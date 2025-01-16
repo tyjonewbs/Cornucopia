@@ -1,6 +1,7 @@
 "use client";
 
-import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
+import { useSupabase } from "./providers/SupabaseProvider";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,13 +12,38 @@ import {
 } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import Link from "next/link";
-import { LogIn } from "lucide-react";
+import { AuthDialog } from "./AuthDialog";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 export function UserNav() {
-  const { user, isAuthenticated, isLoading } = useKindeBrowserClient();
+  const { user, isLoading } = useSupabase();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  if (isLoading) {
+
+  const handleLogout = async () => {
+    try {
+      setIsAuthenticating(true);
+      const supabase = getSupabaseBrowser();
+      await supabase.auth.signOut();
+      console.log('[Auth] Logout successful, redirecting to home');
+      window.location.href = window.location.origin;
+    } catch (error) {
+      console.error('[Auth] Logout error:', error);
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const navigate = (path: string) => {
+    console.log(`Navigating to: ${path}`);
+    console.log('Current pathname:', window.location.pathname);
+    console.log('User state:', user);
+    const fullUrl = `${window.location.origin}${path}`;
+    console.log('Full URL:', fullUrl);
+    window.location.href = fullUrl;
+  };
+
+  if (isLoading || isAuthenticating) {
     return (
       <Button variant="ghost" size="sm" className="relative h-8 w-8">
         <Avatar>
@@ -27,20 +53,18 @@ export function UserNav() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return (
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" className="gap-2" asChild>
-          <Link href="/api/auth/login">
-            <LogIn className="h-4 w-4" />
-            Login
-          </Link>
-        </Button>
-        <Button size="sm" asChild>
-          <Link href="/api/auth/register">
-            Sign Up
-          </Link>
-        </Button>
+        <AuthDialog mode="login" />
+        <AuthDialog 
+          mode="signup" 
+          trigger={
+            <Button size="sm" disabled={isAuthenticating}>
+              Sign Up
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -51,44 +75,49 @@ export function UserNav() {
         <Button variant="ghost" size="sm" className="relative h-8 w-8">
           <Avatar>
             <AvatarImage
-              src={user?.picture || ''}
-              alt={user?.given_name || 'User'}
+              src={user?.user_metadata?.avatar_url || ''}
+              alt={user?.user_metadata?.given_name || 'User'}
             />
-            <AvatarFallback>{user?.given_name?.[0] || 'U'}</AvatarFallback>
+            <AvatarFallback>{user?.user_metadata?.given_name?.[0] || 'U'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.given_name}</p>
+            <p className="text-sm font-medium leading-none">{user?.user_metadata?.given_name || 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user?.email}
+              {user?.email || ''}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <Link href="/sell" className="w-full">
-          <DropdownMenuItem className="cursor-pointer">
-            Sell My Products
-          </DropdownMenuItem>
-        </Link>
-        <Link href="/dashboard" className="w-full">
-          <DropdownMenuItem className="cursor-pointer">
-            Dashboard
-          </DropdownMenuItem>
-        </Link>
-        <Link href="/settings" className="w-full">
-          <DropdownMenuItem className="cursor-pointer">
-            Settings
-          </DropdownMenuItem>
-        </Link>
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={() => navigate('/sell')}
+        >
+          Sell My Products
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={() => navigate('/dashboard/market-stand')}
+        >
+          Dashboard
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={() => navigate('/settings')}
+        >
+          Settings
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <Link href="/api/auth/logout" className="w-full">
-          <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
-            Logout
-          </DropdownMenuItem>
-        </Link>
+        <DropdownMenuItem 
+          className="cursor-pointer text-destructive focus:text-destructive"
+          onClick={handleLogout}
+          disabled={isAuthenticating}
+        >
+          Logout
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
