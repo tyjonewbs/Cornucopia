@@ -12,12 +12,12 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: `
               default-src 'self';
-              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com;
-              style-src 'self' 'unsafe-inline';
-              img-src 'self' blob: data: https://*.supabase.co;
-              font-src 'self';
-              connect-src 'self' https://*.supabase.co;
-              frame-src 'self';
+              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://*.googleapis.com;
+              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+              img-src 'self' blob: data: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.google.com;
+              font-src 'self' https://fonts.gstatic.com;
+              connect-src 'self' https://*.supabase.co https://*.googleapis.com;
+              frame-src 'self' https://www.google.com;
               base-uri 'self';
               form-action 'self';
             `.replace(/\s{2,}/g, ' ').trim()

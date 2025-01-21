@@ -21,10 +21,10 @@ interface MarketStandCardProps {
       products: number;
     };
   };
-  userId: string;
+  userId?: string;
 }
 
-export function MarketStandCard({ stand }: MarketStandCardProps) {
+export function MarketStandCard({ stand, userId }: MarketStandCardProps) {
   if (!stand) {
     return null;
   }
@@ -34,15 +34,17 @@ export function MarketStandCard({ stand }: MarketStandCardProps) {
       <Card className="h-full hover:shadow-lg transition-shadow relative">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle>{stand.name}</CardTitle>
-          <Link 
-            href={`/market-stand/${stand.id}/edit`}
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Edit market stand</span>
-            </Button>
-          </Link>
+          {userId && (
+            <Link 
+              href={`/market-stand/${stand.id}/edit`}
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit market stand</span>
+              </Button>
+            </Link>
+          )}
         </CardHeader>
         <Link href={`/market-stand/${stand.id}`}>
           <CardContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { CreateMarketStand, UpdateMarketStand, type State } from "@/app/actions";
+import { CreateMarketStand, UpdateMarketStand } from "@/app/actions";
 import {
   CardContent,
   CardDescription,
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { SubmitStandButton } from "./SubmitStandButton";
 
 interface MarketStandFormProps {
@@ -31,7 +32,6 @@ interface MarketStandFormProps {
     longitude: number;
     locationName: string;
     locationGuide: string;
-    userId: string;
     website?: string;
     socialMedia?: string[];
   };
@@ -283,6 +283,7 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
     formData.append('tags', JSON.stringify(formState.values.tags));
     formData.append('website', formState.values.website);
     formData.append('socialMedia', JSON.stringify(formState.values.socialMedia));
+    formData.append('userId', userId);
 
     try {
       if (marketStand) {
@@ -305,7 +306,7 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
         toast.success("Market stand created successfully");
         router.push('/dashboard/sell');
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred. Please try again.");
     }
   };
@@ -550,10 +551,12 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               {images.map((url, index) => (
                 <div key={index} className="relative aspect-square group">
-                  <img
+                  <Image
                     src={url}
                     alt={`Market stand image ${index + 1}`}
-                    className="object-cover rounded-lg w-full h-full"
+                    className="object-cover rounded-lg"
+                    fill
+                    sizes="(max-width: 768px) 50vw, 33vw"
                   />
                   <Button
                     type="button"

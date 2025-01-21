@@ -11,22 +11,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
-import { MapPin, Plus, X } from "lucide-react";
+import { useFormState } from "react-dom";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/ImageUpload";
 import { Submitbutton } from "@/components/SubmitButtons";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import Image from "next/image";
 
 interface MarketStand {

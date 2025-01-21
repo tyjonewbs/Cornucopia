@@ -2,11 +2,8 @@ import { createServerSupabaseClient } from "@/lib/auth";
 import { getUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// Disable body parsing, as we'll handle raw body ourselves for file uploads
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
