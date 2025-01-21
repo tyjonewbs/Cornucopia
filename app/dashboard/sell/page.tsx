@@ -1,7 +1,9 @@
 "use client";
 
 import { getProducts } from "@/app/actions/products";
+import { Status } from "@prisma/client";
 import { redirect, useRouter } from "next/navigation";
+import { InventoryManager } from "@/components/InventoryManager";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -17,7 +19,7 @@ type ProductResponse = {
   images: string[];
   inventory: number;
   inventoryUpdatedAt: string | null;
-  status: string;
+  status: Status;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -28,9 +30,9 @@ type ProductResponse = {
     id: string;
     name: string;
   };
-  tags?: string[];
-  marketStandId?: string;
-  averageRating?: number;
+  marketStandId: string;
+  averageRating: number | null;
+  tags: string[];
 };
 
 // Client-side type with Date objects
@@ -46,43 +48,55 @@ type User = {
 };
 
 interface DashboardProductRowProps {
-  product: {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    images: string[];
-    inventory: number;
-    inventoryUpdatedAt: Date | null;
-    status: string;
-    isActive: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-    userId: string;
-    totalReviews: number;
-    marketStand?: {
-      id: string;
-      name: string;
-    };
-    locationName?: string;
-  };
+  product: Product;
 }
 
 function DashboardProductRow({ product }: DashboardProductRowProps) {
+  const handleInventoryUpdate = async (newInventory: number) => {
+    const formData = new FormData();
+    formData.append('productId', product.id);
+    formData.append('inventory', newInventory.toString());
+
+    const response = await fetch('/api/product/inventory', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update inventory');
+    }
+  };
+
   return (
     <div className="flex items-center justify-between p-4 border rounded-md">
-      <div>
-        <Link href={`/product/${product.id}`}>
-          <h3 className="text-lg font-medium">{product.name}</h3>
-        </Link>
-        <p className="text-sm text-gray-500">{product.description}</p>
-        <p className="mt-1">
-          <span className="text-sm font-medium">${(product.price / 100).toFixed(2)}</span>
-          {' | '}
-          <span className="text-sm text-gray-500">{product.locationName}</span>
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="relative w-16 h-16 rounded-md overflow-hidden bg-muted">
+          {product.images[0] && (
+            <img
+              src={product.images[0]}
+              alt={product.name}
+              className="object-cover w-full h-full"
+            />
+          )}
+        </div>
+        <div>
+          <Link href={`/product/${product.id}`}>
+            <h3 className="text-lg font-medium">{product.name}</h3>
+          </Link>
+          <p className="text-sm text-gray-500">{product.description}</p>
+          <p className="mt-1">
+            <span className="text-sm font-medium">${(product.price / 100).toFixed(2)}</span>
+            {' | '}
+            <span className="text-sm text-gray-500">{product.locationName}</span>
+          </p>
+        </div>
       </div>
-      <div>
+      <div className="flex items-center gap-6">
+        <InventoryManager
+          productId={product.id}
+          currentInventory={product.inventory}
+          onUpdate={handleInventoryUpdate}
+        />
         <Link href={`/product/${product.id}/edit`} className="text-sm font-medium text-primary hover:text-primary-focus">
           Edit <span>&rarr;</span>
         </Link>

@@ -1,125 +1,175 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/db";
+import prisma from "lib/db";
+import { unstable_noStore as noStore } from "next/cache";
+import { 
+  MarketStandListResponse,
+  ErrorResponse, 
+  listViewSelect,
+  MarketStandProduct,
+  ValidationErrorResponse 
+} from "./types";
+import { 
+  createErrorResponse, 
+  serializeDates, 
+  withErrorHandling 
+} from "./utils";
 import { Prisma } from "@prisma/client";
+import { safeValidateMarketStandInput } from "./validation";
 
-type MarketStandWithRelations = Prisma.MarketStandGetPayload<{
-  select: {
-    id: true;
-    name: true;
-    description: true;
-    images: true;
-    latitude: true;
-    longitude: true;
-    locationName: true;
-    locationGuide: true;
-    createdAt: true;
-    tags: true;
-    products: {
-      select: {
-        id: true;
-        name: true;
-        description: true;
-        price: true;
-        images: true;
-        createdAt: true;
-        updatedAt: true;
-      };
-    };
-    user: {
-      select: {
-        firstName: true;
-        profileImage: true;
-      };
-    };
-  };
+// Type for raw Prisma response
+type PrismaMarketStand = Prisma.MarketStandGetPayload<{
+  select: typeof listViewSelect;
 }>;
 
-export async function GET() {
-  console.log('Market stand API route called');
-  
-  try {
-    // Ensure connection is established
-    await prisma.$connect();
-    
-    console.log('Fetching market stands...');
-    const marketStands = await prisma.marketStand.findMany({
-      take: 10,
-      orderBy: {
-        createdAt: 'desc'
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        images: true,
-        latitude: true,
-        longitude: true,
-        locationName: true,
-        locationGuide: true,
-        createdAt: true,
-        tags: true,
-        products: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            price: true,
-            images: true,
-            createdAt: true,
-            updatedAt: true
-          }
+/**
+ * Transforms a Prisma product to match our API response type
+ */
+function transformProduct(product: PrismaMarketStand["products"][0]): MarketStandProduct {
+  return {
+    ...product,
+    createdAt: product.createdAt.toISOString(),
+    updatedAt: product.updatedAt.toISOString()
+  };
+}
+
+/**
+ * Transforms Prisma response to match our API response type
+ */
+function transformMarketStandResponse(
+  stand: PrismaMarketStand
+): MarketStandListResponse {
+  return {
+    ...stand,
+    createdAt: stand.createdAt.toISOString(),
+    products: stand.products.map(transformProduct),
+    user: {
+      firstName: stand.user.firstName,
+      profileImage: stand.user.profileImage
+    }
+  };
+}
+
+/**
+ * Fetches a list of market stands with their associated products and user information
+ */
+export async function GET(): Promise<NextResponse<MarketStandListResponse[] | ErrorResponse>> {
+  noStore();
+  console.log("Market stands API route called");
+
+  return withErrorHandling<MarketStandListResponse[]>(async () => {
+    try {
+      // Ensure connection is alive
+      await prisma.$connect();
+
+      // Fetch market stands with related data
+      const marketStands = await prisma.marketStand.findMany({
+        take: 10,
+        orderBy: {
+          createdAt: "desc"
         },
-        user: {
-          select: {
-            firstName: true,
-            profileImage: true
-          }
-        }
+        select: listViewSelect
+      });
+
+      if (!marketStands || !Array.isArray(marketStands)) {
+        throw new Error("Invalid response from database");
+      }
+
+      // Transform and log response
+      const response = marketStands.map(transformMarketStandResponse);
+      console.log("Successfully fetched market stands:", {
+        count: response.length,
+        hasData: response.length > 0
+      });
+
+      return NextResponse.json(response);
+    } catch (error) {
+      // If we get a connection error, try to reconnect
+      if (error instanceof Error && error.message.includes('prepared statement')) {
+        await prisma.$disconnect();
+        await prisma.$connect();
+        
+        // Retry the query
+        const marketStands = await prisma.marketStand.findMany({
+          take: 10,
+          orderBy: {
+            createdAt: "desc"
+          },
+          select: listViewSelect
+        });
+
+        const response = marketStands.map(transformMarketStandResponse);
+        return NextResponse.json(response);
+      }
+      throw error;
+    }
+  });
+}
+
+/**
+ * Creates a new market stand
+ */
+export async function POST(
+  request: Request
+): Promise<NextResponse<MarketStandListResponse | ErrorResponse | ValidationErrorResponse>> {
+  try {
+    // Ensure connection is alive
+    await prisma.$connect();
+
+    // Parse request body
+    const body = await request.json();
+
+    // Validate input data
+    const validationResult = safeValidateMarketStandInput(body);
+    if (!validationResult.success) {
+      const validationError: ValidationErrorResponse = {
+        error: "Validation error",
+        details: validationResult.error.formErrors
+      };
+      return NextResponse.json(validationError, { status: 400 });
+    }
+
+    // Check if user already has a market stand
+    const existingStand = await prisma.marketStand.findFirst({
+      where: {
+        userId: validationResult.data.userId,
+        isActive: true
       }
     });
 
-    // Explicitly disconnect after query
-    await prisma.$disconnect();
-
-    if (!marketStands || !Array.isArray(marketStands)) {
-      console.error('Invalid market stands response:', marketStands);
-      throw new Error('Invalid response from database');
+    if (existingStand) {
+      return NextResponse.json(
+        { error: "You already have an active market stand" },
+        { status: 400 }
+      );
     }
 
-    console.log('Successfully fetched market stands:', {
-      count: marketStands.length,
-      hasData: marketStands.length > 0
+    // Create market stand with validated data
+    const newStand = await prisma.marketStand.create({
+      data: {
+        name: validationResult.data.name,
+        description: validationResult.data.description,
+        images: validationResult.data.images,
+        latitude: validationResult.data.latitude,
+        longitude: validationResult.data.longitude,
+        locationName: validationResult.data.locationName,
+        locationGuide: validationResult.data.locationGuide,
+        tags: validationResult.data.tags,
+        website: validationResult.data.website,
+        socialMedia: validationResult.data.socialMedia,
+        userId: validationResult.data.userId
+      },
+      select: listViewSelect
     });
-    
-    // Serialize dates to ISO strings before sending response
-    // Double serialize to handle any non-serializable objects
-    const serializedStands = marketStands.map(stand => ({
-      ...stand,
-      createdAt: stand.createdAt.toISOString(),
-      products: stand.products.map(product => ({
-        ...product,
-        createdAt: product.createdAt.toISOString(),
-        updatedAt: product.updatedAt.toISOString()
-      }))
-    }));
-    
-    return NextResponse.json(JSON.parse(JSON.stringify(serializedStands)));
+
+    // Transform and return response
+    return NextResponse.json(transformMarketStandResponse(newStand));
   } catch (error) {
-    // Ensure disconnection even on error
-    try {
+    // If we get a connection error, try to reconnect
+    if (error instanceof Error && error.message.includes('prepared statement')) {
       await prisma.$disconnect();
-    } catch (disconnectError) {
-      console.error('Error disconnecting from database:', disconnectError);
+      await prisma.$connect();
+      return createErrorResponse(new Error('Database connection error. Please try again.'));
     }
-
-    console.error('Failed to fetch market stands:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-    
-    return NextResponse.json(
-      { error: 'Failed to fetch market stands. Please try again.' },
-      { status: 500 }
-    );
+    return createErrorResponse(error);
   }
 }

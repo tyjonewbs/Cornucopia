@@ -1,111 +1,107 @@
-'use client';
+"use client";
 
 import { useState } from "react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Minus, Plus, Save } from "lucide-react";
+import { toast } from "sonner";
 
 interface InventoryManagerProps {
   productId: string;
   currentInventory: number;
-  lastUpdated: Date | string | null;
-  isOwner: boolean;
+  onUpdate: (newInventory: number) => Promise<void>;
 }
 
-export function InventoryManager({ productId, currentInventory, lastUpdated, isOwner }: InventoryManagerProps) {
+export function InventoryManager({ 
+  productId, 
+  currentInventory,
+  onUpdate 
+}: InventoryManagerProps) {
   const [inventory, setInventory] = useState(currentInventory);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [pendingInventory, setPendingInventory] = useState(currentInventory);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const handleUpdate = async () => {
+  const handleChange = (change: number) => {
+    const newInventory = pendingInventory + change;
+    if (newInventory < 0) return;
+    setPendingInventory(newInventory);
+  };
+
+  const handleDirectInput = (value: string) => {
+    const num = parseInt(value, 10);
+    if (isNaN(num) || num < 0) return;
+    setPendingInventory(num);
+  };
+
+  const handleSubmit = async () => {
+    if (pendingInventory === inventory) return;
+    
+    setIsUpdating(true);
     try {
-      setIsLoading(true);
-      setError("");
-
-      const response = await fetch(`/api/product`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: productId,
-          inventory: inventory,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update inventory");
-      }
-
-      // Refresh the page to show updated data
-      window.location.reload();
+      await onUpdate(pendingInventory);
+      setInventory(pendingInventory);
+      toast.success("Inventory updated successfully");
     } catch (error) {
-      console.error("Error updating inventory:", error);
-      setError("Failed to update inventory");
+      setPendingInventory(inventory); // Reset to last saved value
+      toast.error("Failed to update inventory");
     } finally {
-      setIsLoading(false);
+      setIsUpdating(false);
+      setIsEditing(false);
     }
   };
 
   return (
-    <div className="mt-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">Inventory:</h3>
-        <span className="text-sm font-medium">{currentInventory} units</span>
-      </div>
-
-      {lastUpdated && (
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-muted-foreground">Last Updated:</h3>
-          <span className="text-sm text-muted-foreground">
-            {new Intl.DateTimeFormat("en-US", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            }).format(typeof lastUpdated === 'string' ? new Date(lastUpdated) : lastUpdated)}
-          </span>
-        </div>
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handleChange(-1)}
+        disabled={pendingInventory === 0 || isUpdating}
+      >
+        <Minus className="h-4 w-4" />
+      </Button>
+      {isEditing ? (
+        <Input
+          type="number"
+          value={pendingInventory}
+          onChange={(e) => handleDirectInput(e.target.value)}
+          className="w-20 text-center"
+          min="0"
+          onBlur={() => setIsEditing(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.currentTarget.blur();
+              handleSubmit();
+            }
+          }}
+          autoFocus
+        />
+      ) : (
+        <Button
+          variant="ghost"
+          className="min-w-[3ch] px-2 h-9"
+          onClick={() => setIsEditing(true)}
+        >
+          {pendingInventory}
+        </Button>
       )}
-
-      {isOwner && (
-        <div className="space-y-4 border-t pt-4 mt-4">
-          <h3 className="text-sm font-medium">Update Inventory</h3>
-          <div className="flex items-center gap-4">
-            <Input
-              id="inventory-amount"
-              type="number"
-              min="0"
-              value={inventory}
-              onChange={(e) => setInventory(Number(e.target.value))}
-              className="w-24"
-              aria-label="New inventory amount"
-              aria-describedby={error ? "inventory-error" : undefined}
-            />
-            <Button 
-              onClick={handleUpdate} 
-              disabled={isLoading || inventory === currentInventory}
-              size="sm"
-              aria-label={isLoading ? "Updating inventory..." : "Update inventory"}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  <span>Updating...</span>
-                </>
-              ) : (
-                "Update"
-              )}
-            </Button>
-          </div>
-          {error && (
-            <p 
-              id="inventory-error" 
-              className="text-sm font-medium text-destructive mt-1.5"
-            >
-              {error}
-            </p>
-          )}
-        </div>
-      )}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handleChange(1)}
+        disabled={isUpdating}
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="default"
+        size="sm"
+        onClick={handleSubmit}
+        disabled={pendingInventory === inventory || isUpdating}
+      >
+        Submit
+      </Button>
     </div>
   );
 }

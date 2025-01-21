@@ -7,63 +7,41 @@ import { MarketStandForm } from "../../../../components/form/MarketStandForm";
 
 async function getData(encodedId: string) {
   try {
-    // Handle ID decoding once at the start
     const id = decodeURIComponent(encodedId);
-    console.log('getData debug:', {
-      encodedId,
-      decodedId: id,
-      isEncoded: encodedId !== id
-    });
 
-    // Verify database connection
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      console.log('Database connection verified');
-    } catch (dbError) {
-      console.error('Database connection error:', dbError);
-      throw new Error('Database connection failed');
-    }
-
-    // First try raw query to debug any ID issues
-    try {
-      const rawCheck = await prisma.$queryRaw`
-        SELECT id, "userId" 
-        FROM "MarketStand" 
-        WHERE id = ${id}
-      `;
-      console.log('Raw market stand check:', rawCheck);
-    } catch (rawError) {
-      console.error('Raw query error:', rawError);
-    }
-
-    // Fetch market stand with Prisma
     const marketStand = await prisma.marketStand.findUnique({
       where: { id },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      images: true,
-      locationName: true,
-      locationGuide: true,
-      latitude: true,
-      longitude: true,
-      userId: true,
-      tags: true
-    }
-    });
-
-    console.log('Prisma query result:', {
-      found: !!marketStand,
-      marketStandId: marketStand?.id,
-      userId: marketStand?.userId,
-      query: {
-        where: { id },
-        select: ['id', 'name', 'description', 'images', 'locationName', 'locationGuide', 'latitude', 'longitude', 'userId']
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        images: true,
+        locationName: true,
+        locationGuide: true,
+        latitude: true,
+        longitude: true,
+        tags: true,
+        userId: true
       }
     });
 
-    return marketStand;
+    if (!marketStand) {
+      return null;
+    }
+
+    // Ensure data is serializable
+    return {
+      id: marketStand.id,
+      name: marketStand.name,
+      description: marketStand.description || '',
+      images: marketStand.images,
+      locationName: marketStand.locationName,
+      locationGuide: marketStand.locationGuide,
+      latitude: marketStand.latitude,
+      longitude: marketStand.longitude,  
+      tags: marketStand.tags || [],
+      userId: marketStand.userId
+    };
   } catch (error) {
     console.error('getData error:', {
       error,
@@ -133,7 +111,7 @@ export default async function EditMarketStandPage({
   }
 
   // Verify ownership
-  if (marketStand.userId !== user.id) {
+  if (!marketStand || marketStand.userId !== user.id) {
     console.log('User is not owner, redirecting to view page');
     return redirect(`/market-stand/${params.id}`); // Use original ID for consistency
   }

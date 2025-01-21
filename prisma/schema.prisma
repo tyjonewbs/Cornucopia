@@ -50,6 +50,8 @@ model MarketStand {
   longitude       Float
   locationName    String
   locationGuide   String
+  website         String?
+  socialMedia     String[]
   status          Status               @default(PENDING)
   isActive        Boolean              @default(true)
   createdAt       DateTime             @default(now())

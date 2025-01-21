@@ -199,8 +199,11 @@ export async function SellProduct(
       }
     }
 
-    // Redirect to dashboard after successful product creation/update
-    return redirect("/dashboard");
+    // Return success response
+    return {
+      status: "success",
+      message: "Product saved successfully"
+    };
   } catch (error) {
     console.error("[SELL_PRODUCT]", error);
     return {
@@ -289,7 +292,11 @@ export async function UpdateMarketStand(
       });
     }
 
-    return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`);
+    // Return success response
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     if (error instanceof Error) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -298,6 +305,67 @@ export async function UpdateMarketStand(
       });
     }
     return new Response(JSON.stringify({ error: "Failed to update market stand. Please try again." }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+export async function UpdateInventory(
+  prevState: any,
+  formData: FormData
+): Promise<Response> {
+  const user = await getUser();
+
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Not authenticated" }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  const productId = formData.get("productId")?.toString();
+  const inventory = parseInt(formData.get("inventory")?.toString() ?? "0", 10);
+
+  if (!productId) {
+    return new Response(JSON.stringify({ error: "Product ID is required" }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  if (isNaN(inventory) || inventory < 0) {
+    return new Response(JSON.stringify({ error: "Invalid inventory value" }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  try {
+    const product = await prisma.product.update({
+      where: {
+        id: productId,
+        userId: user.id // Ensure user owns the product
+      },
+      data: {
+        inventory,
+        inventoryUpdatedAt: new Date()
+      }
+    });
+
+    if (!product) {
+      return new Response(JSON.stringify({ error: "Failed to update inventory" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: "Failed to update inventory" }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -375,8 +443,11 @@ export async function CreateMarketStand(
       });
     }
 
-    // Redirect after successful creation
-    return Response.redirect(new URL('/dashboard', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'));
+    // Return success response
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     if (error instanceof Error) {
       return new Response(JSON.stringify({ error: error.message }), {

@@ -1,43 +1,78 @@
-'use server'
+"use server";
 
-import prisma from '@/lib/db';
+import prisma from "lib/db";
+import { Product, Status } from "@prisma/client";
 
-export async function getProducts(userId: string) {
+// Types for product responses
+interface ProductResponse {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  inventory: number;
+  inventoryUpdatedAt: string | null;
+  status: Status;
+  isActive: boolean;
+  userId: string;
+  marketStandId: string;
+  createdAt: string;
+  updatedAt: string;
+  totalReviews: number;
+  averageRating: number | null;
+  marketStand?: {
+    id: string;
+    name: string;
+    locationName?: string;
+  };
+  tags: string[];
+  locationName?: string;
+}
+
+export async function getProducts(userId?: string): Promise<ProductResponse[]> {
   try {
     const products = await prisma.product.findMany({
       where: {
-        userId,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        images: true,
-        inventory: true,
-        inventoryUpdatedAt: true,
-        status: true,
         isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        userId: true,
-        totalReviews: true,
+        ...(userId ? { userId } : {})
+      },
+      include: {
         marketStand: {
           select: {
             id: true,
             name: true,
-          },
-        },
+            locationName: true
+          }
+        }
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
 
-    // Serialize dates for client consumption
-    return products.map((product) => ({
-      ...product,
+    return products.map(product => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      images: product.images,
+      inventory: product.inventory,
+      inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
+      status: product.status,
+      isActive: product.isActive,
+      userId: product.userId,
+      marketStandId: product.marketStandId,
       createdAt: product.createdAt.toISOString(),
       updatedAt: product.updatedAt.toISOString(),
-      inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
-      locationName: product.marketStand?.name || 'Unknown Location',
+      totalReviews: product.totalReviews,
+      averageRating: product.averageRating,
+      marketStand: product.marketStand ? {
+        id: product.marketStand.id,
+        name: product.marketStand.name,
+        locationName: product.marketStand.locationName
+      } : undefined,
+      tags: product.tags,
+      locationName: product.marketStand?.locationName
     }));
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -45,66 +80,175 @@ export async function getProducts(userId: string) {
   }
 }
 
-export async function getLatestProducts(userLocation?: { lat: number; lng: number } | null) {
+export async function getProduct(id: string): Promise<ProductResponse | null> {
   try {
-    const data = await prisma.product.findMany({
-      select: {
-        name: true,
-        id: true,
-        images: true,
-        updatedAt: true,
-        price: true,
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
         marketStand: {
           select: {
             id: true,
             name: true,
-            latitude: true,
-            longitude: true,
+            locationName: true
           }
         }
+      }
+    });
+    
+    if (!product) return null;
+
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      images: product.images,
+      inventory: product.inventory,
+      inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
+      status: product.status,
+      isActive: product.isActive,
+      userId: product.userId,
+      marketStandId: product.marketStandId,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString(),
+      totalReviews: product.totalReviews,
+      averageRating: product.averageRating,
+      marketStand: product.marketStand ? {
+        id: product.marketStand.id,
+        name: product.marketStand.name,
+        locationName: product.marketStand.locationName
+      } : undefined,
+      tags: product.tags,
+      locationName: product.marketStand?.locationName
+    };
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    throw new Error('Failed to fetch product');
+  }
+}
+
+type CreateProductInput = Omit<ProductResponse, 
+  'id' | 'createdAt' | 'updatedAt' | 'marketStand' | 'locationName' | 'averageRating' | 'totalReviews'
+>;
+
+export async function createProduct(data: CreateProductInput): Promise<ProductResponse> {
+  try {
+    const product = await prisma.product.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        images: data.images,
+        inventory: data.inventory,
+        inventoryUpdatedAt: data.inventoryUpdatedAt ? new Date(data.inventoryUpdatedAt) : null,
+        status: data.status,
+        isActive: data.isActive,
+        userId: data.userId,
+        marketStandId: data.marketStandId,
+        tags: data.tags
       },
-      take: 6,
-      orderBy: {
-        updatedAt: 'desc'
+      include: {
+        marketStand: {
+          select: {
+            id: true,
+            name: true,
+            locationName: true
+          }
+        }
       }
     });
 
-    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-      const R = 6371; // Earth's radius in km
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
-    };
-
-    if (userLocation && userLocation.lat && userLocation.lng) {
-      return data.map(product => {
-        const distance = product.marketStand ? calculateDistance(
-          userLocation.lat,
-          userLocation.lng,
-          product.marketStand.latitude,
-          product.marketStand.longitude
-        ) : Infinity;
-
-        return {
-          ...product,
-          updatedAt: product.updatedAt.toISOString(),
-          locationName: product.marketStand ? product.marketStand.name : 'Unknown Location'
-        };
-      });
-    }
-
-    return data.map(product => ({
-      ...product,
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      images: product.images,
+      inventory: product.inventory,
+      inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
+      status: product.status,
+      isActive: product.isActive,
+      userId: product.userId,
+      marketStandId: product.marketStandId,
+      createdAt: product.createdAt.toISOString(),
       updatedAt: product.updatedAt.toISOString(),
-      locationName: product.marketStand?.name || 'Unknown Location'
-    }));
+      totalReviews: product.totalReviews,
+      averageRating: product.averageRating,
+      marketStand: product.marketStand ? {
+        id: product.marketStand.id,
+        name: product.marketStand.name,
+        locationName: product.marketStand.locationName
+      } : undefined,
+      tags: product.tags,
+      locationName: product.marketStand?.locationName
+    };
   } catch (error) {
-    console.error('Error fetching products:', error);
-    throw new Error('Failed to fetch latest products');
+    console.error('Error creating product:', error);
+    throw new Error('Failed to create product');
+  }
+}
+
+type UpdateProductInput = Partial<Omit<CreateProductInput, 'userId' | 'marketStandId'>>;
+
+export async function updateProduct(
+  id: string,
+  data: UpdateProductInput
+): Promise<ProductResponse> {
+  try {
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        ...data,
+        inventoryUpdatedAt: data.inventoryUpdatedAt ? new Date(data.inventoryUpdatedAt) : undefined
+      },
+      include: {
+        marketStand: {
+          select: {
+            id: true,
+            name: true,
+            locationName: true
+          }
+        }
+      }
+    });
+
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      images: product.images,
+      inventory: product.inventory,
+      inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
+      status: product.status,
+      isActive: product.isActive,
+      userId: product.userId,
+      marketStandId: product.marketStandId,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString(),
+      totalReviews: product.totalReviews,
+      averageRating: product.averageRating,
+      marketStand: product.marketStand ? {
+        id: product.marketStand.id,
+        name: product.marketStand.name,
+        locationName: product.marketStand.locationName
+      } : undefined,
+      tags: product.tags,
+      locationName: product.marketStand?.locationName
+    };
+  } catch (error) {
+    console.error('Error updating product:', error);
+    throw new Error('Failed to update product');
+  }
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  try {
+    await prisma.product.delete({
+      where: { id }
+    });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    throw new Error('Failed to delete product');
   }
 }

@@ -24,13 +24,16 @@ interface MarketStandFormProps {
   marketStand?: {
     id: string;
     name: string;
-    description: string | null;
+    description: string;
     images: string[];
     tags: string[];
     latitude: number;
     longitude: number;
     locationName: string;
     locationGuide: string;
+    userId: string;
+    website?: string;
+    socialMedia?: string[];
   };
 }
 
@@ -44,6 +47,9 @@ interface FormState {
     longitude: string;
     tags: string[];
     currentTag: string;
+    website: string;
+    socialMedia: string[];
+    currentSocialMedia: string;
   };
   errors: {
     name?: string;
@@ -53,14 +59,20 @@ interface FormState {
     latitude?: string;
     longitude?: string;
     images?: string;
+    website?: string;
+    socialMedia?: string;
   };
 }
 
 const validateField = (name: string, value: string | string[]): string | undefined => {
-  // Skip validation for array values (tags)
+  // Skip validation for array values (tags, socialMedia)
   if (Array.isArray(value)) return undefined;
   
-  if (!value || value.trim() === '') return "This field is required";
+  if (!value || value.trim() === '') {
+    // Website is optional, so don't require it
+    if (name === 'website') return undefined;
+    return "This field is required";
+  }
   
   switch (name) {
     case "name":
@@ -79,6 +91,15 @@ const validateField = (name: string, value: string | string[]): string | undefin
       const lng = parseFloat(value);
       if (isNaN(lng) || lng < -180 || lng > 180) return "Must be between -180 and 180";
       return undefined;
+    case "website":
+      try {
+        if (value) {
+          new URL(value);
+        }
+        return undefined;
+      } catch {
+        return "Must be a valid URL (e.g., https://example.com)";
+      }
     default:
       return undefined;
   }
@@ -96,7 +117,10 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
       latitude: marketStand?.latitude?.toString() || '',
       longitude: marketStand?.longitude?.toString() || '',
       tags: marketStand?.tags || [],
-      currentTag: ''
+      currentTag: '',
+      website: marketStand?.website || '',
+      socialMedia: marketStand?.socialMedia || [],
+      currentSocialMedia: ''
     },
     errors: {}
   });
@@ -129,7 +153,7 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
     let isValid = true;
 
     // Validate required fields only
-    const fieldsToValidate = ['name', 'description', 'locationName', 'locationGuide', 'latitude', 'longitude'];
+    const fieldsToValidate = ['name', 'description', 'locationName', 'locationGuide', 'latitude', 'longitude', 'website'];
     fieldsToValidate.forEach(name => {
       const value = formState.values[name as keyof typeof formState.values];
       const error = validateField(name, value);
@@ -142,6 +166,21 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
     // Validate images
     if (images.length === 0) {
       newErrors.images = "At least one image is required";
+      isValid = false;
+    }
+
+    // Validate social media URLs
+    const invalidSocialMedia = formState.values.socialMedia.some(url => {
+      try {
+        new URL(url);
+        return false;
+      } catch {
+        return true;
+      }
+    });
+
+    if (invalidSocialMedia) {
+      newErrors.socialMedia = "All social media links must be valid URLs";
       isValid = false;
     }
 
@@ -180,10 +219,54 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
     }));
   };
 
+  const handleAddSocialMedia = () => {
+    const link = formState.values.currentSocialMedia.trim();
+    if (link) {
+      try {
+        new URL(link);
+        if (!formState.values.socialMedia.includes(link)) {
+          setFormState(prev => ({
+            ...prev,
+            values: {
+              ...prev.values,
+              socialMedia: [...prev.values.socialMedia, link],
+              currentSocialMedia: ''
+            }
+          }));
+        }
+      } catch {
+        setFormState(prev => ({
+          ...prev,
+          errors: {
+            ...prev.errors,
+            socialMedia: "Please enter a valid URL"
+          }
+        }));
+      }
+    }
+  };
+
+  const handleRemoveSocialMedia = (linkToRemove: string) => {
+    setFormState(prev => ({
+      ...prev,
+      values: {
+        ...prev.values,
+        socialMedia: prev.values.socialMedia.filter(link => link !== linkToRemove)
+      }
+    }));
+  };
+
   const handleTagKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddTag();
+    }
+  };
+
+  const handleSocialMediaKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddSocialMedia();
     }
   };
 
@@ -198,34 +281,29 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
     const formData = new FormData(e.currentTarget);
     formData.append('images', JSON.stringify(images));
     formData.append('tags', JSON.stringify(formState.values.tags));
+    formData.append('website', formState.values.website);
+    formData.append('socialMedia', JSON.stringify(formState.values.socialMedia));
 
     try {
       if (marketStand) {
         formData.append("id", marketStand.id);
         const result = await UpdateMarketStand({ status: undefined, message: null }, formData);
-        // console.log('result:\n', result)
         if (!result.ok) {
           const data = await result.json();
           toast.error(data.error);
           return;
         }
-        if (result.redirected) {
-          window.location.href = result.url;
-          return;
-        }
+        toast.success("Market stand updated successfully");
+        router.push('/dashboard/sell');
       } else {
         const result = await CreateMarketStand({ status: undefined, message: null }, formData);
+        const data = await result.json();
         if (!result.ok) {
-          console.log('first')
-          const data = await result.json();
           toast.error(data.error);
           return;
         }
-        if (result.redirected) {
-          console.log('second')
-          window.location.href = result.url;
-          return;
-        }
+        toast.success("Market stand created successfully");
+        router.push('/dashboard/sell');
       }
     } catch (error) {
       toast.error("An error occurred. Please try again.");
@@ -322,6 +400,66 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
           />
           {formState.errors.locationGuide && (
             <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.locationGuide}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-y-2">
+          <Label>Website (Optional)</Label>
+          <Input
+            name="website"
+            type="url"
+            placeholder="https://your-website.com"
+            value={formState.values.website}
+            onChange={(e) => handleFieldChange('website', e.target.value)}
+            className={formState.errors.website ? 'border-destructive' : ''}
+          />
+          {formState.errors.website && (
+            <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.website}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-y-2 mb-8">
+          <Label>Social Media Links</Label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {formState.values.socialMedia.map((link, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-md"
+              >
+                <span className="text-sm truncate max-w-[200px]">{link}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 hover:bg-transparent"
+                  onClick={() => handleRemoveSocialMedia(link)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-x-2">
+            <Input
+              type="url"
+              placeholder="Add a social media link"
+              value={formState.values.currentSocialMedia}
+              onChange={(e) => setFormState(prev => ({
+                ...prev,
+                values: { ...prev.values, currentSocialMedia: e.target.value }
+              }))}
+              onKeyPress={handleSocialMediaKeyPress}
+            />
+            <Button
+              type="button"
+              onClick={handleAddSocialMedia}
+              disabled={!formState.values.currentSocialMedia.trim()}
+            >
+              Add
+            </Button>
+          </div>
+          {formState.errors.socialMedia && (
+            <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.socialMedia}</p>
           )}
         </div>
 

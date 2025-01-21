@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 
 async function getMarketStands(userId: string) {
   try {
-    return await prisma.marketStand.findMany({
+    const stands = await prisma.marketStand.findMany({
       where: {
         userId: userId,
       },
@@ -21,6 +21,7 @@ async function getMarketStands(userId: string) {
         latitude: true,
         longitude: true,
         images: true,
+        tags: true,
         _count: {
           select: {
             products: true,
@@ -31,6 +32,16 @@ async function getMarketStands(userId: string) {
         createdAt: 'desc',
       },
     });
+
+    // Ensure data is serializable
+    return stands.map(stand => ({
+      ...stand,
+      description: stand.description || null, // Ensure null instead of undefined
+      tags: stand.tags || [], // Ensure array even if null/undefined
+      _count: {
+        products: stand._count.products
+      }
+    }));
   } catch (error) {
     console.error('Error fetching market stands:', error);
     return [];

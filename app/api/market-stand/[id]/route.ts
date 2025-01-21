@@ -1,93 +1,158 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/db";
+import prisma from "lib/db";
+import { unstable_noStore as noStore } from "next/cache";
+import { 
+  MarketStandDetailResponse,
+  ErrorResponse, 
+  detailViewSelect,
+  DetailedProduct,
+  ValidationErrorResponse 
+} from "../types";
+import { 
+  createErrorResponse, 
+  validateMarketStandId,
+  withErrorHandling 
+} from "../utils";
 import { Prisma } from "@prisma/client";
+import { safeValidateMarketStandInput } from "../validation";
 
+// Type for raw Prisma response
+type PrismaMarketStand = Prisma.MarketStandGetPayload<{
+  select: typeof detailViewSelect;
+}>;
+
+/**
+ * Transforms a Prisma product to match our API response type
+ */
+function transformProduct(product: PrismaMarketStand["products"][0]): DetailedProduct {
+  return {
+    ...product,
+    createdAt: product.createdAt.toISOString(),
+    updatedAt: product.updatedAt.toISOString(),
+    inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() ?? null,
+    status: product.status.toString(),
+  };
+}
+
+/**
+ * Transforms Prisma response to match our API response type
+ */
+function transformMarketStandResponse(
+  stand: PrismaMarketStand
+): MarketStandDetailResponse {
+  return {
+    ...stand,
+    createdAt: stand.createdAt.toISOString(),
+    products: stand.products.map(transformProduct),
+    user: {
+      id: stand.user.id,
+      firstName: stand.user.firstName,
+      lastName: stand.user.lastName,
+      profileImage: stand.user.profileImage
+    }
+  };
+}
+
+/**
+ * Fetches a market stand by ID with its associated products and user information
+ */
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
-) {
-  console.log('Market stand by ID API route called:', params.id);
-  
-  try {
-    // Ensure connection is established
-    await prisma.$connect();
-    
-    console.log('Fetching market stand...');
+): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse>> {
+  noStore();
+  console.log("Market stand by ID API route called:", params.id);
+
+  return withErrorHandling<MarketStandDetailResponse>(async () => {
+    // Validate ID format
+    if (!validateMarketStandId(params.id)) {
+      throw new Error("Invalid market stand ID format");
+    }
+
+    // Fetch market stand with related data
     const marketStand = await prisma.marketStand.findUnique({
-      where: {
-        id: params.id
-      },
-      include: {
-        products: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            price: true,
-            images: true,
-            inventory: true,
-            inventoryUpdatedAt: true,
-            status: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true,
-            tags: true,
-            averageRating: true,
-            totalReviews: true
-          }
-        },
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            profileImage: true
-          }
-        }
-      }
+      where: { id: params.id },
+      select: detailViewSelect
     });
 
-    // Explicitly disconnect after query
-    await prisma.$disconnect();
-
+    // Handle not found case
     if (!marketStand) {
-      console.error('Market stand not found:', params.id);
-      return NextResponse.json(
-        { error: 'Market stand not found' },
-        { status: 404 }
-      );
+      throw new Error("Market stand not found");
     }
 
-    console.log('Successfully fetched market stand:', marketStand.id);
-    
-    // Serialize dates to ISO strings before sending response
-    const serializedStand = {
-      ...marketStand,
-      createdAt: marketStand.createdAt.toISOString(),
-      products: marketStand.products.map(product => ({
-        ...product,
-        createdAt: product.createdAt.toISOString(),
-        updatedAt: product.updatedAt.toISOString()
-      }))
-    };
-    
-    return NextResponse.json(JSON.parse(JSON.stringify(serializedStand)));
-  } catch (error) {
-    // Ensure disconnection even on error
-    try {
-      await prisma.$disconnect();
-    } catch (disconnectError) {
-      console.error('Error disconnecting from database:', disconnectError);
+    // Transform and return response
+    const response = transformMarketStandResponse(marketStand);
+    console.log("Successfully fetched market stand:", response.id);
+    return NextResponse.json(response);
+  });
+}
+
+/**
+ * Updates a market stand by ID
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse | ValidationErrorResponse>> {
+  try {
+    // Validate ID format
+    if (!validateMarketStandId(params.id)) {
+      throw new Error("Invalid market stand ID format");
     }
 
-    console.error('Failed to fetch market stand:', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error'
+    // Parse and validate request body
+    const body = await request.json();
+    const validationResult = safeValidateMarketStandInput(body);
+    
+    if (!validationResult.success) {
+      const validationError: ValidationErrorResponse = {
+        error: "Validation error",
+        details: validationResult.error.formErrors
+      };
+      return NextResponse.json(validationError, { status: 400 });
+    }
+
+    // Update market stand with validated data
+    const updatedStand = await prisma.marketStand.update({
+      where: { id: params.id },
+      data: {
+        name: validationResult.data.name,
+        description: validationResult.data.description,
+        images: validationResult.data.images,
+        latitude: validationResult.data.latitude,
+        longitude: validationResult.data.longitude,
+        locationName: validationResult.data.locationName,
+        locationGuide: validationResult.data.locationGuide,
+        tags: validationResult.data.tags
+      },
+      select: detailViewSelect
     });
-    
-    return NextResponse.json(
-      { error: 'Failed to fetch market stand. Please try again.' },
-      { status: 500 }
-    );
+
+    // Transform and return response
+    return NextResponse.json(transformMarketStandResponse(updatedStand));
+  } catch (error) {
+    return createErrorResponse(error);
   }
+}
+
+/**
+ * Deletes a market stand by ID
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+): Promise<NextResponse<{ success: boolean } | ErrorResponse>> {
+  return withErrorHandling<{ success: boolean }>(async () => {
+    // Validate ID format
+    if (!validateMarketStandId(params.id)) {
+      throw new Error("Invalid market stand ID format");
+    }
+
+    // Delete market stand
+    await prisma.marketStand.delete({
+      where: { id: params.id }
+    });
+
+    return NextResponse.json({ success: true });
+  });
 }
