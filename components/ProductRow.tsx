@@ -1,10 +1,10 @@
+'use client';
+
 import { LoadingProductCard, ProductCard } from "./ProductCard";
 import Link from "next/link";
-import { Suspense } from "react";
-import { cache } from 'react';
+import { Suspense, useEffect, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
-import prisma from "../lib/db";
-import type { Product, MarketStand } from "@prisma/client";
+import { getHomeProducts } from "@/app/actions/home-products";
 
 interface SerializedProduct {
   id: string;
@@ -42,68 +42,50 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-const getData = cache(async ({ userLocation }: { userLocation?: { lat: number; lng: number } | null }) => {
-  try {
-    const products = await prisma.product.findMany({
-      select: {
-        name: true,
-        id: true,
-        images: true,
-        updatedAt: true,
-        price: true,
-        tags: true,
-        marketStand: {
-          select: {
-            id: true,
-            name: true,
-            latitude: true,
-            longitude: true,
-          }
+
+export function ProductRow({ title, link }: Omit<ProductRowProps, 'userLocation'>) {
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [data, setData] = useState<SerializedProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Get user's location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          setUserLocation(null);
         }
-      },
-      take: 6,
-      orderBy: {
-        updatedAt: 'desc'
-      }
-    });
+      );
+    }
+  }, []);
 
-    // Serialize dates and transform data
-    const serializedProducts = products.map(product => ({
-      ...product,
-      updatedAt: product.updatedAt.toISOString(),
-      locationName: product.marketStand?.name || 'Unknown Location',
-      distance: userLocation && userLocation.lat && userLocation.lng && product.marketStand
-        ? calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
-            product.marketStand.latitude,
-            product.marketStand.longitude
-          )
-        : undefined
-    }));
+  useEffect(() => {
+    const fetchData = async () => {
+      const products = await getHomeProducts(userLocation);
+      setData(products);
+      setIsLoading(false);
+    };
 
-    return serializedProducts;
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return [];
+    fetchData();
+  }, [userLocation]);
+
+  if (isLoading) {
+    return <LoadingState />;
   }
-});
+  // Check if there are any local products (within 150 miles)
+  const localProducts = userLocation ? data.filter(product => (product.distance ?? Infinity) <= 150) : [];
+  const hasLocalProducts = localProducts.length > 0;
 
-export function ProductRow({ title, link, userLocation }: ProductRowProps) {
   return (
     <section className="mt-12">
-      <Suspense fallback={<LoadingState />}>
-        <LoadRows title={title} link={link} userLocation={userLocation} />
-      </Suspense>
-    </section>
-  );
-}
-
-async function LoadRows({ title, link, userLocation }: ProductRowProps) {
-  const data = await getData({ userLocation });
-  return (
-    <>
-      <div className="md:flex md:items-center md:justify-between">
+      <div className="md:flex md:items-center md:justify-between mb-6">
         <h2 className="text-2xl font-extrabold tracking-tighter">
           {title}
         </h2>
@@ -115,8 +97,20 @@ async function LoadRows({ title, link, userLocation }: ProductRowProps) {
         </Link>
       </div>
 
+      {userLocation && !hasLocalProducts && (
+        <div className="text-center py-12 border rounded-lg bg-muted/50 mb-12">
+          <h3 className="text-xl font-semibold mb-4">Sorry, there are no local products nearby</h3>
+          <Link 
+            href="/market-stand/setup"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          >
+            Become the First
+          </Link>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 mt-4 gap-10">
-        {data.map((product: SerializedProduct) => (
+        {(hasLocalProducts ? localProducts : data).map((product: SerializedProduct) => (
           <ProductCard
             key={product.id}
             images={product.images}
@@ -130,7 +124,7 @@ async function LoadRows({ title, link, userLocation }: ProductRowProps) {
           />
         ))}
       </div>
-    </>
+    </section>
   );
 }
 

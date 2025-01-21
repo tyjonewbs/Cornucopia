@@ -52,7 +52,10 @@ export default async function Home({
           farmers and enjoy farm-fresh goods delivered directly to you.
         </p>
       </div>
-      <ProductRow title="Recently Added" link="/local-spots" />
+      <ProductRow 
+        title="Local Products" 
+        link="/local-spots"
+      />
     </section>
   );
 }

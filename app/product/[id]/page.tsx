@@ -7,7 +7,6 @@ import { unstable_noStore as noStore } from "next/cache";
 import { MapPin, Package, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { ProductCard } from "@/components/ProductCard";
-import { InventoryManager } from "@/components/InventoryManager";
 
 import {
   Carousel,
@@ -240,9 +239,9 @@ export default async function ProductPage({
                 <div key={data.marketStand.id} className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p>{data.marketStand.name}</p>
+                    <p>{data.marketStand.locationName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {data.marketStand.latitude.toFixed(4)}, {data.marketStand.longitude.toFixed(4)}
+                      {data.marketStand.name}
                     </p>
                   </div>
                 </div>
@@ -251,33 +250,25 @@ export default async function ProductPage({
           </div>
         </div>
 
-        <div className="border-t border-gray-200 mt-10">
-          <InventoryManager
-            productId={data?.id ?? ""}
-            currentInventory={data?.inventory ?? 0}
-            lastUpdated={data?.inventoryUpdatedAt ?? null}
-            isOwner={data?.userId === data?.user?.id}
-          />
-        </div>
       </div>
 
       <div className="w-full max-w-2xl mx-auto mt-16 lg:max-w-none lg:mt-0 lg:col-span-4">
         <ProductDescription content={descriptionContent} />
       </div>
 
-      {isQRAccess && data?.marketStand?.products && data.marketStand.products.length > 0 && (
+      {isQRAccess && data?.marketStand?.products && data.marketStand?.products.length > 0 && (
         <div className="col-span-7 mt-16">
           <h3 className="text-xl font-semibold mb-6">More from this Market Stand</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {data.marketStand.products.map((product) => (
+            {data.marketStand?.products.map((product) => (
               <ProductCard
                 key={product.id}
                 id={product.id}
                 name={product.name}
                 images={product.images}
-                locationName={data.marketStand.locationName}
+                locationName={data.marketStand?.locationName ?? ''}
                 updatedAt={product.updatedAt}
-                marketStandId={data.marketStand.id}
+                marketStandId={data.marketStand?.id ?? ''}
                 isQRAccess={true}
                 price={product.price}
                 tags={product.tags}
