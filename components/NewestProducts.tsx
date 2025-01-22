@@ -52,7 +52,7 @@ export async function NewestProducts() {
             id={product.id}
             name={product.name}
             locationName={product.marketStand.locationName}
-            updatedAt={product.updatedAt}
+            updatedAt={product.updatedAt.toISOString()}
             inventory={product.inventory}
             marketStandId={product.marketStand.id}
           />

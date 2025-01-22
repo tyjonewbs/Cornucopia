@@ -1,10 +1,10 @@
 import ProductEmail from "@/components/ProductEmail";
 import { stripe } from "@/lib/stripe";
-
 import { headers } from "next/headers";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Only initialize Resend if API key is available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -29,14 +29,21 @@ export async function POST(req: Request) {
 
       const link = session.metadata?.link;
 
-      const { data, error } = await resend.emails.send({
-        from: "MarshalUI <onboarding@resend.dev>",
-        to: ["your_email"],
-        subject: "Your Product from MarshalUI",
-        react: ProductEmail({
-          link: link as string,
-        }),
-      });
+      // Only attempt to send email if Resend is initialized
+      if (resend) {
+        const { data, error } = await resend.emails.send({
+          from: "MarshalUI <onboarding@resend.dev>",
+          to: ["your_email"],
+          subject: "Your Product from MarshalUI",
+          react: ProductEmail({
+            link: link as string,
+          }),
+        });
+        
+        if (error) {
+          console.error('Failed to send email:', error);
+        }
+      }
 
       break;
     }

@@ -20,6 +20,7 @@ async function getProduct(id: string, userId: string) {
       marketStandId: true,
       inventory: true,
       inventoryUpdatedAt: true,
+      tags: true,
       marketStand: {
         select: {
           id: true,
@@ -63,7 +64,8 @@ export default async function EditProductPage({
     images: product.images,
     marketStandId: product.marketStandId,
     inventory: product.inventory,
-    inventoryUpdatedAt: product.inventoryUpdatedAt
+    inventoryUpdatedAt: product.inventoryUpdatedAt,
+    tags: product.tags || []
   };
 
   return (
