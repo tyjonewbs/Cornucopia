@@ -92,11 +92,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  context: { params: { id: string }; searchParams: URLSearchParams }
+  { params, searchParams }: { params: { id: string }; searchParams: URLSearchParams }
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse | ValidationErrorResponse>> {
   try {
     // Validate ID format
-    if (!validateMarketStandId(context.params.id)) {
+    if (!validateMarketStandId(params.id)) {
       throw new Error("Invalid market stand ID format");
     }
 
@@ -114,7 +114,7 @@ export async function PATCH(
 
     // Update market stand with validated data
     const updatedStand = await prisma.marketStand.update({
-      where: { id: context.params.id },
+      where: { id: params.id },
       data: {
         name: validationResult.data.name,
         description: validationResult.data.description,
@@ -140,17 +140,17 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string }; searchParams: URLSearchParams }
+  { params, searchParams }: { params: { id: string }; searchParams: URLSearchParams }  
 ): Promise<NextResponse<{ success: boolean } | ErrorResponse>> {
   return withErrorHandling<{ success: boolean }>(async () => {
     // Validate ID format
-    if (!validateMarketStandId(context.params.id)) {
+    if (!validateMarketStandId(params.id)) {  
       throw new Error("Invalid market stand ID format");
     }
 
     // Delete market stand
     await prisma.marketStand.delete({
-      where: { id: context.params.id }
+      where: { id: params.id }
     });
 
     return NextResponse.json({ success: true });
