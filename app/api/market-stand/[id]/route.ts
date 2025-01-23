@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import { 
@@ -57,7 +57,7 @@ function transformMarketStandResponse(
  * Fetches a market stand by ID with its associated products and user information
  */
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse>> {
   noStore();
@@ -91,7 +91,7 @@ export async function GET(
  * Updates a market stand by ID
  */
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse | ValidationErrorResponse>> {
   try {
@@ -139,7 +139,7 @@ export async function PATCH(
  * Deletes a market stand by ID
  */
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse<{ success: boolean } | ErrorResponse>> {
   return withErrorHandling<{ success: boolean }>(async () => {
