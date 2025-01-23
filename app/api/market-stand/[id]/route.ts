@@ -53,39 +53,29 @@ function transformMarketStandResponse(
   };
 }
 
-/**
- * Fetches a market stand by ID with its associated products and user information
- */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse>> {
+export const GET = async (req, { params }) => {
   noStore();
-  console.log("Market stand by ID API route called:", params.id);
-
-  return withErrorHandling<MarketStandDetailResponse>(async () => {
-    // Validate ID format
-    if (!validateMarketStandId(params.id)) {
-      throw new Error("Invalid market stand ID format");
-    }
-
-    // Fetch market stand with related data
+  const { id } = params;
+  
+  try {
     const marketStand = await prisma.marketStand.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: detailViewSelect
     });
 
-    // Handle not found case
     if (!marketStand) {
-      throw new Error("Market stand not found");
+      return new NextResponse(
+        JSON.stringify({ error: "Market stand not found" }), 
+        { status: 404 }
+      );
     }
 
-    // Transform and return response
     const response = transformMarketStandResponse(marketStand);
-    console.log("Successfully fetched market stand:", response.id);
     return NextResponse.json(response);
-  });
-}
+  } catch (error) {
+    return createErrorResponse(error);
+  }
+};
 
 /**
  * Updates a market stand by ID

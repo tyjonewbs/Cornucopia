@@ -9,6 +9,9 @@
     "lint": "next lint",
     "postinstall": "prisma generate"
   },
+    "engines": {
+      "node": ">=18.17.0"
+    },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
     "@prisma/client": "^6.2.1",
