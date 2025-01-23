@@ -58,7 +58,7 @@ function transformMarketStandResponse(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }  
+  { params }: { params: { id: string } }
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse>> {
   noStore();
   console.log("Market stand by ID API route called:", params.id);
@@ -140,7 +140,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params, searchParams }: { params: { id: string }; searchParams: URLSearchParams }  
+  { params, searchParams }: { params: { id: string }; searchParams: URLSearchParams }
 ): Promise<NextResponse<{ success: boolean } | ErrorResponse>> {
   return withErrorHandling<{ success: boolean }>(async () => {
     // Validate ID format
