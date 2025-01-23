@@ -1,16 +1,7 @@
 import prisma from "../../../lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import { MapPin } from "lucide-react";
-import dynamic from "next/dynamic";
-
-// Dynamic import for MapView to handle SSR
-const MapView = dynamic(
-  () => import('../../../components/MapView'),
-  {
-    ssr: false,
-    loading: () => <div className="h-[400px] animate-pulse bg-gray-200 rounded-lg" />
-  }
-);
+import MapViewClient from '../../../components/MapViewClient';
 
 async function getData(id: string) {
   const marketStand = await prisma.marketStand.findUnique({
@@ -175,11 +166,11 @@ export default async function NavigatePage({
 
         {/* Right Column - Map */}
         <div className="lg:h-[calc(100vh-12rem)] h-[400px] bg-white rounded-lg shadow-md overflow-hidden">
-          <MapView 
-            latitude={marketStand.latitude}
-            longitude={marketStand.longitude}
-            locationName={marketStand.locationName}
-          />
+<MapViewClient
+  latitude={marketStand.latitude}
+  longitude={marketStand.longitude} 
+  locationName={marketStand.locationName}
+/>
         </div>
       </div>
     </div>

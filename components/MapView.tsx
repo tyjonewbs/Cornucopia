@@ -1,4 +1,4 @@
-interface MapViewProps {
+export interface MapViewProps {
   latitude: number;
   longitude: number;
   locationName: string;
