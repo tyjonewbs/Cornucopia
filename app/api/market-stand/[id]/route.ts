@@ -92,8 +92,9 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params, searchParams }: { params: { id: string }; searchParams: URLSearchParams }
+  { params }: { params: { id: string } }
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse | ValidationErrorResponse>> {
+  const searchParams = request.nextUrl.searchParams;
   try {
     // Validate ID format
     if (!validateMarketStandId(params.id)) {
@@ -140,8 +141,9 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params, searchParams }: { params: { id: string }; searchParams: URLSearchParams }
+  { params }: { params: { id: string } }  
 ): Promise<NextResponse<{ success: boolean } | ErrorResponse>> {
+  const searchParams = request.nextUrl.searchParams;
   return withErrorHandling<{ success: boolean }>(async () => {
     // Validate ID format
     if (!validateMarketStandId(params.id)) {  
