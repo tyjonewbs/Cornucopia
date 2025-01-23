@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
 import { getHomeProducts } from "@/app/actions/home-products";
+import { logError } from "@/lib/logger";
 
 interface SerializedProduct {
   id: string;
@@ -48,6 +49,24 @@ export function ProductRow({ title, link }: Omit<ProductRowProps, 'userLocation'
   const [data, setData] = useState<SerializedProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const handleLocationError = (error: GeolocationPositionError) => {
+    // Handle specific geolocation errors
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        logError('Location access denied by user', error);
+        break;
+      case error.POSITION_UNAVAILABLE:
+        logError('Location information unavailable', error);
+        break;
+      case error.TIMEOUT:
+        logError('Location request timed out', error);
+        break;
+      default:
+        logError('An unknown error occurred', error);
+    }
+    setUserLocation(null);
+  };
+
   useEffect(() => {
     // Get user's location
     if (navigator.geolocation) {
@@ -58,8 +77,8 @@ export function ProductRow({ title, link }: Omit<ProductRowProps, 'userLocation'
             lng: position.coords.longitude
           });
         },
-        (error) => {
-          console.error('Error getting location:', error);
+        (error: GeolocationPositionError) => {
+          logError('Error getting location:', error);
           setUserLocation(null);
         }
       );
@@ -68,9 +87,14 @@ export function ProductRow({ title, link }: Omit<ProductRowProps, 'userLocation'
 
   useEffect(() => {
     const fetchData = async () => {
-      const products = await getHomeProducts(userLocation);
-      setData(products);
-      setIsLoading(false);
+      try {
+        const products = await getHomeProducts(userLocation);
+        setData(products);
+      } catch (error) {
+        logError('Error fetching products:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchData();

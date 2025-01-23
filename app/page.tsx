@@ -44,10 +44,10 @@ export default async function Home({
   // If user is not authenticated, show home page
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8 mb-24">
-      <div className="text-2xl sm:text-5xl lg:text-6xl font-semibold text-center py-20 bg-secondary/50 rounded-lg mb-16">
-        <h1>Discover Fresh Local</h1>
-        <h1 className="text-primary">Farm Products</h1>
-        <p className="lg:text-lg text-muted-foreground mx-auto mt-5 w-[90%] font-normal text-base">
+      <div className="text-2xl sm:text-5xl lg:text-6xl font-semibold text-center py-24 mt-12 bg-secondary rounded-lg mb-20 shadow-sm">
+        <h1 className="text-foreground/90">Discover Fresh Local</h1>
+        <h1 className="text-primary font-bold">Farm Products</h1>
+        <p className="lg:text-lg text-muted-foreground mx-auto mt-8 w-[90%] max-w-3xl font-normal text-base">
           Find the freshest products from local farmstands near you. Support your local
           farmers and enjoy farm-fresh goods delivered directly to you.
         </p>

@@ -58,8 +58,6 @@ export async function GET(): Promise<NextResponse<MarketStandListResponse[] | Er
 
   return withErrorHandling<MarketStandListResponse[]>(async () => {
     try {
-      // Ensure connection is alive
-      await prisma.$connect();
 
       // Fetch market stands with related data
       const marketStands = await prisma.marketStand.findMany({
@@ -70,8 +68,8 @@ export async function GET(): Promise<NextResponse<MarketStandListResponse[] | Er
         select: listViewSelect
       });
 
-      if (!marketStands || !Array.isArray(marketStands)) {
-        throw new Error("Invalid response from database");
+      if (!marketStands) {
+        throw new Error("Failed to fetch market stands");
       }
 
       // Transform and log response
@@ -85,8 +83,6 @@ export async function GET(): Promise<NextResponse<MarketStandListResponse[] | Er
     } catch (error) {
       // If we get a connection error, try to reconnect
       if (error instanceof Error && error.message.includes('prepared statement')) {
-        await prisma.$disconnect();
-        await prisma.$connect();
         
         // Retry the query
         const marketStands = await prisma.marketStand.findMany({
@@ -112,8 +108,6 @@ export async function POST(
   request: Request
 ): Promise<NextResponse<MarketStandListResponse | ErrorResponse | ValidationErrorResponse>> {
   try {
-    // Ensure connection is alive
-    await prisma.$connect();
 
     // Parse request body
     const body = await request.json();
@@ -165,11 +159,7 @@ export async function POST(
     return NextResponse.json(transformMarketStandResponse(newStand));
   } catch (error) {
     // If we get a connection error, try to reconnect
-    if (error instanceof Error && error.message.includes('prepared statement')) {
-      await prisma.$disconnect();
-      await prisma.$connect();
-      return createErrorResponse(new Error('Database connection error. Please try again.'));
-    }
+    return createErrorResponse(error);
     return createErrorResponse(error);
   }
 }

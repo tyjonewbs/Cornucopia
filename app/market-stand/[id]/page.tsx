@@ -14,7 +14,6 @@ import { Separator } from "@/components/ui/separator";
 async function getData(encodedId: string) {
   try {
     const id = decodeURIComponent(encodedId);
-    await prisma.$queryRaw`SELECT 1`;
 
     const marketStand = await prisma.marketStand.findUnique({
       where: { id },

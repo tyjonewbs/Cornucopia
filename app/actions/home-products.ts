@@ -16,6 +16,9 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export async function getHomeProducts(userLocation?: { lat: number; lng: number } | null) {
   try {
+    // Ensure connection is established
+    console.log('Fetching home products...');
+
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
@@ -66,9 +69,11 @@ export async function getHomeProducts(userLocation?: { lat: number; lng: number 
       });
     }
 
+    console.log(`Successfully fetched ${productsWithDistance.length} products`);
     return productsWithDistance;
   } catch (error) {
     console.error('Error fetching home products:', error);
     return [];
+  } finally {
   }
 }

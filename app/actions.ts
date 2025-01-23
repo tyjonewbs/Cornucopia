@@ -87,8 +87,9 @@ export type State = {
   message: string | null;
 };
 
+// Move SellProduct to its own file
 export async function SellProduct(
-  prevState: State,
+  prevState: State, 
   formData: FormData
 ): Promise<State | Response> {
   try {
@@ -213,8 +214,9 @@ export async function SellProduct(
   }
 }
 
+// Move UpdateMarketStand to its own file
 export async function UpdateMarketStand(
-  prevState: any,
+  prevState: any, 
   formData: FormData
 ): Promise<Response> {
   const user = await getUser();
@@ -372,9 +374,10 @@ export async function UpdateInventory(
   }
 }
 
+// Move CreateMarketStand to its own file  
 export async function CreateMarketStand(
   prevState: any,
-  formData: FormData
+  formData: FormData  
 ): Promise<Response> {
   const user = await getUser();
 
