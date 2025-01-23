@@ -58,20 +58,20 @@ function transformMarketStandResponse(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string }; searchParams: URLSearchParams }
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse>> {
   noStore();
-  console.log("Market stand by ID API route called:", params.id);
+  console.log("Market stand by ID API route called:", context.params.id);
 
   return withErrorHandling<MarketStandDetailResponse>(async () => {
     // Validate ID format
-    if (!validateMarketStandId(params.id)) {
+    if (!validateMarketStandId(context.params.id)) {
       throw new Error("Invalid market stand ID format");
     }
 
     // Fetch market stand with related data
     const marketStand = await prisma.marketStand.findUnique({
-      where: { id: params.id },
+      where: { id: context.params.id },
       select: detailViewSelect
     });
 
@@ -92,11 +92,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string }; searchParams: URLSearchParams }
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse | ValidationErrorResponse>> {
   try {
     // Validate ID format
-    if (!validateMarketStandId(params.id)) {
+    if (!validateMarketStandId(context.params.id)) {
       throw new Error("Invalid market stand ID format");
     }
 
@@ -114,7 +114,7 @@ export async function PATCH(
 
     // Update market stand with validated data
     const updatedStand = await prisma.marketStand.update({
-      where: { id: params.id },
+      where: { id: context.params.id },
       data: {
         name: validationResult.data.name,
         description: validationResult.data.description,
@@ -140,17 +140,17 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string }; searchParams: URLSearchParams }
 ): Promise<NextResponse<{ success: boolean } | ErrorResponse>> {
   return withErrorHandling<{ success: boolean }>(async () => {
     // Validate ID format
-    if (!validateMarketStandId(params.id)) {
+    if (!validateMarketStandId(context.params.id)) {
       throw new Error("Invalid market stand ID format");
     }
 
     // Delete market stand
     await prisma.marketStand.delete({
-      where: { id: params.id }
+      where: { id: context.params.id }
     });
 
     return NextResponse.json({ success: true });
