@@ -58,20 +58,20 @@ function transformMarketStandResponse(
  */
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string }; searchParams: URLSearchParams }
+  { params }: { params: { id: string } }  
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse>> {
   noStore();
-  console.log("Market stand by ID API route called:", context.params.id);
+  console.log("Market stand by ID API route called:", params.id);
 
   return withErrorHandling<MarketStandDetailResponse>(async () => {
     // Validate ID format
-    if (!validateMarketStandId(context.params.id)) {
+    if (!validateMarketStandId(params.id)) {
       throw new Error("Invalid market stand ID format");
     }
 
     // Fetch market stand with related data
     const marketStand = await prisma.marketStand.findUnique({
-      where: { id: context.params.id },
+      where: { id: params.id },
       select: detailViewSelect
     });
 
