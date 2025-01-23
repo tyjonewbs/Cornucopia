@@ -126,25 +126,17 @@ export async function PATCH(
   }
 }
 
-/**
- * Deletes a market stand by ID
- */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }  
-): Promise<NextResponse<{ success: boolean } | ErrorResponse>> {
-  const searchParams = request.nextUrl.searchParams;
-  return withErrorHandling<{ success: boolean }>(async () => {
-    // Validate ID format
-    if (!validateMarketStandId(params.id)) {  
-      throw new Error("Invalid market stand ID format");
-    }
-
-    // Delete market stand
+export const DELETE = async (req, { params }) => {
+  noStore();
+  const { id } = params;
+ 
+  try {
     await prisma.marketStand.delete({
-      where: { id: params.id }
+      where: { id }
     });
-
+ 
     return NextResponse.json({ success: true });
-  });
-}
+  } catch (error) {
+    return createErrorResponse(error);
+  }
+ };
