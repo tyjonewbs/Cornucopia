@@ -53,10 +53,12 @@ function transformMarketStandResponse(
   };
 }
 
-export const GET = async (req, { params }) => {
-  noStore();
-  const { id } = params;
-  
+export const GET = async (
+  req: Request,
+  { params }: { params: { id: string } }
+) => {
+const { id } = params;
+
   try {
     const marketStand = await prisma.marketStand.findUnique({
       where: { id },
@@ -126,10 +128,12 @@ export async function PATCH(
   }
 }
 
-export const DELETE = async (req, { params }) => {
-  noStore();
-  const { id } = params;
- 
+export const DELETE = async (
+  req: Request,
+  { params }: { params: { id: string } }
+) => {
+const { id } = params;
+
   try {
     await prisma.marketStand.delete({
       where: { id }
