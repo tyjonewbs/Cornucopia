@@ -26,9 +26,11 @@ export async function GET() {
       email: user.email,
       marketStandId: profile?.market_stand_id
     });
-  } catch (error) {
-    console.error('API Error:', error);
-    return new NextResponse(JSON.stringify({ error: 'Internal Server Error' }), {
+  } catch (err) {
+    return new NextResponse(JSON.stringify({ 
+      error: 'Internal Server Error',
+      details: err instanceof Error ? err.message : 'Unknown error'
+    }), {
       status: 500,
     });
   }

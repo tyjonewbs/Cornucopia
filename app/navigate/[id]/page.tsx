@@ -2,6 +2,7 @@ import prisma from "../../../lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import { MapPin } from "lucide-react";
 import MapViewClient from '../../../components/MapViewClient';
+import Image from "next/image";
 
 async function getData(id: string) {
   const marketStand = await prisma.marketStand.findUnique({
@@ -68,11 +69,14 @@ export default async function NavigatePage({
           {/* Header Section */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center gap-4 mb-6">
-              <img
-                src={marketStand.user.profileImage}
-                alt={marketStand.user.firstName}
-                className="w-16 h-16 rounded-full border-2 border-primary"
-              />
+              <div className="relative w-16 h-16">
+                <Image
+                  src={marketStand.user.profileImage}
+                  alt={marketStand.user.firstName}
+                  fill
+                  className="rounded-full border-2 border-primary object-cover"
+                />
+              </div>
               <div>
                 <h2 className="text-2xl font-bold">{marketStand.name}</h2>
                 <p className="text-muted-foreground">

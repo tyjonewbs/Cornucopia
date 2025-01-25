@@ -53,7 +53,7 @@ export async function UpdateUserSettings(prevState: State, formData: FormData): 
       status: "success",
       message: "Settings updated successfully"
     };
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       message: "Failed to update settings. Please try again."

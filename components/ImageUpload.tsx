@@ -3,7 +3,6 @@
 import { useCallback, useState } from 'react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
 
 interface ImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -15,7 +14,6 @@ export function ImageUpload({
   maxFiles = 5,
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const router = useRouter();
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
@@ -48,7 +46,6 @@ export function ImageUpload({
       onUploadComplete(urls);
       toast.success(`Successfully uploaded ${urls.length} image${urls.length === 1 ? '' : 's'}`);
     } catch (error) {
-      console.error('Upload failed:', error);
       if (error instanceof Error) {
         toast.error(error.message);
       } else {

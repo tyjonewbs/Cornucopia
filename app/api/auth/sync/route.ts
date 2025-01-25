@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { event, session } = await request.json();
-    console.log('[Auth Sync] Received event:', event);
     
     // Get server client
     const supabase = getSupabaseServer();
@@ -19,7 +18,6 @@ export async function POST(request: Request) {
       // Set auth cookie
       await supabase.auth.setSession(session);
       
-      console.log('[Auth Sync] Session synchronized after sign in');
       return response;
     }
     
@@ -33,7 +31,6 @@ export async function POST(request: Request) {
       // Sign out to clear the session
       await supabase.auth.signOut();
       
-      console.log('[Auth Sync] Session cleared after sign out');
       return response;
     }
     
@@ -42,8 +39,7 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' },
     });
     
-  } catch (error) {
-    console.error('[Auth Sync] Error:', error);
+  } catch {
     return new NextResponse(JSON.stringify({ error: 'Internal Server Error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

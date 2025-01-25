@@ -27,9 +27,7 @@ export async function uploadImage(
       throw new Error('Authentication required for image upload');
     }
 
-    console.log(`Starting upload for file: ${file.name} to bucket: ${bucket}`);
     const fileName = `${path}${Date.now()}-${file.name}`;
-    console.log(`Generated filename: ${fileName}`);
 
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -39,27 +37,20 @@ export async function uploadImage(
       });
 
     if (error) {
-      console.error('Upload error:', error);
       throw error;
     }
-
-    console.log('Upload successful, data:', data);
-    console.log('Getting public URL for path:', data.path);
 
     const { data: urlData } = await supabase.storage
       .from(bucket)
       .getPublicUrl(data.path);
 
     if (!urlData.publicUrl) {
-      console.error('Failed to get public URL, urlData:', urlData);
       throw new Error('Failed to get public URL');
     }
 
-    console.log('Successfully generated public URL:', urlData.publicUrl);
     return urlData.publicUrl;
   } catch (error) {
-    console.error('Error in uploadImage:', error);
-    throw error;
+     throw error;
   }
 }
 

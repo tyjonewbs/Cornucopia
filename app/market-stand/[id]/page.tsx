@@ -2,9 +2,6 @@ import prisma from "@/lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
 import { MapPin, Package, Clock, Navigation, Globe, Twitter, Instagram, Facebook, Youtube, Linkedin } from "lucide-react";
-import { getUser } from "@/lib/auth";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/ProductCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -63,8 +60,8 @@ async function getData(encodedId: string) {
         updatedAt: product.updatedAt.toISOString()
       }))
     };
-  } catch (error) {
-    console.error('getData error:', error);
+  } catch (err) {
+    console.error('Failed to fetch market stand:', err instanceof Error ? err.message : 'Unknown error');
     return null;
   }
 }
@@ -75,8 +72,6 @@ export default async function MarketStandPage({
   params: { id: string };
 }) {
   noStore();
-  
-  const user = await getUser();
   const marketStand = await getData(params.id);
 
   if (!marketStand) {
@@ -161,7 +156,6 @@ export default async function MarketStandPage({
                   locationName={marketStand.locationName}
                   updatedAt={product.updatedAt}
                   inventory={product.inventory}
-                  marketStandId={marketStand.id}
                   isQRAccess={false}
                   price={product.price}
                   tags={product.tags}

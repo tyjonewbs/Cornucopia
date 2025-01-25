@@ -54,7 +54,6 @@ export async function NewestProducts() {
             locationName={product.marketStand.locationName}
             updatedAt={product.updatedAt.toISOString()}
             inventory={product.inventory}
-            marketStandId={product.marketStand.id}
           />
         ))}
       </div>

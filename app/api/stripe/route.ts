@@ -19,8 +19,9 @@ export async function POST(req: Request) {
       signature,
       process.env.STRIPE_SECRET_WEBHOOK as string
     );
-  } catch (error: unknown) {
-    return new Response("webhook error", { status: 400 });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "webhook error";
+    return new Response(errorMessage, { status: 400 });
   }
 
   switch (event.type) {
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
 
       // Only attempt to send email if Resend is initialized
       if (resend) {
-        const { data, error } = await resend.emails.send({
+        await resend.emails.send({
           from: "MarshalUI <onboarding@resend.dev>",
           to: ["your_email"],
           subject: "Your Product from MarshalUI",
@@ -39,16 +40,9 @@ export async function POST(req: Request) {
             link: link as string,
           }),
         });
-        
-        if (error) {
-          console.error('Failed to send email:', error);
-        }
       }
 
       break;
-    }
-    default: {
-      console.log("unhandled event");
     }
   }
 

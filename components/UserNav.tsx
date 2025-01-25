@@ -25,21 +25,15 @@ export function UserNav() {
       setIsAuthenticating(true);
       const supabase = getSupabaseBrowser();
       await supabase.auth.signOut();
-      console.log('[Auth] Logout successful, redirecting to home');
       window.location.href = window.location.origin;
-    } catch (error) {
-      console.error('[Auth] Logout error:', error);
+    } catch {
     } finally {
       setIsAuthenticating(false);
     }
   };
 
   const navigate = (path: string) => {
-    console.log(`Navigating to: ${path}`);
-    console.log('Current pathname:', window.location.pathname);
-    console.log('User state:', user);
-    const fullUrl = `${window.location.origin}${path}`;
-    console.log('Full URL:', fullUrl);
+       const fullUrl = `${window.location.origin}${path}`;
     window.location.href = fullUrl;
   };
 

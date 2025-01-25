@@ -23,7 +23,6 @@ export async function GET() {
       .createSignedUrl(`${user.id}/upload-policy`, 60); // 60 seconds expiry
 
     if (error) {
-      console.error('Storage policy error:', error);
       return new NextResponse("Failed to create upload policy", { status: 500 });
     }
 
@@ -31,8 +30,7 @@ export async function GET() {
       url: data.signedUrl,
       path: `${user.id}/upload-policy`
     });
-  } catch (error) {
-    console.error('Storage token error:', error);
+  } catch {
     return new NextResponse("Internal server error", { status: 500 });
   }
 }

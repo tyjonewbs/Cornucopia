@@ -19,7 +19,6 @@ export async function GET(request: Request) {
 
     // Validate the code parameter for other auth flows
     if (!code) {
-      console.error('No code provided in callback');
       return NextResponse.redirect(`${requestUrl.origin}/auth-error?error=no_code`);
     }
 
@@ -29,23 +28,19 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (error) {
-      console.error('Auth callback error:', error);
       return NextResponse.redirect(`${requestUrl.origin}/auth-error?error=session_error`);
     }
 
     if (!data.session) {
-      console.error('No session created');
       return NextResponse.redirect(`${requestUrl.origin}/auth-error?error=no_session`);
     }
 
-    // Create response with redirect and set session
-    const response = NextResponse.redirect(`${requestUrl.origin}/dashboard`);
+    // Set session before redirecting
     await supabase.auth.setSession(data.session);
 
-    // Use the provided next parameter or fall back to dashboard
+    // Redirect to the next parameter or fall back to dashboard
     return NextResponse.redirect(new URL(next, requestUrl.origin));
   } catch (error) {
-    console.error('Auth callback error:', error);
     // Include error details in the redirect for better debugging
     const errorMessage = encodeURIComponent((error as Error).message);
     return NextResponse.redirect(

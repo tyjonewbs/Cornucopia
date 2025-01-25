@@ -42,9 +42,8 @@ export function ProductDashboardCard({ id, name, images, inventory, inventoryUpd
 
       // Refresh the page to show updated data
       window.location.reload();
-    } catch (error) {
-      console.error("Error updating inventory:", error);
-      setError("Failed to update inventory");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update inventory");
     } finally {
       setIsLoading(false);
     }

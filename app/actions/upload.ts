@@ -29,7 +29,6 @@ export async function uploadImageWithAuth(
     });
 
   if (error) {
-    console.error('Upload error:', error);
     throw error;
   }
 

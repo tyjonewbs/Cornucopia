@@ -12,7 +12,6 @@ interface iAppProps {
   locationName: string;
   updatedAt: string;
   inventory?: number;
-  marketStandId: string;
   isQRAccess?: boolean;
   price?: number;
   tags?: string[];
@@ -25,7 +24,6 @@ export function ProductCard({
   locationName,
   updatedAt,
   inventory,
-  marketStandId,
   isQRAccess = false,
   price,
   tags = [],

@@ -2,7 +2,7 @@
 
 import { LoadingProductCard, ProductCard } from "./ProductCard";
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
 import { getHomeProducts } from "@/app/actions/home-products";
 import { logError } from "@/lib/logger";
@@ -31,41 +31,10 @@ interface ProductRowProps {
 }
 
 
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; // Earth's radius in km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
-
-
 export function ProductRow({ title, link }: Omit<ProductRowProps, 'userLocation'>) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [data, setData] = useState<SerializedProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const handleLocationError = (error: GeolocationPositionError) => {
-    // Handle specific geolocation errors
-    switch (error.code) {
-      case error.PERMISSION_DENIED:
-        logError('Location access denied by user', error);
-        break;
-      case error.POSITION_UNAVAILABLE:
-        logError('Location information unavailable', error);
-        break;
-      case error.TIMEOUT:
-        logError('Location request timed out', error);
-        break;
-      default:
-        logError('An unknown error occurred', error);
-    }
-    setUserLocation(null);
-  };
 
   useEffect(() => {
     // Get user's location
@@ -142,7 +111,6 @@ export function ProductRow({ title, link }: Omit<ProductRowProps, 'userLocation'
             name={product.name}
             locationName={product.locationName}
             updatedAt={product.updatedAt}
-            marketStandId={product.marketStand.id}
             price={product.price}
             tags={product.tags}
           />

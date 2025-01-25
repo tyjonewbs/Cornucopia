@@ -2,10 +2,11 @@
 
 import { getProducts } from "@/app/actions/products";
 import { Status } from "@prisma/client";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { InventoryManager } from "@/components/InventoryManager";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -72,10 +73,12 @@ function DashboardProductRow({ product }: DashboardProductRowProps) {
       <div className="flex items-center gap-4">
         <div className="relative w-16 h-16 rounded-md overflow-hidden bg-muted">
           {product.images[0] && (
-            <img
+            <Image
               src={product.images[0]}
               alt={product.name}
-              className="object-cover w-full h-full"
+              className="object-cover"
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           )}
         </div>
@@ -93,7 +96,6 @@ function DashboardProductRow({ product }: DashboardProductRowProps) {
       </div>
       <div className="flex items-center gap-6">
         <InventoryManager
-          productId={product.id}
           currentInventory={product.inventory}
           onUpdate={handleInventoryUpdate}
         />

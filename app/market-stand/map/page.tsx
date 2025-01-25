@@ -53,7 +53,7 @@ async function getData() {
 
 export default function MarketStandsMapPage() {
   const [marketStands, setMarketStands] = useState<MarketStand[]>([]);
-  const { userLocation, locationError, isLoadingLocation } = useUserLocation();
+  const { userLocation, locationError } = useUserLocation();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -62,8 +62,7 @@ export default function MarketStandsMapPage() {
         setMarketStands(data);
         setIsLoading(false);
       })
-      .catch(error => {
-        console.error('Error fetching market stands:', error);
+      .catch(() => {
         setIsLoading(false);
       });
   }, []);

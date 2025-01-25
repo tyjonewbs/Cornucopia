@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "lib/db";
+import prisma, { executeWithRetry } from "lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import { 
   MarketStandListResponse,
@@ -10,7 +10,6 @@ import {
 } from "./types";
 import { 
   createErrorResponse, 
-  serializeDates, 
   withErrorHandling 
 } from "./utils";
 import { Prisma } from "@prisma/client";
@@ -54,50 +53,25 @@ function transformMarketStandResponse(
  */
 export async function GET(): Promise<NextResponse<MarketStandListResponse[] | ErrorResponse>> {
   noStore();
-  console.log("Market stands API route called");
-
   return withErrorHandling<MarketStandListResponse[]>(async () => {
-    try {
-
-      // Fetch market stands with related data
-      const marketStands = await prisma.marketStand.findMany({
+    // Use executeWithRetry for the database query
+    const marketStands = await executeWithRetry(async () => {
+      return prisma.marketStand.findMany({
         take: 10,
         orderBy: {
           createdAt: "desc"
         },
         select: listViewSelect
       });
+    }, 2); // Allow up to 2 retries
 
-      if (!marketStands) {
-        throw new Error("Failed to fetch market stands");
-      }
-
-      // Transform and log response
-      const response = marketStands.map(transformMarketStandResponse);
-      console.log("Successfully fetched market stands:", {
-        count: response.length,
-        hasData: response.length > 0
-      });
-
-      return NextResponse.json(response);
-    } catch (error) {
-      // If we get a connection error, try to reconnect
-      if (error instanceof Error && error.message.includes('prepared statement')) {
-        
-        // Retry the query
-        const marketStands = await prisma.marketStand.findMany({
-          take: 10,
-          orderBy: {
-            createdAt: "desc"
-          },
-          select: listViewSelect
-        });
-
-        const response = marketStands.map(transformMarketStandResponse);
-        return NextResponse.json(response);
-      }
-      throw error;
+    if (!marketStands) {
+      throw new Error("Failed to fetch market stands");
     }
+
+    // Transform response
+    const response = marketStands.map(transformMarketStandResponse);
+    return NextResponse.json(response);
   });
 }
 
@@ -108,7 +82,6 @@ export async function POST(
   request: Request
 ): Promise<NextResponse<MarketStandListResponse | ErrorResponse | ValidationErrorResponse>> {
   try {
-
     // Parse request body
     const body = await request.json();
 
@@ -122,12 +95,14 @@ export async function POST(
       return NextResponse.json(validationError, { status: 400 });
     }
 
-    // Check if user already has a market stand
-    const existingStand = await prisma.marketStand.findFirst({
-      where: {
-        userId: validationResult.data.userId,
-        isActive: true
-      }
+    // Check if user already has a market stand using executeWithRetry
+    const existingStand = await executeWithRetry(async () => {
+      return prisma.marketStand.findFirst({
+        where: {
+          userId: validationResult.data.userId,
+          isActive: true
+        }
+      });
     });
 
     if (existingStand) {
@@ -137,29 +112,29 @@ export async function POST(
       );
     }
 
-    // Create market stand with validated data
-    const newStand = await prisma.marketStand.create({
-      data: {
-        name: validationResult.data.name,
-        description: validationResult.data.description,
-        images: validationResult.data.images,
-        latitude: validationResult.data.latitude,
-        longitude: validationResult.data.longitude,
-        locationName: validationResult.data.locationName,
-        locationGuide: validationResult.data.locationGuide,
-        tags: validationResult.data.tags,
-        website: validationResult.data.website,
-        socialMedia: validationResult.data.socialMedia,
-        userId: validationResult.data.userId
-      },
-      select: listViewSelect
+    // Create market stand with validated data using executeWithRetry
+    const newStand = await executeWithRetry(async () => {
+      return prisma.marketStand.create({
+        data: {
+          name: validationResult.data.name,
+          description: validationResult.data.description,
+          images: validationResult.data.images,
+          latitude: validationResult.data.latitude,
+          longitude: validationResult.data.longitude,
+          locationName: validationResult.data.locationName,
+          locationGuide: validationResult.data.locationGuide,
+          tags: validationResult.data.tags,
+          website: validationResult.data.website,
+          socialMedia: validationResult.data.socialMedia,
+          userId: validationResult.data.userId
+        },
+        select: listViewSelect
+      });
     });
 
     // Transform and return response
     return NextResponse.json(transformMarketStandResponse(newStand));
   } catch (error) {
-    // If we get a connection error, try to reconnect
-    return createErrorResponse(error);
     return createErrorResponse(error);
   }
 }

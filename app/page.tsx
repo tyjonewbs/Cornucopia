@@ -1,5 +1,4 @@
 import { ProductRow } from "../components/ProductRow";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase-server";
 
@@ -11,14 +10,7 @@ export default async function Home({
   const supabase = getSupabaseServer();
   
   // Get session
-  const { data: { session }, error } = await supabase.auth.getSession();
-
-  // Log auth state for debugging
-  console.log('Auth state:', {
-    hasSession: !!session,
-    returnUrl: searchParams.returnUrl,
-    error: error?.message
-  });
+  const { data: { session } } = await supabase.auth.getSession();
 
   // Handle authenticated users with returnUrl
   if (session && searchParams.returnUrl) {

@@ -1,7 +1,6 @@
 "use server";
 import { z } from "zod";
 import prisma from "@/lib/db";
-import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 
 // Type for market stand data
@@ -28,17 +27,23 @@ const marketStandSchema = z.object({
 });
 
 // Function to validate and parse market stand data
-function validateMarketStandData(data: any): MarketStandData {
+function validateMarketStandData(data: Record<string, unknown>): MarketStandData {
   const baseValidation = marketStandSchema.parse(data);
   
-  const lat = parseFloat(data.latitude);
+  const latStr = String(data.latitude ?? "0");
+  const lat = parseFloat(latStr);
   if (isNaN(lat) || lat < -90 || lat > 90) {
     throw new Error("Latitude must be a valid number between -90 and 90 degrees");
   }
 
-  const lng = parseFloat(data.longitude);
+  const lngStr = String(data.longitude ?? "0");
+  const lng = parseFloat(lngStr);
   if (isNaN(lng) || lng < -180 || lng > 180) {
     throw new Error("Longitude must be a valid number between -180 and 180 degrees");
+  }
+
+  if (typeof data.userId !== "string") {
+    throw new Error("User ID must be a string");
   }
 
   return {
@@ -206,7 +211,6 @@ export async function SellProduct(
       message: "Product saved successfully"
     };
   } catch (error) {
-    console.error("[SELL_PRODUCT]", error);
     return {
       status: "error",
       message: error instanceof Error ? error.message : "Failed to save product"
@@ -216,7 +220,7 @@ export async function SellProduct(
 
 // Move UpdateMarketStand to its own file
 export async function UpdateMarketStand(
-  prevState: any, 
+  prevState: State, 
   formData: FormData
 ): Promise<Response> {
   const user = await getUser();
@@ -314,7 +318,7 @@ export async function UpdateMarketStand(
 }
 
 export async function UpdateInventory(
-  prevState: any,
+  prevState: State,
   formData: FormData
 ): Promise<Response> {
   const user = await getUser();
@@ -366,7 +370,7 @@ export async function UpdateInventory(
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
-  } catch (error) {
+  } catch {
     return new Response(JSON.stringify({ error: "Failed to update inventory" }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' }
@@ -376,7 +380,7 @@ export async function UpdateInventory(
 
 // Move CreateMarketStand to its own file  
 export async function CreateMarketStand(
-  prevState: any,
+  prevState: State,
   formData: FormData  
 ): Promise<Response> {
   const user = await getUser();

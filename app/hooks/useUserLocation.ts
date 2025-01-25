@@ -27,9 +27,8 @@ export default function useUserLocation(): UseUserLocationResult {
           });
           setIsLoadingLocation(false);
         },
-        (error) => {
-          setLocationError('Failed to get your location.');
-          console.error('Error getting location:', error);
+        (err) => {
+          setLocationError(`Failed to get your location: ${err.message}`);
           setIsLoadingLocation(false);
         }
       );

@@ -5,23 +5,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import prisma from "@/lib/db";
 import { getUser } from "@/lib/auth";
 import { AlertCircle } from "lucide-react";
 import { unstable_noStore as noStore } from "next/cache";
-
-async function getData(userId: string) {
-  const data = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-    select: {
-      stripeConnectedLinked: true,
-    },
-  });
-
-  return data;
-}
 
 export default async function BillingRoute() {
   noStore();
@@ -31,7 +17,6 @@ export default async function BillingRoute() {
     throw new Error("Authentication required");
   }
 
-  const data = await getData(user.id);
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8">
       <Card>

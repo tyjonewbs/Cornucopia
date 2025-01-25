@@ -35,7 +35,6 @@ export async function POST(req: Request) {
       });
 
     if (uploadResult.error) {
-      console.error('Upload error:', uploadResult.error);
       if (uploadResult.error.message.includes('row-level security')) {
         // Set up bucket policy if it doesn't exist
         await supabase.storage.from('products').upload(`${user.id}/.keep`, new Uint8Array(0), {
@@ -74,7 +73,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: urlData.publicUrl });
   } catch (error) {
-    console.error('Upload error:', error);
     return new NextResponse(
       error instanceof Error ? error.message : "Internal server error", 
       { status: 500 }

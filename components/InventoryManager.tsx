@@ -3,17 +3,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Minus, Plus, Save } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface InventoryManagerProps {
-  productId: string;
   currentInventory: number;
   onUpdate: (newInventory: number) => Promise<void>;
 }
 
 export function InventoryManager({ 
-  productId, 
   currentInventory,
   onUpdate 
 }: InventoryManagerProps) {
@@ -42,7 +40,7 @@ export function InventoryManager({
       await onUpdate(pendingInventory);
       setInventory(pendingInventory);
       toast.success("Inventory updated successfully");
-    } catch (error) {
+    } catch {
       setPendingInventory(inventory); // Reset to last saved value
       toast.error("Failed to update inventory");
     } finally {

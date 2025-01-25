@@ -38,7 +38,6 @@ export function AuthDialog({ mode = 'login', trigger, className }: AuthDialogPro
         },
       });
     } catch (error) {
-      console.error('[Auth] Authentication error:', error);
       setError((error as Error).message);
     } finally {
       setIsLoading(false);

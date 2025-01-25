@@ -12,9 +12,12 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (err) {
     return NextResponse.json(
-      { error: "Failed to update inventory" },
+      { 
+        error: "Failed to update inventory",
+        details: err instanceof Error ? err.message : "Unknown error"
+      },
       { status: 500 }
     );
   }

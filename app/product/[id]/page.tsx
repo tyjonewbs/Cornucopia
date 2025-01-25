@@ -2,7 +2,6 @@ import { SellProduct } from "@/app/actions";
 import { ProductDescription } from "@/components/ProductDescription";
 import { BuyButton } from "@/components/SubmitButtons";
 import prisma from "@/lib/db";
-import { Button } from "@/components/ui/button";
 import { unstable_noStore as noStore } from "next/cache";
 import { MapPin, Package, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -268,7 +267,6 @@ export default async function ProductPage({
                 images={product.images}
                 locationName={data.marketStand?.locationName ?? ''}
                 updatedAt={product.updatedAt}
-                marketStandId={data.marketStand?.id ?? ''}
                 isQRAccess={true}
                 price={product.price}
                 tags={product.tags}

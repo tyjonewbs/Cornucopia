@@ -8,7 +8,6 @@ import {
   type Editor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useState } from "react";
 import {
   Bold,
   Italic,

@@ -42,8 +42,7 @@ export async function PATCH(req: Request) {
     });
 
     return NextResponse.json(updatedProduct);
-  } catch (error) {
-    console.error("[PRODUCT_PATCH]", error);
+  } catch {
     return new NextResponse("Internal error", { status: 500 });
   }
 }
@@ -88,8 +87,7 @@ export async function PUT(req: Request) {
     });
 
     return NextResponse.json(updatedProduct);
-  } catch (error) {
-    console.error("[PRODUCT_PUT]", error);
+  } catch {
     return new NextResponse("Internal error", { status: 500 });
   }
 }

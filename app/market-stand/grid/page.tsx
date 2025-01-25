@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { MarketStandViewNav } from "@components/MarketStandViewNav";
-import { Button } from "@components/ui/button";
 import {
   Select,
   SelectContent,
@@ -10,8 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@components/ui/select";
-import { MarketStandCard } from "@components/MarketStandCard";
-import Link from "next/link";
+import { MarketStandCard } from "@/components/MarketStandCard";
 import useUserLocation from "@/app/hooks/useUserLocation";
 
 interface Product {
@@ -67,7 +65,6 @@ async function getData() {
     const data = await res.json();
     
     if (!Array.isArray(data)) {
-      console.error('Invalid market stand data:', data);
       throw new Error('Invalid response format');
     }
 
@@ -83,7 +80,7 @@ async function getData() {
 export default function MarketStandsGridPage() {
   const [marketStands, setMarketStands] = useState<MarketStand[]>([]);
   const [sortOrder, setSortOrder] = useState<'newest' | 'distance'>('newest');
-  const { userLocation, locationError, isLoadingLocation } = useUserLocation();
+  const { userLocation, locationError } = useUserLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,10 +91,6 @@ export default function MarketStandsGridPage() {
       try {
         const data = await getData();
         if (mounted) {
-          console.log('Successfully fetched market stands:', {
-            count: data.length,
-            hasImages: data.some(stand => stand.images?.length > 0)
-          });
           setMarketStands(data);
         }
       } catch (error) {

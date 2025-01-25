@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "lib/db";
-import { unstable_noStore as noStore } from "next/cache";
 import { 
   MarketStandDetailResponse,
   ErrorResponse, 
@@ -10,8 +9,7 @@ import {
 } from "../types";
 import { 
   createErrorResponse, 
-  validateMarketStandId,
-  withErrorHandling 
+  validateMarketStandId
 } from "../utils";
 import { Prisma } from "@prisma/client";
 import { safeValidateMarketStandInput } from "../validation";
@@ -86,7 +84,6 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse | ValidationErrorResponse>> {
-  const searchParams = request.nextUrl.searchParams;
   try {
     // Validate ID format
     if (!validateMarketStandId(params.id)) {

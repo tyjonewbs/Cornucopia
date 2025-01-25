@@ -29,8 +29,7 @@ export function StripeConnectButton() {
         throw new Error("No redirect URL received from Stripe");
       }
     } catch (error) {
-      console.error("Failed to connect Stripe account:", error);
-      toast.error(
+        toast.error(
         error instanceof Error 
           ? error.message 
           : "Failed to connect Stripe account. Please try again."

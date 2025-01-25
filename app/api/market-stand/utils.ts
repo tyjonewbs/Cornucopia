@@ -5,18 +5,18 @@ import { ErrorResponse } from "./types";
 /**
  * Serializes Date objects to ISO strings in an object
  */
-export function serializeDates<T extends Record<string, any>>(obj: T): T {
-  const serialized = { ...obj };
+export function serializeDates<T extends Record<string, unknown>>(obj: T): T {
+  const serialized = { ...obj } as T;
   
   for (const [key, value] of Object.entries(obj)) {
     if (value instanceof Date) {
-      (serialized as any)[key] = value.toISOString();
+      (serialized as Record<string, unknown>)[key] = value.toISOString();
     } else if (Array.isArray(value)) {
-      (serialized as any)[key] = value.map(item => 
+      (serialized as Record<string, unknown>)[key] = value.map(item => 
         typeof item === 'object' && item !== null ? serializeDates(item) : item
       );
     } else if (typeof value === 'object' && value !== null) {
-      (serialized as any)[key] = serializeDates(value);
+      (serialized as Record<string, unknown>)[key] = serializeDates(value as Record<string, unknown>);
     }
   }
   
@@ -30,11 +30,6 @@ export function createErrorResponse(
   error: unknown,
   defaultMessage = "An unexpected error occurred"
 ): NextResponse<ErrorResponse> {
-  console.error("API Error:", {
-    error,
-    message: error instanceof Error ? error.message : "Unknown error"
-  });
-
   // Handle Prisma errors
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     return NextResponse.json(
@@ -67,8 +62,8 @@ export function createErrorResponse(
 
   // Handle generic errors
   const statusCode = error instanceof Error && 
-    (error as any).statusCode ? 
-    (error as any).statusCode : 
+    'statusCode' in error ? 
+    (error as Error & { statusCode: number }).statusCode : 
     500;
 
   return NextResponse.json(

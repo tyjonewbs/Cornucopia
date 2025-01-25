@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "lib/db";
-import { Product, Status } from "@prisma/client";
+import { Status } from "@prisma/client";
 
 // Types for product responses
 interface ProductResponse {
@@ -74,8 +74,7 @@ export async function getProducts(userId?: string): Promise<ProductResponse[]> {
       tags: product.tags,
       locationName: product.marketStand?.locationName
     }));
-  } catch (error) {
-    console.error('Error fetching products:', error);
+  } catch {
     throw new Error('Failed to fetch products');
   }
 }
@@ -121,8 +120,7 @@ export async function getProduct(id: string): Promise<ProductResponse | null> {
       tags: product.tags,
       locationName: product.marketStand?.locationName
     };
-  } catch (error) {
-    console.error('Error fetching product:', error);
+  } catch {
     throw new Error('Failed to fetch product');
   }
 }
@@ -182,8 +180,7 @@ export async function createProduct(data: CreateProductInput): Promise<ProductRe
       tags: product.tags,
       locationName: product.marketStand?.locationName
     };
-  } catch (error) {
-    console.error('Error creating product:', error);
+  } catch {
     throw new Error('Failed to create product');
   }
 }
@@ -236,8 +233,7 @@ export async function updateProduct(
       tags: product.tags,
       locationName: product.marketStand?.locationName
     };
-  } catch (error) {
-    console.error('Error updating product:', error);
+  } catch {
     throw new Error('Failed to update product');
   }
 }
@@ -247,8 +243,7 @@ export async function deleteProduct(id: string): Promise<void> {
     await prisma.product.delete({
       where: { id }
     });
-  } catch (error) {
-    console.error('Error deleting product:', error);
+  } catch {
     throw new Error('Failed to delete product');
   }
 }
