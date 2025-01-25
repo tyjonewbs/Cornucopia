@@ -48,13 +48,10 @@ function transformMarketStandResponse(
   };
 }
 
-/**
- * Fetches a list of market stands with their associated products and user information
- */
+
 export async function GET(): Promise<NextResponse<MarketStandListResponse[] | ErrorResponse>> {
   noStore();
-  return withErrorHandling<MarketStandListResponse[]>(async () => {
-    // Use executeWithRetry for the database query
+  try {
     const marketStands = await executeWithRetry(async () => {
       return prisma.marketStand.findMany({
         take: 10,
@@ -63,18 +60,18 @@ export async function GET(): Promise<NextResponse<MarketStandListResponse[] | Er
         },
         select: listViewSelect
       });
-    }, 2); // Allow up to 2 retries
+    }, 2);
 
     if (!marketStands) {
       throw new Error("Failed to fetch market stands");
     }
 
-    // Transform response
     const response = marketStands.map(transformMarketStandResponse);
     return NextResponse.json(response);
-  });
+  } finally {
+    await prisma.$disconnect();
+  }
 }
-
 /**
  * Creates a new market stand
  */
