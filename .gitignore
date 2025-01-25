@@ -36,6 +36,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-#AI Context
-ClineContext.txt
-
+# prisma
+.prisma/client/
+!.prisma/client/schema.prisma

@@ -1,0 +1,28 @@
+Context:
+- The project name is Cornucopia
+- We are a directory for roadside marketstands with additional QR payment functionallity that can only be used when scanned at the roadside marketstands.
+-   This is the current tech stack
+    @tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/typography": "^0.5.15",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
+    "postcss": "^8.4.49",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5"
+    "google maps embeded api"
+
+Exploration tasks:
+1. Review current codebase structure
+2. Identify key files and dependencies
+3. Note existing patterns and styles
+4. Find relevant examples or similar code
+
+Requirements:
+-If port 3000 is busy close all terminals and try again
+-Do not nest imports deeply. Use @ routing whenever possible
+-
