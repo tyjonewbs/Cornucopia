@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
 import { X } from "lucide-react";
 import { toast } from "sonner";
@@ -85,9 +86,12 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
     }
   };
   
+  const router = useRouter();
+
   useEffect(() => {
     if (isState(state) && state.status === "success" && state.message) {
       toast.success(state.message);
+      router.push('/dashboard/sell');
     } else if (isState(state) && state.status === "error" && state.message) {
       if (state.message.includes("Stripe account")) {
         toast.error(
@@ -102,7 +106,7 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
         toast.error(state.message);
       }
     }
-  }, [state]);
+  }, [state, router]);
 
   return (
     <form action={formAction}>

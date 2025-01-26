@@ -9,8 +9,7 @@ import {
   ValidationErrorResponse 
 } from "./types";
 import { 
-  createErrorResponse, 
-  withErrorHandling 
+  createErrorResponse
 } from "./utils";
 import { Prisma } from "@prisma/client";
 import { safeValidateMarketStandInput } from "./validation";

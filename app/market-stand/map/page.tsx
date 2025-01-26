@@ -4,32 +4,8 @@ import { useState, useEffect } from 'react';
 import MarketStandsMap from "@components/MarketStandsMap";
 import { MarketStandViewNav } from "@components/MarketStandViewNav";
 import useUserLocation from "@/app/hooks/useUserLocation";
-
-interface MarketStand {
-  id: string;
-  name: string;
-  description: string | null;
-  images: string[];
-  latitude: number;
-  longitude: number;
-  locationName: string;
-  locationGuide: string;
-  createdAt: string;
-  tags: string[];
-  products: Array<{
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    images: string[];
-    createdAt: string;
-    updatedAt: string;
-  }>;
-  user: {
-    firstName: string;
-    profileImage: string;
-  };
-}
+import { Button } from "@/components/ui/button";
+import { getMarketStands, type MarketStand } from "@/app/actions/market-stands";
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Earth's radius in km
@@ -43,26 +19,19 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-async function getData() {
-  const res = await fetch('/api/market-stand', { cache: 'no-store' });
-  if (!res.ok) {
-    throw new Error('Failed to fetch market stands');
-  }
-  return res.json();
-}
-
 export default function MarketStandsMapPage() {
   const [marketStands, setMarketStands] = useState<MarketStand[]>([]);
-  const { userLocation, locationError } = useUserLocation();
+  const { userLocation, locationError, isLoadingLocation, retryLocation } = useUserLocation();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getData()
+    getMarketStands()
       .then(data => {
         setMarketStands(data);
         setIsLoading(false);
       })
-      .catch(() => {
+      .catch(error => {
+        console.error('Error fetching market stands:', error);
         setIsLoading(false);
       });
   }, []);
@@ -83,8 +52,8 @@ export default function MarketStandsMapPage() {
       ...serializedStand,
       distance: userLocation
         ? calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
+            userLocation.coords.lat,
+            userLocation.coords.lng,
             stand.latitude,
             stand.longitude
           )
@@ -124,10 +93,20 @@ export default function MarketStandsMapPage() {
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
             </div>
-            <div className="ml-3">
+            <div className="ml-3 flex-grow">
               <p className="text-sm leading-5 text-yellow-700">
                 {locationError}
               </p>
+            </div>
+            <div className="ml-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={retryLocation}
+                disabled={isLoadingLocation}
+              >
+                {isLoadingLocation ? 'Retrying...' : 'Retry'}
+              </Button>
             </div>
           </div>
         </div>
@@ -135,7 +114,7 @@ export default function MarketStandsMapPage() {
 
       <MarketStandsMap
         marketStands={standsWithDistance}
-        userLocation={userLocation}
+        userLocation={userLocation ? { lat: userLocation.coords.lat, lng: userLocation.coords.lng } : null}
       />
     </section>
   );

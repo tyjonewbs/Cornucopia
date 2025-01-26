@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-interface iAppProps {
+interface ProductCardProps {
   images: string[];
   name: string;
   id: string;
@@ -27,7 +27,7 @@ export function ProductCard({
   isQRAccess = false,
   price,
   tags = [],
-}: iAppProps) {
+}: ProductCardProps) {
   const [timeElapsed, setTimeElapsed] = useState('00:00');
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export function ProductCard({
   return (
     <Link 
       href={`/product/${encodeURIComponent(id)}${isQRAccess ? '?qr=true' : ''}`}
-      className="block"
+      className="block group"
     >
       <div className="rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
         <div className="relative aspect-[4/3] w-full">
@@ -87,7 +87,7 @@ export function ProductCard({
             alt={name}
             src={images[0]}
             fill
-            className="object-cover rounded-t-lg"
+            className="object-cover rounded-t-lg transition-transform group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             priority={false}
             loading="lazy"
@@ -124,7 +124,7 @@ export function ProductCard({
 export function LoadingProductCard() {
   return (
     <div className="rounded-lg overflow-hidden shadow-md">
-      <Skeleton className="w-full h-[200px]" />
+      <Skeleton className="w-full aspect-[4/3]" />
       <div className="p-3">
         <Skeleton className="h-6 w-3/4 mb-2" />
         <Skeleton className="h-4 w-1/2" />

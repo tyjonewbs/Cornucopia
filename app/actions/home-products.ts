@@ -1,8 +1,32 @@
 'use server';
 
-import prisma from "@/lib/db";
+import db from "@/lib/db";
+import { cache } from "react";
+import { Product } from "@prisma/client";
 
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+export interface UserLocation {
+  coords: {
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface SerializedProduct extends Product {
+  marketStand: {
+    id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    locationName: string;
+    user: {
+      firstName: string;
+      profileImage: string;
+    };
+  };
+  distance: number | null;
+}
+
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -11,64 +35,62 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
     Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
+  return R * c; // Distance in km
 }
 
-export async function getHomeProducts(userLocation?: { lat: number; lng: number } | null) {
+export const getHomeProducts = cache(async (userLocation: UserLocation | null): Promise<SerializedProduct[]> => {
   try {
-
-    const products = await prisma.product.findMany({
+    const products = await db.product.findMany({
       where: {
-        isActive: true,
+        marketStand: {
+          isActive: true
+        }
       },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        images: true,
-        updatedAt: true,
-        tags: true,
+      include: {
         marketStand: {
           select: {
             id: true,
             name: true,
-            locationName: true,
             latitude: true,
             longitude: true,
+            locationName: true,
+            user: {
+              select: {
+                firstName: true,
+                profileImage: true
+              }
+            }
           }
         }
       },
-      take: 6,
       orderBy: {
-        updatedAt: 'desc'
-      }
+        createdAt: 'desc'
+      },
+      take: 50
     });
 
     const productsWithDistance = products.map(product => ({
       ...product,
-      updatedAt: product.updatedAt.toISOString(),
-      locationName: product.marketStand?.locationName || product.marketStand?.name || 'Unknown Location',
-      distance: userLocation && product.marketStand
+      distance: userLocation
         ? calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
+            userLocation.coords.lat,
+            userLocation.coords.lng,
             product.marketStand.latitude,
             product.marketStand.longitude
           )
-        : undefined
+        : null
     }));
 
-    if (userLocation) {
-      productsWithDistance.sort((a, b) => {
-        const distanceA = a.distance ?? Infinity;
-        const distanceB = b.distance ?? Infinity;
-        return distanceA - distanceB;
-      });
-    }
+    // Sort by distance if location available, otherwise by newest
+    const sortedProducts = [...productsWithDistance].sort((a, b) => {
+      if (!userLocation) return 0;
+      if (a.distance === null || b.distance === null) return 0;
+      return a.distance - b.distance;
+    });
 
-    return productsWithDistance;
-  } catch {
+    return sortedProducts as SerializedProduct[];
+  } catch (error) {
+    console.error('Error fetching home products:', error);
     return [];
   }
-}
+});

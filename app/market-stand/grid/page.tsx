@@ -11,76 +11,25 @@ import {
 } from "@components/ui/select";
 import { MarketStandCard } from "@/components/MarketStandCard";
 import useUserLocation from "@/app/hooks/useUserLocation";
+import { Button } from "@/components/ui/button";
+import { getMarketStands, type MarketStand } from "@/app/actions/market-stands";
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  images: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface MarketStand {
-  id: string;
-  name: string;
-  description: string | null;
-  images: string[];
-  latitude: number;
-  longitude: number;
-  locationName: string;
-  locationGuide: string;
-  createdAt: Date;
-  tags: string[];
-  products: Product[];
-  user: {
-    firstName: string;
-    profileImage: string;
-  };
-}
-
-async function getData() {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-    const res = await fetch('/api/market-stand', { 
-      cache: 'no-store',
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      console.error('Market stand fetch failed:', {
-        status: res.status,
-        statusText: res.statusText,
-        errorData
-      });
-      throw new Error(errorData.error || 'Failed to fetch market stands');
-    }
-
-    const data = await res.json();
-    
-    if (!Array.isArray(data)) {
-      throw new Error('Invalid response format');
-    }
-
-    return data;
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timed out. Please try again.');
-    }
-    throw error;
-  }
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in km
 }
 
 export default function MarketStandsGridPage() {
   const [marketStands, setMarketStands] = useState<MarketStand[]>([]);
   const [sortOrder, setSortOrder] = useState<'newest' | 'distance'>('newest');
-  const { userLocation, locationError } = useUserLocation();
+  const { userLocation, locationError, isLoadingLocation, retryLocation } = useUserLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +38,7 @@ export default function MarketStandsGridPage() {
 
     const fetchData = async () => {
       try {
-        const data = await getData();
+        const data = await getMarketStands();
         if (mounted) {
           setMarketStands(data);
         }
@@ -123,26 +72,14 @@ export default function MarketStandsGridPage() {
     );
   }
 
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c; // Distance in km
-  };
-
   const sortedStands = [...marketStands].sort((a, b) => {
     switch (sortOrder) {
       case 'newest':
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case 'distance':
         if (!userLocation) return 0;
-        const distA = calculateDistance(userLocation.lat, userLocation.lng, a.latitude, a.longitude);
-        const distB = calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude);
+        const distA = calculateDistance(userLocation.coords.lat, userLocation.coords.lng, a.latitude, a.longitude);
+        const distB = calculateDistance(userLocation.coords.lat, userLocation.coords.lng, b.latitude, b.longitude);
         return distA - distB;
       default:
         return 0;
@@ -188,10 +125,20 @@ export default function MarketStandsGridPage() {
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
             </div>
-            <div className="ml-3">
+            <div className="ml-3 flex-grow">
               <p className="text-sm leading-5 text-yellow-700">
                 {locationError}
               </p>
+            </div>
+            <div className="ml-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={retryLocation}
+                disabled={isLoadingLocation}
+              >
+                {isLoadingLocation ? 'Retrying...' : 'Retry'}
+              </Button>
             </div>
           </div>
         </div>

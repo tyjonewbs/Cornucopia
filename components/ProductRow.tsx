@@ -1,58 +1,22 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { LoadingProductCard, ProductCard } from "./ProductCard";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
-import { getHomeProducts } from "@/app/actions/home-products";
+import { getHomeProducts, type SerializedProduct } from "@/app/actions/home-products";
 import { logError } from "@/lib/logger";
-
-interface SerializedProduct {
-  id: string;
-  name: string;
-  images: string[];
-  updatedAt: string;
-  price: number;
-  tags: string[];
-  locationName: string;
-  distance?: number;
-  marketStand: {
-    id: string;
-    name: string;
-    latitude: number;
-    longitude: number;
-  };
-}
+import useUserLocation from "@/app/hooks/useUserLocation";
 
 interface ProductRowProps {
   title: string;
   link: string;
-  userLocation?: { lat: number; lng: number } | null;
 }
 
-
-export function ProductRow({ title, link }: Omit<ProductRowProps, 'userLocation'>) {
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+export function ProductRow({ title, link }: ProductRowProps) {
+  const { userLocation } = useUserLocation();
   const [data, setData] = useState<SerializedProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Get user's location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error: GeolocationPositionError) => {
-          logError('Error getting location:', error);
-          setUserLocation(null);
-        }
-      );
-    }
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,6 +36,7 @@ export function ProductRow({ title, link }: Omit<ProductRowProps, 'userLocation'
   if (isLoading) {
     return <LoadingState />;
   }
+
   // Check if there are any local products (within 150 miles)
   const localProducts = userLocation ? data.filter(product => (product.distance ?? Infinity) <= 150) : [];
   const hasLocalProducts = localProducts.length > 0;
@@ -103,14 +68,14 @@ export function ProductRow({ title, link }: Omit<ProductRowProps, 'userLocation'
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 mt-4 gap-10">
-        {(hasLocalProducts ? localProducts : data).map((product: SerializedProduct) => (
+        {(hasLocalProducts ? localProducts : data).map((product) => (
           <ProductCard
             key={product.id}
             images={product.images}
             id={product.id}
             name={product.name}
-            locationName={product.locationName}
-            updatedAt={product.updatedAt}
+            locationName={product.marketStand.locationName}
+            updatedAt={product.updatedAt.toISOString()}
             price={product.price}
             tags={product.tags}
           />

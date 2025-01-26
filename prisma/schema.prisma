@@ -23,11 +23,11 @@ enum Status {
 
 model User {
   id                    String                @id @unique
-  email                 String
-  firstName             String
-  lastName              String
-  profileImage          String
-  connectedAccountId    String?
+  email                 String                @db.VarChar(255)
+  firstName             String                @db.VarChar(100)
+  lastName              String                @db.VarChar(100)
+  profileImage          String                @db.Text
+  connectedAccountId    String?               @db.VarChar(100)
   stripeConnectedLinked Boolean               @default(false)
   role                  UserRole              @default(USER)
   products              Product[]
@@ -38,20 +38,23 @@ model User {
   standReviews          StandReview[]
   engagement           UserEngagement?
   sessions             VisitorSession[]      
+
+  @@index([email], name: "user_email_idx")
+  @@index([connectedAccountId], name: "user_stripe_idx")
 }
 
 model MarketStand {
   id              String               @id @default(uuid())
-  name            String
-  description     String?
-  images          String[]
-  tags            String[]
+  name            String               @db.VarChar(255)
+  description     String?              @db.Text
+  images          String[]             @db.Text
+  tags            String[]             @db.VarChar(50)
   latitude        Float
   longitude       Float
-  locationName    String
-  locationGuide   String
-  website         String?
-  socialMedia     String[]
+  locationName    String               @db.VarChar(255)
+  locationGuide   String               @db.Text
+  website         String?              @db.Text
+  socialMedia     String[]             @db.Text
   status          Status               @default(PENDING)
   isActive        Boolean              @default(true)
   createdAt       DateTime             @default(now())
@@ -64,15 +67,19 @@ model MarketStand {
   averageRating   Float?
   totalReviews    Int                  @default(0)
   metrics         StandMetrics?
+
+  @@index([latitude, longitude], name: "market_stand_location_idx")
+  @@index([isActive], name: "market_stand_active_idx")
+  @@index([userId])
 }
 
 model Product {
   id                String                @id @default(uuid())
-  name              String
+  name              String                @db.VarChar(255)
   price             Int
-  description       String
-  images            String[]
-  tags              String[]
+  description       String                @db.Text
+  images            String[]              @db.Text
+  tags              String[]              @db.VarChar(50)
   inventory         Int                   @default(0)
   inventoryUpdatedAt DateTime?
   status            Status                @default(PENDING)
@@ -88,13 +95,18 @@ model Product {
   averageRating     Float?
   totalReviews      Int                  @default(0)
   metrics           ProductMetrics?
+
+  @@index([isActive, inventory], name: "product_active_inventory_idx")
+  @@index([updatedAt(sort: Desc)], name: "product_updated_at_idx")
+  @@index([marketStandId], name: "product_market_stand_idx")
+  @@index([userId], name: "product_user_idx")
 }
 
 model ProductReview {
   id                 String    @id @default(uuid())
-  rating             Int
-  comment            String
-  images             String[]
+  rating             Int       @db.SmallInt
+  comment            String    @db.Text
+  images             String[]  @db.Text
   isVerifiedPurchase Boolean   @default(false)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -105,13 +117,16 @@ model ProductReview {
   helpfulVotes       Int       @default(0)
   reportCount        Int       @default(0)
   isVisible          Boolean   @default(true)
+
+  @@index([productId, isVisible], name: "product_review_product_idx")
+  @@index([userId])
 }
 
 model StandReview {
   id                 String      @id @default(uuid())
-  rating             Int
-  comment            String
-  images             String[]
+  rating             Int         @db.SmallInt
+  comment            String      @db.Text
+  images             String[]    @db.Text
   isVerifiedCustomer Boolean     @default(false)
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
@@ -122,6 +137,9 @@ model StandReview {
   helpfulVotes       Int         @default(0)
   reportCount        Int         @default(0)
   isVisible          Boolean     @default(true)
+
+  @@index([marketStandId, isVisible], name: "stand_review_stand_idx")
+  @@index([userId])
 }
 
 model ProductStatusHistory {
@@ -132,8 +150,11 @@ model ProductStatusHistory {
   newStatus   Status
   changedById String
   changedBy   User      @relation(fields: [changedById], references: [id])
-  note        String
+  note        String    @db.Text
   createdAt   DateTime  @default(now())
+
+  @@index([productId])
+  @@index([changedById])
 }
 
 model StandStatusHistory {
@@ -144,8 +165,11 @@ model StandStatusHistory {
   newStatus     Status
   changedById   String
   changedBy     User        @relation(fields: [changedById], references: [id])
-  note          String
+  note          String      @db.Text
   createdAt     DateTime    @default(now())
+
+  @@index([marketStandId])
+  @@index([changedById])
 }
 
 model ProductMetrics {
@@ -159,18 +183,22 @@ model ProductMetrics {
   revenue         Int       @default(0)
   conversionRate  Float?
   dailyMetrics    ProductDailyMetrics[]
+
+  @@index([productId], name: "product_metrics_product_idx")
 }
 
 model ProductDailyMetrics {
   id              String         @id @default(uuid())
   productMetricId String
   productMetrics  ProductMetrics @relation(fields: [productMetricId], references: [id])
-  date            DateTime
+  date            DateTime       @db.Date
   views           Int           @default(0)
   uniqueViews     Int           @default(0)
   addedToCart     Int           @default(0)
   purchases       Int           @default(0)
   revenue         Int           @default(0)
+
+  @@index([productMetricId, date])
 }
 
 model StandMetrics {
@@ -184,17 +212,21 @@ model StandMetrics {
   averageOrderValue Float?
   returningCustomers Int      @default(0)
   dailyMetrics      StandDailyMetrics[]
+
+  @@index([marketStandId], name: "stand_metrics_stand_idx")
 }
 
 model StandDailyMetrics {
   id              String       @id @default(uuid())
   standMetricId   String
   standMetrics    StandMetrics @relation(fields: [standMetricId], references: [id])
-  date            DateTime
+  date            DateTime     @db.Date
   views           Int         @default(0)
   uniqueViews     Int         @default(0)
   orders          Int         @default(0)
   revenue         Int         @default(0)
+
+  @@index([standMetricId, date])
 }
 
 model UserEngagement {
@@ -205,9 +237,11 @@ model UserEngagement {
   totalVisits     Int       @default(0)
   totalPurchases  Int       @default(0)
   totalSpent      Int       @default(0)
-  favoriteStands  String[]
-  searchHistory   String[]
-  categoryViews   Json
+  favoriteStands  String[]  @db.Text
+  searchHistory   String[]  @db.Text
+  categoryViews   Json      @db.JsonB
+
+  @@index([userId])
 }
 
 model VisitorSession {
@@ -217,8 +251,11 @@ model VisitorSession {
   user         User?     @relation(fields: [userId], references: [id])
   startTime    DateTime  @default(now())
   endTime      DateTime?
-  deviceType   String?
-  browser      String?
-  ipAddress    String?
-  pagesViewed  Json
+  deviceType   String?   @db.VarChar(50)
+  browser      String?   @db.VarChar(50)
+  ipAddress    String?   @db.VarChar(45)
+  pagesViewed  Json      @db.JsonB
+
+  @@index([userId])
+  @@index([sessionId])
 }
