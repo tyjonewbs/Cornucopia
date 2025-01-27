@@ -148,22 +148,26 @@ export default function useUserLocation(options: UseUserLocationOptions = {}): U
     let errorMessage: string;
     switch (error.code) {
       case error.PERMISSION_DENIED:
-        errorMessage = 'Location access denied. Please enable location services in your browser settings.';
+        // Set a null location but don't treat it as an error to allow the app to proceed
+        setUserLocation(null);
+        setLocationError(null);
         break;
       case error.POSITION_UNAVAILABLE:
         errorMessage = 'Location information is unavailable. Please check your device settings.';
+        setLocationError(errorMessage);
         break;
       case error.TIMEOUT:
         errorMessage = 'Location request timed out. Please check your connection and try again.';
+        setLocationError(errorMessage);
         break;
       default:
         errorMessage = `Failed to get location: ${error.message}`;
+        setLocationError(errorMessage);
     }
 
-    setLocationError(errorMessage);
     setIsLoadingLocation(false);
 
-    // Retry on certain errors
+    // Only retry for non-denial errors
     if (error.code !== error.PERMISSION_DENIED && retryCountRef.current < retryAttempts!) {
       retryTimeoutRef.current = setTimeout(() => {
         retryCountRef.current++;
