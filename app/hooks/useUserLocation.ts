@@ -37,13 +37,13 @@ interface UseUserLocationResult {
 
 const DEFAULT_OPTIONS: UseUserLocationOptions = {
   enableHighAccuracy: true,
-  timeout: 10000,
+  timeout: 15000, // Increased timeout
   maximumAge: 5 * 60 * 1000, // 5 minutes
   watchPosition: false,
-  minAccuracy: 100, // meters
+  minAccuracy: 2000, // Increased to 2km to be more lenient
   cacheKey: 'user_location',
-  retryAttempts: 3,
-  retryDelay: 1000,
+  retryAttempts: 5, // Increased retry attempts
+  retryDelay: 2000, // Increased delay between retries
 };
 
 const isLocationValid = (location: UserLocation | null, minAccuracy: number): boolean => {
@@ -123,21 +123,23 @@ export default function useUserLocation(options: UseUserLocationOptions = {}): U
       }
     };
 
-    if (isLocationValid(newLocation, minAccuracy!)) {
-      setUserLocation(newLocation);
-      setLocationError(null);
-      setAccuracy(position.coords.accuracy);
-      setLastUpdated(position.timestamp);
-      cacheLocation(newLocation, cacheKey!);
-      retryCountRef.current = 0;
-    } else {
-      setLocationError(`Location accuracy (${position.coords.accuracy}m) exceeds minimum requirement (${minAccuracy}m)`);
+    // Always set the location, but continue trying to get better accuracy if needed
+    setUserLocation(newLocation);
+    setAccuracy(position.coords.accuracy);
+    setLastUpdated(position.timestamp);
+    cacheLocation(newLocation, cacheKey!);
+
+    if (!isLocationValid(newLocation, minAccuracy!)) {
+      setLocationError(`Location accuracy is ${Math.round(position.coords.accuracy)}m (trying to improve...)`);
       if (retryCountRef.current < retryAttempts!) {
         retryTimeoutRef.current = setTimeout(() => {
           retryCountRef.current++;
           requestLocationFnRef.current();
         }, retryDelay! * Math.pow(2, retryCountRef.current));
       }
+    } else {
+      setLocationError(null);
+      retryCountRef.current = 0;
     }
     setIsLoadingLocation(false);
   }, [minAccuracy, cacheKey, retryAttempts, retryDelay]);

@@ -1,6 +1,9 @@
 'use server';
 
+import { cache } from 'react';
+import { Prisma } from '@prisma/client';
 import db from "@/lib/db";
+import { logError } from "@/lib/logger";
 
 export interface MarketStand {
   id: string;
@@ -28,7 +31,7 @@ export interface MarketStand {
   };
 }
 
-export async function getMarketStands(): Promise<MarketStand[]> {
+export const getMarketStands = cache(async (): Promise<MarketStand[]> => {
   try {
     const stands = await db.marketStand.findMany({
       where: {
@@ -47,7 +50,28 @@ export async function getMarketStands(): Promise<MarketStand[]> {
 
     return stands;
   } catch (error) {
-    console.error('Error fetching market stands:', error);
+    // Log detailed error information
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      logError('Prisma known request error:', {
+        code: error.code,
+        meta: error.meta,
+        message: error.message
+      });
+    } else if (error instanceof Prisma.PrismaClientInitializationError) {
+      logError('Prisma initialization error:', {
+        message: error.message,
+        clientVersion: error.clientVersion
+      });
+    } else {
+      logError('Unknown error fetching market stands:', error);
+    }
+    
+    // Re-throw specific errors that should be handled by the UI
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      throw new Error('Database connection error. Please try again later.');
+    }
+    
+    // For other errors, return empty array as fallback
     return [];
   }
-}
+});
