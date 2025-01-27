@@ -76,12 +76,6 @@ export function ProductRow({ title, link, initialProducts }: ProductRowProps) {
           <h2 className="text-2xl font-extrabold tracking-tighter">
             {title}
           </h2>
-          <Link
-            href={link}
-            className="text-sm hidden font-medium text-primary hover:text-primary/90 md:block"
-          >
-            All Products <span>&rarr;</span>
-          </Link>
         </div>
 
         {isLocalLoading && !locationError ? (
