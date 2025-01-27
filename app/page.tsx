@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import HomeClient from "./home-client";
+import { getHomeProducts } from "./actions/home-products";
 
 export default async function Home({
   searchParams,
@@ -31,7 +32,8 @@ export default async function Home({
     }
   }
 
-  // If user is authenticated but no returnUrl, show home page
-  // If user is not authenticated, show home page
-  return <HomeClient />;
+  // Fetch initial products without location
+  const initialProducts = await getHomeProducts(null);
+
+  return <HomeClient initialProducts={initialProducts} />;
 }
