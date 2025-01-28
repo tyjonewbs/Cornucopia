@@ -80,7 +80,6 @@ const cacheLocation = (location: UserLocation, cacheKey: string): void => {
   try {
     localStorage.setItem(cacheKey, JSON.stringify(location));
   } catch (error) {
-    console.warn('Failed to cache location:', error);
   }
 };
 
@@ -247,13 +246,11 @@ export default function useUserLocation(options: UseUserLocationOptions = {}): U
   }, []);
 
   const setManualLocation = useCallback((location: UserLocation): void => {
-    console.log('Setting manual location in hook:', location);
     setUserLocation(location);
     setLocationError(null);
     setAccuracy(0);
     setLastUpdated(Date.now());
     cacheLocation(location, cacheKey!);
-    console.log('Location state updated:', location);
   }, [cacheKey]);
 
   return {

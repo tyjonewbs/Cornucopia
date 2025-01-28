@@ -73,7 +73,7 @@ export function NewestProducts() {
             id={product.id}
             name={product.name}
             locationName={product.marketStand.locationName}
-            updatedAt={product.updatedAt.toISOString()}
+            updatedAt={product.updatedAt}
             price={product.price}
             tags={product.tags}
           />

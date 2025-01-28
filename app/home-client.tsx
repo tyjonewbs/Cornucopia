@@ -24,15 +24,12 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
     setError(null);
     setIsLoading(true);
     try {
-      console.log('Fetching products with location:', JSON.stringify(location, null, 2));
       const updatedProducts = await getHomeProducts(location);
-      console.log('Received products:', JSON.stringify(updatedProducts, null, 2));
       if (updatedProducts.length === 0) {
         setError("No products found in your area");
       }
       setProducts(updatedProducts);
     } catch (error) {
-      console.error('Error updating products:', error);
       setError("Failed to load products. Please try again.");
     } finally {
       setIsLoading(false);
@@ -68,7 +65,6 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
         timestamp: Date.now()
       }
     };
-    console.log('Setting manual location:', location);
     setManualLocation(location);
   };
 
@@ -113,7 +109,6 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
       ) : (
         <ProductRow 
           title="Local Products" 
-          link="/local-spots"
           initialProducts={products}
         />
       )}

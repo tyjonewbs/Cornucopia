@@ -1,20 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { LoadingProductCard, ProductCard } from "./ProductCard";
+import { useState } from 'react';
+import { ProductCard } from "./ProductCard";
 import Link from "next/link";
-import { Skeleton } from "./ui/skeleton";
-import { getHomeProducts, type SerializedProduct } from "@/app/actions/home-products";
-import { logError } from "@/lib/logger";
-import useUserLocation from "@/app/hooks/useUserLocation";
+import { type SerializedProduct } from "@/app/actions/home-products";
 
 interface ProductRowProps {
   title: string;
-  link: string;
   initialProducts: SerializedProduct[];
 }
 
-export function ProductRow({ title, link, initialProducts }: ProductRowProps) {
+export function ProductRow({ title, initialProducts }: ProductRowProps) {
   const [isLocalLoading] = useState(false);
 
   // Use initialProducts directly and filter based on distance
@@ -32,8 +28,8 @@ export function ProductRow({ title, link, initialProducts }: ProductRowProps) {
           images={product.images}
           id={product.id}
           name={product.name}
-locationName={product.marketStand?.locationName ?? ''}
-updatedAt={product.updatedAt}
+          locationName={product.marketStand?.locationName ?? ''}
+          updatedAt={product.updatedAt}
           price={product.price}
           tags={product.tags}
         />
@@ -78,18 +74,5 @@ updatedAt={product.updatedAt}
         </div>
       )}
     </section>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div>
-      <Skeleton className="h-8 w-56" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 mt-4 gap-10 lg:grid-cols-3">
-        <LoadingProductCard />
-        <LoadingProductCard />
-        <LoadingProductCard />
-      </div>
-    </div>
   );
 }
