@@ -58,7 +58,7 @@ export function NewestProducts() {
           Newest Products
         </h2>
         <Link
-          href="/market-stand"
+          href="/market-stand/grid"
           className="text-sm hidden font-medium text-primary hover:text-primary/90 md:block"
         >
           All Products <span>&rarr;</span>
