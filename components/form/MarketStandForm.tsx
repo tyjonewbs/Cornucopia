@@ -289,13 +289,15 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
       if (marketStand) {
         formData.append("id", marketStand.id);
         const result = await UpdateMarketStand({ status: undefined, message: null }, formData);
-        if (!result.ok) {
-          const data = await result.json();
-          toast.error(data.error);
+        const data = await result.json();
+        
+        if (result.ok && data.success) {
+          toast.success("Market stand updated successfully");
+          router.push('/dashboard/market-stand');
+        } else {
+          toast.error(data.error || "Failed to update market stand");
           return;
         }
-        toast.success("Market stand updated successfully");
-        router.push('/dashboard/sell');
       } else {
         const result = await CreateMarketStand({ status: undefined, message: null }, formData);
         const data = await result.json();

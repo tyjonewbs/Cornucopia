@@ -15,39 +15,12 @@ interface ProductRowProps {
 }
 
 export function ProductRow({ title, link, initialProducts }: ProductRowProps) {
-  const { userLocation, locationError } = useUserLocation();
-  const [data, setData] = useState<SerializedProduct[]>(initialProducts);
-  const [isLocalLoading, setIsLocalLoading] = useState(true);
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const [isLocalLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (userLocation) {
-        setIsLocalLoading(true);
-        try {
-          const products = await getHomeProducts(userLocation);
-          setData(products);
-        } catch (error) {
-          logError('Error fetching products:', error);
-        } finally {
-          setIsLocalLoading(false);
-          setHasInitialized(true);
-        }
-      } else {
-        setHasInitialized(true);
-      }
-    };
-
-    fetchData();
-  }, [userLocation]);
-
-  if (!hasInitialized) {
-    return <LoadingState />;
-  }
-
-  // Only filter products once we have user location
-  const localProducts = userLocation ? data.filter(product => (product.distance ?? Infinity) <= 150) : [];
-  const nonLocalProducts = userLocation ? data.filter(product => (product.distance ?? Infinity) > 150) : data;
+  // Use initialProducts directly and filter based on distance
+  const data = initialProducts;
+  const localProducts = data.filter(product => (product.distance ?? Infinity) <= 500);
+  const nonLocalProducts = data.filter(product => (product.distance ?? Infinity) > 500);
   const hasLocalProducts = localProducts.length > 0;
   const hasNonLocalProducts = nonLocalProducts.length > 0;
 
@@ -59,8 +32,8 @@ export function ProductRow({ title, link, initialProducts }: ProductRowProps) {
           images={product.images}
           id={product.id}
           name={product.name}
-          locationName={product.marketStand.locationName}
-          updatedAt={product.updatedAt.toISOString()}
+locationName={product.marketStand?.locationName ?? ''}
+updatedAt={product.updatedAt}
           price={product.price}
           tags={product.tags}
         />
@@ -78,15 +51,7 @@ export function ProductRow({ title, link, initialProducts }: ProductRowProps) {
           </h2>
         </div>
 
-        {isLocalLoading && !locationError ? (
-          <div className="mt-4">
-            <LoadingState />
-          </div>
-        ) : locationError ? (
-          <div className="text-center py-12 border rounded-lg bg-muted/50 mb-12">
-            <h3 className="text-xl font-semibold mb-4">{locationError}</h3>
-          </div>
-        ) : userLocation && localProducts.length === 0 && (
+        {localProducts.length === 0 && (
           <div className="text-center py-12 border rounded-lg bg-muted/50 mb-12">
             <h3 className="text-xl font-semibold mb-4">Sorry, there are no local products nearby</h3>
             <Link 

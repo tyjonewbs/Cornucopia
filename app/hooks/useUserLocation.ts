@@ -33,6 +33,7 @@ interface UseUserLocationResult {
   accuracy: number | null;
   lastUpdated: number | null;
   clearLocation: () => void;
+  setManualLocation: (location: UserLocation) => void;
 }
 
 const DEFAULT_OPTIONS: UseUserLocationOptions = {
@@ -245,6 +246,16 @@ export default function useUserLocation(options: UseUserLocationOptions = {}): U
     };
   }, []);
 
+  const setManualLocation = useCallback((location: UserLocation): void => {
+    console.log('Setting manual location in hook:', location);
+    setUserLocation(location);
+    setLocationError(null);
+    setAccuracy(0);
+    setLastUpdated(Date.now());
+    cacheLocation(location, cacheKey!);
+    console.log('Location state updated:', location);
+  }, [cacheKey]);
+
   return {
     userLocation,
     locationError,
@@ -252,6 +263,7 @@ export default function useUserLocation(options: UseUserLocationOptions = {}): U
     retryLocation,
     accuracy,
     lastUpdated,
-    clearLocation
+    clearLocation,
+    setManualLocation
   };
 }

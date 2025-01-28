@@ -4,7 +4,7 @@ import prisma from "lib/db";
 import { Status } from "@prisma/client";
 
 // Types for product responses
-interface ProductResponse {
+export interface ProductResponse {
   id: string;
   name: string;
   description: string;
@@ -24,30 +24,52 @@ interface ProductResponse {
     id: string;
     name: string;
     locationName?: string;
+    latitude: number;
+    longitude: number;
   };
   tags: string[];
   locationName?: string;
 }
 
-export async function getProducts(userId?: string): Promise<ProductResponse[]> {
+interface GetProductsParams {
+  userId?: string;
+  marketStandId?: string;
+  limit?: number;
+  cursor?: string;
+  isActive?: boolean;
+}
+
+export async function getProducts({
+  userId,
+  marketStandId,
+  limit = 50,
+  cursor,
+  isActive = true
+}: GetProductsParams): Promise<ProductResponse[]> {
   try {
     const products = await prisma.product.findMany({
+      take: limit,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
       where: {
-        isActive: true,
-        ...(userId ? { userId } : {})
+        isActive,
+        ...(userId ? { userId } : {}),
+        ...(marketStandId ? { marketStandId } : {}),
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
       include: {
         marketStand: {
           select: {
             id: true,
             name: true,
-            locationName: true
-          }
-        }
+            locationName: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
     });
 
     return products.map(product => ({
@@ -69,7 +91,9 @@ export async function getProducts(userId?: string): Promise<ProductResponse[]> {
       marketStand: product.marketStand ? {
         id: product.marketStand.id,
         name: product.marketStand.name,
-        locationName: product.marketStand.locationName
+        locationName: product.marketStand.locationName,
+        latitude: product.marketStand.latitude,
+        longitude: product.marketStand.longitude
       } : undefined,
       tags: product.tags,
       locationName: product.marketStand?.locationName
@@ -88,7 +112,9 @@ export async function getProduct(id: string): Promise<ProductResponse | null> {
           select: {
             id: true,
             name: true,
-            locationName: true
+            locationName: true,
+            latitude: true,
+            longitude: true
           }
         }
       }
@@ -115,7 +141,9 @@ export async function getProduct(id: string): Promise<ProductResponse | null> {
       marketStand: product.marketStand ? {
         id: product.marketStand.id,
         name: product.marketStand.name,
-        locationName: product.marketStand.locationName
+        locationName: product.marketStand.locationName,
+        latitude: product.marketStand.latitude,
+        longitude: product.marketStand.longitude
       } : undefined,
       tags: product.tags,
       locationName: product.marketStand?.locationName
@@ -150,7 +178,9 @@ export async function createProduct(data: CreateProductInput): Promise<ProductRe
           select: {
             id: true,
             name: true,
-            locationName: true
+            locationName: true,
+            latitude: true,
+            longitude: true
           }
         }
       }
@@ -175,7 +205,9 @@ export async function createProduct(data: CreateProductInput): Promise<ProductRe
       marketStand: product.marketStand ? {
         id: product.marketStand.id,
         name: product.marketStand.name,
-        locationName: product.marketStand.locationName
+        locationName: product.marketStand.locationName,
+        latitude: product.marketStand.latitude,
+        longitude: product.marketStand.longitude
       } : undefined,
       tags: product.tags,
       locationName: product.marketStand?.locationName
@@ -203,7 +235,9 @@ export async function updateProduct(
           select: {
             id: true,
             name: true,
-            locationName: true
+            locationName: true,
+            latitude: true,
+            longitude: true
           }
         }
       }
@@ -228,7 +262,9 @@ export async function updateProduct(
       marketStand: product.marketStand ? {
         id: product.marketStand.id,
         name: product.marketStand.name,
-        locationName: product.marketStand.locationName
+        locationName: product.marketStand.locationName,
+        latitude: product.marketStand.latitude,
+        longitude: product.marketStand.longitude
       } : undefined,
       tags: product.tags,
       locationName: product.marketStand?.locationName
