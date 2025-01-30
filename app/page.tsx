@@ -32,7 +32,7 @@ export default async function Home({
     }
   }
 
-  // Fetch initial products without location
+  // Fetch initial products at the page level
   const initialProducts = await getHomeProducts(null);
 
   return <HomeClient initialProducts={initialProducts} />;

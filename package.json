@@ -9,9 +9,9 @@
     "lint": "next lint",
     "postinstall": "prisma generate"
   },
-    "engines": {
-      "node": ">=18.17.0"
-    },
+  "engines": {
+    "node": ">=18.17.0"
+  },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
     "@prisma/client": "^6.2.1",
@@ -49,6 +49,7 @@
     "next-themes": "^0.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-error-boundary": "^5.0.0",
     "react-qr-code": "^2.0.15",
     "resend": "^3.2.0",
     "sonner": "^1.4.41",

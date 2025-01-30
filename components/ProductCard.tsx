@@ -15,6 +15,7 @@ interface ProductCardProps {
   isQRAccess?: boolean;
   price?: number;
   tags?: string[];
+  distance?: number | null;
 }
 
 export function ProductCard({
@@ -27,6 +28,7 @@ export function ProductCard({
   isQRAccess = false,
   price,
   tags = [],
+  distance,
 }: ProductCardProps) {
   const [timeElapsed, setTimeElapsed] = useState('00:00');
 
@@ -102,7 +104,14 @@ export function ProductCard({
               </p>
             )}
           </div>
-          <p className="text-gray-600 text-sm mt-1">{locationName}</p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-gray-600 text-sm">{locationName}</p>
+            {distance !== null && distance !== undefined && (
+              <p className="text-sm text-primary">
+                {Math.round(distance * 0.621371)} miles away
+              </p>
+            )}
+          </div>
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
               {tags.map((tag: string, index: number) => (
