@@ -45,11 +45,15 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
       <ZipSearchBanner onLocationUpdate={handleLocationUpdate} />
       <ErrorBoundary FallbackComponent={ProductError}>
         <Suspense fallback={<LoadingStateGrid />}>
-          <ProductGridClient 
-            key={userLocation?.coords.lat || 'no-location'}
-            initialProducts={products} 
-            userLocation={userLocation}
-          />
+          {isLoading ? (
+            <LoadingStateGrid />
+          ) : (
+            <ProductGridClient 
+              key={userLocation?.coords.lat || 'no-location'}
+              initialProducts={products} 
+              userLocation={userLocation}
+            />
+          )}
         </Suspense>
       </ErrorBoundary>
     </main>
