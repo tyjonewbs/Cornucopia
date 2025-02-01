@@ -11,14 +11,36 @@ const CONNECTION_TIMEOUT = 10000; // 10 seconds
 const POOL_TIMEOUT = 5000; // 5 seconds
 
 const prismaClientSingleton = () => {
+  // Clean up URLs by removing any extra quotes
+  const cleanUrl = (url: string | undefined) => 
+    url?.replace(/^"(.*)"$/, '$1');
+
+  // Get and validate database URLs
+  const dbUrl = cleanUrl(process.env.DATABASE_URL);
+  const directUrl = cleanUrl(process.env.DIRECT_URL);
+
+  if (!dbUrl) {
+    logError('Database initialization failed:', {
+      error: 'DATABASE_URL environment variable is missing or invalid',
+      nodeEnv: process.env.NODE_ENV
+    });
+    throw new Error('DATABASE_URL environment variable is required');
+  }
+
   // Configure Prisma Client with logging
   const client = new PrismaClient({
     log: ['error', 'warn'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL
-      },
+        url: dbUrl
+      }
     }
+  });
+
+  // Log connection details for debugging
+  logError('Database configuration:', {
+    nodeEnv: process.env.NODE_ENV,
+    hasDirectUrl: !!directUrl
   });
 
   // Add middleware for query timing and error logging
