@@ -11,53 +11,84 @@ const CONNECTION_TIMEOUT = 10000; // 10 seconds
 const POOL_TIMEOUT = 5000; // 5 seconds
 
 const prismaClientSingleton = () => {
-  // Configure Prisma Client with logging
-  const client = new PrismaClient({
-    log: ['error', 'warn'],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL
-      },
-    }
-  });
+  // Check for required environment variables
+  if (!process.env.DATABASE_URL) {
+    logError('Database initialization failed:', {
+      error: 'DATABASE_URL environment variable is missing',
+      nodeEnv: process.env.NODE_ENV
+    });
+    throw new Error('DATABASE_URL environment variable is required');
+  }
 
-  // Add middleware for query timing and error logging
-  client.$use(async (params, next) => {
-    const start = Date.now();
-    try {
-      const result = await next(params);
-      const duration = Date.now() - start;
-      
-      // Log slow queries (over 1 second)
-      if (duration > 1000) {
-        logError('Slow query detected:', {
+  try {
+    // Configure Prisma Client with logging
+    const client = new PrismaClient({
+      log: ['error', 'warn'],
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+          ...(process.env.DIRECT_URL && {
+            directUrl: process.env.DIRECT_URL
+          })
+        },
+      }
+    });
+
+    // Add middleware for query timing and error logging
+    client.$use(async (params: any, next: any) => {
+      const start = Date.now();
+      try {
+        const result = await next(params);
+        const duration = Date.now() - start;
+        
+        // Log slow queries (over 1 second)
+        if (duration > 1000) {
+          logError('Slow query detected:', {
+            model: params.model,
+            action: params.action,
+            duration,
+            args: params.args
+          });
+        }
+        
+        return result;
+      } catch (error) {
+        logError('Database query error:', {
           model: params.model,
           action: params.action,
-          duration,
+          error,
           args: params.args
         });
+        throw error;
       }
-      
-      return result;
-    } catch (error) {
-      logError('Database query error:', {
-        model: params.model,
-        action: params.action,
+    });
+
+    // Handle cleanup
+    ['SIGINT', 'SIGTERM'].forEach((signal) => {
+      process.on(signal, async () => {
+        await client.$disconnect();
+      });
+    });
+
+    // Test the connection
+    client.$connect().catch(error => {
+      logError('Database connection test failed:', {
         error,
-        args: params.args
+        nodeEnv: process.env.NODE_ENV,
+        hasDirectUrl: !!process.env.DIRECT_URL
       });
       throw error;
-    }
-  });
-
-  // Handle cleanup
-  ['SIGINT', 'SIGTERM'].forEach((signal) => {
-    process.on(signal, async () => {
-      await client.$disconnect();
     });
-  });
 
-  return client;
+    return client;
+  } catch (error) {
+    logError('PrismaClient initialization failed:', {
+      error,
+      nodeEnv: process.env.NODE_ENV,
+      hasDirectUrl: !!process.env.DIRECT_URL
+    });
+    throw error;
+  }
 };
 
 // PrismaClient is attached to the `global` object in development to prevent
