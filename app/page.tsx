@@ -3,6 +3,9 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 import HomeClient from "./home-client";
 import { getHomeProducts } from "./actions/home-products";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function Home({
   searchParams,
 }: {

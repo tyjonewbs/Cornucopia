@@ -5,6 +5,7 @@ import { ProductCard } from "@/components/ProductCard";
 import useUserLocation from "@/app/hooks/useUserLocation";
 import { Button } from "@/components/ui/button";
 import { getHomeProducts, type SerializedProduct, type UserLocation } from "@/app/actions/home-products";
+import LoadingStateGrid from "@/components/LoadingStateGrid";
 
 interface ProductGridClientProps {
   initialProducts: SerializedProduct[];
@@ -20,15 +21,24 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
   const [error, setError] = useState<string | null>(null);
   const { locationError, isLoadingLocation, retryLocation } = useUserLocation();
   const [lastProductId, setLastProductId] = useState<string | undefined>(undefined);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Handle hydration
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Initialize products when userLocation or initialProducts change
   useEffect(() => {
+    if (!isHydrated) return;
+
     console.log('Products update:', { userLocation, initialProducts });
+    
     if (userLocation) {
       const local = initialProducts.filter(p => p.distance !== null && p.distance <= 241.4);
       const explore = initialProducts.filter(p => p.distance === null || p.distance > 241.4);
       console.log('Filtered products:', { local: local.length, explore: explore.length });
-      console.log('Filtered products:', { local, explore });
+      
       setLocalProducts(local);
       setExploreProducts(explore);
       if (explore.length > 0) {
@@ -41,7 +51,7 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
         setLastProductId(initialProducts[initialProducts.length - 1].id);
       }
     }
-  }, [initialProducts, userLocation]);
+  }, [initialProducts, userLocation, isHydrated]);
 
   // Reset products when location changes
   useEffect(() => {
@@ -73,6 +83,10 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
       setIsLoading(false);
     }
   };
+
+  if (!isHydrated || isLoading) {
+    return <LoadingStateGrid />;
+  }
 
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8">
