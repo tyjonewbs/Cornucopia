@@ -28,10 +28,17 @@ const prismaClientSingleton = () => {
         db: {
           url: process.env.DATABASE_URL,
           ...(process.env.DIRECT_URL && {
-            directUrl: process.env.DIRECT_URL
+            directUrl: process.env.DIRECT_URL.replace(/^"|"$/g, '') // Remove any surrounding quotes
           })
         },
       }
+    });
+
+    // Log the database configuration for debugging
+    logError('Database configuration:', {
+      hasUrl: !!process.env.DATABASE_URL,
+      hasDirectUrl: !!process.env.DIRECT_URL,
+      nodeEnv: process.env.NODE_ENV
     });
 
     // Add middleware for query timing and error logging
