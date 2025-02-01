@@ -11,14 +11,29 @@ const CONNECTION_TIMEOUT = 10000; // 10 seconds
 const POOL_TIMEOUT = 5000; // 5 seconds
 
 const prismaClientSingleton = () => {
+<<<<<<< HEAD
   // Check for required environment variables
   if (!process.env.DATABASE_URL) {
     logError('Database initialization failed:', {
       error: 'DATABASE_URL environment variable is missing',
+=======
+  // Clean up URLs by removing any extra quotes
+  const cleanUrl = (url: string | undefined) => 
+    url?.replace(/^"(.*)"$/, '$1');
+
+  // Get and validate database URLs
+  const dbUrl = cleanUrl(process.env.DATABASE_URL);
+  const directUrl = cleanUrl(process.env.DIRECT_URL);
+
+  if (!dbUrl) {
+    logError('Database initialization failed:', {
+      error: 'DATABASE_URL environment variable is missing or invalid',
+>>>>>>> loading
       nodeEnv: process.env.NODE_ENV
     });
     throw new Error('DATABASE_URL environment variable is required');
   }
+<<<<<<< HEAD
 
   try {
     // Configure Prisma Client with logging
@@ -61,6 +76,35 @@ const prismaClientSingleton = () => {
         return result;
       } catch (error) {
         logError('Database query error:', {
+=======
+
+  // Configure Prisma Client with logging
+  const client = new PrismaClient({
+    log: ['error', 'warn'],
+    datasources: {
+      db: {
+        url: dbUrl
+      }
+    }
+  });
+
+  // Log connection details for debugging
+  logError('Database configuration:', {
+    nodeEnv: process.env.NODE_ENV,
+    hasDirectUrl: !!directUrl
+  });
+
+  // Add middleware for query timing and error logging
+  client.$use(async (params, next) => {
+    const start = Date.now();
+    try {
+      const result = await next(params);
+      const duration = Date.now() - start;
+      
+      // Log slow queries (over 1 second)
+      if (duration > 1000) {
+        logError('Slow query detected:', {
+>>>>>>> loading
           model: params.model,
           action: params.action,
           error,
