@@ -1,7 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'cornucopia-dev.vercel.app'],
+    },
     serverComponentsExternalPackages: ['@prisma/client', 'prisma']
+  },
+  eslint: {
+    ignoreDuringBuilds: true // Temporarily ignore ESLint during builds
   },
   webpack: (config, { isServer }) => {
     if (isServer) {

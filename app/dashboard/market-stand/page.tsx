@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Button } from "@/components/ui/button";

@@ -87,5 +87,9 @@ export const config = {
      * - public (public files)
      */
     '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    '/api/auth/:path*',
+    '/api/stripe/:path*',
+    '/api/user/:path*',
+    '/dashboard/:path*'
   ],
 };
