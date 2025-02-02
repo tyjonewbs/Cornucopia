@@ -44,17 +44,7 @@ const prismaClientSingleton = () => {
 
     // Configure Prisma Client with optimized settings
     const client = new PrismaClient({
-      log: ['error', 'warn'],
-      datasources: {
-        db: {
-<<<<<<< HEAD
-          url: dbUrl,
-          ...(directUrl && { directUrl })
-=======
-          url: dbUrl
->>>>>>> loading
-        }
-      }
+      log: ['error', 'warn']
     });
 
     // Set Prisma environment variables for connection optimization
@@ -65,10 +55,7 @@ const prismaClientSingleton = () => {
     // Log the database configuration for debugging
     logError('Database configuration:', {
       hasUrl: !!dbUrl,
-<<<<<<< HEAD
       hasDirectUrl: !!directUrl,
-=======
->>>>>>> loading
       nodeEnv: process.env.NODE_ENV
     });
 
@@ -154,12 +141,7 @@ const prismaClientSingleton = () => {
   } catch (error) {
     logError('PrismaClient initialization failed:', {
       error,
-<<<<<<< HEAD
-      nodeEnv: process.env.NODE_ENV,
-      hasDirectUrl: !!directUrl
-=======
       nodeEnv: process.env.NODE_ENV
->>>>>>> loading
     });
     throw error;
   }
