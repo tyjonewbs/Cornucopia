@@ -37,108 +37,117 @@ const prismaClientSingleton = () => {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
-  // Enable prepared statements for better performance
-  process.env.PRISMA_DISABLE_PREPARED_STATEMENTS = 'false';
+  try {
+    // Enable prepared statements for better performance
+    process.env.PRISMA_DISABLE_PREPARED_STATEMENTS = 'false';
 
-  // Configure Prisma Client with optimized settings
-  const client = new PrismaClient({
-    log: ['error', 'warn'],
-    datasources: {
-      db: {
-        url: dbUrl
+    // Configure Prisma Client with optimized settings
+    const client = new PrismaClient({
+      log: ['error', 'warn'],
+      datasources: {
+        db: {
+          url: dbUrl
+        }
       }
-    }
-  });
+    });
 
-  // Set Prisma environment variables for connection optimization
-  process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary';
-  process.env.PRISMA_ENGINE_PROTOCOL = 'graphql';
-  process.env.PRISMA_CLIENT_CONNECTION_LIMIT = String(MAX_CONNECTIONS);
+    // Set Prisma environment variables for connection optimization
+    process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary';
+    process.env.PRISMA_ENGINE_PROTOCOL = 'graphql';
+    process.env.PRISMA_CLIENT_CONNECTION_LIMIT = String(MAX_CONNECTIONS);
 
-  // Add error logging
-  process.on('unhandledRejection', (error) => {
-    console.error('Unhandled Prisma error:', error);
-  });
+    // Log the database configuration for debugging
+    logError('Database configuration:', {
+      hasUrl: !!dbUrl,
+      nodeEnv: process.env.NODE_ENV
+    });
 
-  // Initialize connection with warmup
-  const warmupConnection = async () => {
-    try {
-      await client.$connect();
-      // Perform a simple query to warm up the connection
-      await client.$queryRaw`SELECT 1`;
-      console.log('Database connection established and warmed up');
-    } catch (error) {
-      console.error('Failed to connect to database:', {
-        error,
-        nodeEnv: process.env.NODE_ENV,
-        hasDbUrl: !!process.env.DATABASE_URL
-      });
-      // Attempt reconnection after a delay
-      setTimeout(warmupConnection, RETRY_DELAY);
-    }
-  };
+    // Initialize connection with warmup
+    const warmupConnection = async () => {
+      try {
+        await client.$connect();
+        // Perform a simple query to warm up the connection
+        await client.$queryRaw`SELECT 1`;
+        console.log('Database connection established and warmed up');
+      } catch (error) {
+        console.error('Failed to connect to database:', {
+          error,
+          nodeEnv: process.env.NODE_ENV,
+          hasDbUrl: !!dbUrl
+        });
+        // Attempt reconnection after a delay
+        setTimeout(warmupConnection, RETRY_DELAY);
+      }
+    };
 
-  // Initialize warm connection
-  warmupConnection().catch(console.error);
+    // Initialize warm connection
+    warmupConnection().catch(console.error);
 
-  // Enhanced middleware for query optimization and monitoring
-  client.$use(async (params: any, next: any) => {
-    const start = Date.now();
-    const queryId = Math.random().toString(36).substring(7);
-    
-    try {
-      // Track active queries for monitoring
-      const activeQueries = (global as any).activeQueries || new Set();
-      activeQueries.add(queryId);
-      (global as any).activeQueries = activeQueries;
-
-      const result = await Promise.race([
-        next(params),
-        new Promise((_, reject) => {
-          setTimeout(() => {
-            reject(new Error(`Query timeout after ${CONNECTION_TIMEOUT}ms`));
-          }, CONNECTION_TIMEOUT);
-        })
-      ]);
-
-      const duration = Date.now() - start;
+    // Enhanced middleware for query optimization and monitoring
+    client.$use(async (params: any, next: any) => {
+      const start = Date.now();
+      const queryId = Math.random().toString(36).substring(7);
       
-      // Log slow queries with more context
-      if (duration > 1000) {
-        logError('Slow query detected:', {
+      try {
+        // Track active queries for monitoring
+        const activeQueries = (global as any).activeQueries || new Set();
+        activeQueries.add(queryId);
+        (global as any).activeQueries = activeQueries;
+
+        const result = await Promise.race([
+          next(params),
+          new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error(`Query timeout after ${CONNECTION_TIMEOUT}ms`));
+            }, CONNECTION_TIMEOUT);
+          })
+        ]);
+
+        const duration = Date.now() - start;
+        
+        // Log slow queries with more context
+        if (duration > 1000) {
+          logError('Slow query detected:', {
+            queryId,
+            model: params.model,
+            action: params.action,
+            duration,
+            args: params.args,
+            activeConnections: activeQueries.size
+          });
+        }
+        
+        // Cleanup
+        activeQueries.delete(queryId);
+        return result;
+      } catch (error) {
+        logError('Database query error:', {
           queryId,
           model: params.model,
           action: params.action,
-          duration,
+          error,
           args: params.args,
-          activeConnections: activeQueries.size
+          duration: Date.now() - start
         });
+        throw error;
       }
-      
-      // Cleanup
-      activeQueries.delete(queryId);
-      return result;
-    } catch (error) {
-      logError('Database query error:', {
-        queryId,
-        model: params.model,
-        action: params.action,
-        error,
-        args: params.args,
-        duration: Date.now() - start
-      });
-      throw error;
-    }
-  });
-
-  // Handle cleanup
-  ['SIGINT', 'SIGTERM'].forEach((signal) => {
-    process.on(signal, async () => {
-      await client.$disconnect();
     });
-  });
 
-  return client;
+    // Handle cleanup
+    ['SIGINT', 'SIGTERM'].forEach((signal) => {
+      process.on(signal, async () => {
+        await client.$disconnect();
+      });
+    });
+
+    return client;
+  } catch (error) {
+    logError('PrismaClient initialization failed:', {
+      error,
+      nodeEnv: process.env.NODE_ENV
+    });
+    throw error;
+  }
 };
 
 // PrismaClient is attached to the `global` object in development to prevent
