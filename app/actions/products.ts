@@ -98,7 +98,7 @@ export async function getProducts({
       tags: product.tags,
       locationName: product.marketStand?.locationName
     }));
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to fetch products:', {
       error,
       nodeEnv: process.env.NODE_ENV,
@@ -160,7 +160,7 @@ export async function getProduct(id: string): Promise<ProductResponse | null> {
       tags: product.tags,
       locationName: product.marketStand?.locationName
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to fetch product:', {
       error,
       nodeEnv: process.env.NODE_ENV,
@@ -230,7 +230,7 @@ export async function createProduct(data: CreateProductInput): Promise<ProductRe
       tags: product.tags,
       locationName: product.marketStand?.locationName
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to create product:', {
       error,
       nodeEnv: process.env.NODE_ENV,
@@ -292,7 +292,7 @@ export async function updateProduct(
       tags: product.tags,
       locationName: product.marketStand?.locationName
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to update product:', {
       error,
       nodeEnv: process.env.NODE_ENV,
@@ -308,7 +308,7 @@ export async function deleteProduct(id: string): Promise<void> {
     await prisma.product.delete({
       where: { id }
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to delete product:', {
       error,
       nodeEnv: process.env.NODE_ENV,

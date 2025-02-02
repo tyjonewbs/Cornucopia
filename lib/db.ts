@@ -22,159 +22,118 @@ const poolConfig = {
 };
 
 const prismaClientSingleton = () => {
-<<<<<<< HEAD
-  // Check for required environment variables
-  if (!process.env.DATABASE_URL) {
-    logError('Database initialization failed:', {
-      error: 'DATABASE_URL environment variable is missing',
-=======
   // Clean up URLs by removing any extra quotes
   const cleanUrl = (url: string | undefined) => 
     url?.replace(/^"(.*)"$/, '$1');
 
-  // Get and validate database URL
+  // Get and validate database URLs
   const dbUrl = cleanUrl(process.env.DATABASE_URL);
+  const directUrl = cleanUrl(process.env.DIRECT_URL);
 
   if (!dbUrl) {
     logError('Database initialization failed:', {
       error: 'DATABASE_URL environment variable is missing or invalid',
->>>>>>> loading
       nodeEnv: process.env.NODE_ENV
     });
     throw new Error('DATABASE_URL environment variable is required');
   }
-<<<<<<< HEAD
 
   try {
-    // Configure Prisma Client with logging
+    // Enable prepared statements for better performance
+    process.env.PRISMA_DISABLE_PREPARED_STATEMENTS = 'false';
+
+    // Configure Prisma Client with optimized settings
     const client = new PrismaClient({
       log: ['error', 'warn'],
       datasources: {
         db: {
-          url: process.env.DATABASE_URL,
-          ...(process.env.DIRECT_URL && {
-            directUrl: process.env.DIRECT_URL.replace(/^"|"$/g, '') // Remove any surrounding quotes
-          })
-        },
+          url: dbUrl,
+          ...(directUrl && { directUrl })
+        }
       }
     });
+
+    // Set Prisma environment variables for connection optimization
+    process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary';
+    process.env.PRISMA_ENGINE_PROTOCOL = 'graphql';
+    process.env.PRISMA_CLIENT_CONNECTION_LIMIT = String(MAX_CONNECTIONS);
 
     // Log the database configuration for debugging
     logError('Database configuration:', {
-      hasUrl: !!process.env.DATABASE_URL,
-      hasDirectUrl: !!process.env.DIRECT_URL,
+      hasUrl: !!dbUrl,
+      hasDirectUrl: !!directUrl,
       nodeEnv: process.env.NODE_ENV
     });
 
-    // Add middleware for query timing and error logging
+    // Initialize connection with warmup
+    const warmupConnection = async () => {
+      try {
+        await client.$connect();
+        // Perform a simple query to warm up the connection
+        await client.$queryRaw`SELECT 1`;
+        console.log('Database connection established and warmed up');
+      } catch (error) {
+        console.error('Failed to connect to database:', {
+          error,
+          nodeEnv: process.env.NODE_ENV,
+          hasDbUrl: !!dbUrl
+        });
+        // Attempt reconnection after a delay
+        setTimeout(warmupConnection, RETRY_DELAY);
+      }
+    };
+
+    // Initialize warm connection
+    warmupConnection().catch(console.error);
+
+    // Enhanced middleware for query optimization and monitoring
     client.$use(async (params: any, next: any) => {
       const start = Date.now();
+      const queryId = Math.random().toString(36).substring(7);
+      
       try {
-        const result = await next(params);
+        // Track active queries for monitoring
+        const activeQueries = (global as any).activeQueries || new Set();
+        activeQueries.add(queryId);
+        (global as any).activeQueries = activeQueries;
+
+        const result = await Promise.race([
+          next(params),
+          new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error(`Query timeout after ${CONNECTION_TIMEOUT}ms`));
+            }, CONNECTION_TIMEOUT);
+          })
+        ]);
+
         const duration = Date.now() - start;
         
-        // Log slow queries (over 1 second)
+        // Log slow queries with more context
         if (duration > 1000) {
           logError('Slow query detected:', {
+            queryId,
             model: params.model,
             action: params.action,
             duration,
-            args: params.args
+            args: params.args,
+            activeConnections: activeQueries.size
           });
         }
         
+        // Cleanup
+        activeQueries.delete(queryId);
         return result;
       } catch (error) {
         logError('Database query error:', {
-=======
-
-  // Enable prepared statements for better performance
-  process.env.PRISMA_DISABLE_PREPARED_STATEMENTS = 'false';
-
-  // Configure Prisma Client with optimized settings
-  const client = new PrismaClient({
-    log: ['error', 'warn'],
-    datasources: {
-      db: {
-        url: dbUrl
-      }
-    }
-  });
-
-  // Set Prisma environment variables for connection optimization
-  process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary';
-  process.env.PRISMA_ENGINE_PROTOCOL = 'graphql';
-  process.env.PRISMA_CLIENT_CONNECTION_LIMIT = String(MAX_CONNECTIONS);
-
-  // Add error logging
-  process.on('unhandledRejection', (error) => {
-    console.error('Unhandled Prisma error:', error);
-  });
-
-  // Initialize connection with warmup
-  const warmupConnection = async () => {
-    try {
-      await client.$connect();
-      // Perform a simple query to warm up the connection
-      await client.$queryRaw`SELECT 1`;
-      console.log('Database connection established and warmed up');
-    } catch (error) {
-      console.error('Failed to connect to database:', {
-        error,
-        nodeEnv: process.env.NODE_ENV,
-        hasDbUrl: !!process.env.DATABASE_URL
-      });
-      // Attempt reconnection after a delay
-      setTimeout(warmupConnection, RETRY_DELAY);
-    }
-  };
-
-  // Initialize warm connection
-  warmupConnection().catch(console.error);
-
-  // Enhanced middleware for query optimization and monitoring
-  client.$use(async (params: any, next: any) => {
-    const start = Date.now();
-    const queryId = Math.random().toString(36).substring(7);
-    
-    try {
-      // Track active queries for monitoring
-      const activeQueries = (global as any).activeQueries || new Set();
-      activeQueries.add(queryId);
-      (global as any).activeQueries = activeQueries;
-
-      const result = await Promise.race([
-        next(params),
-        new Promise((_, reject) => {
-          setTimeout(() => {
-            reject(new Error(`Query timeout after ${CONNECTION_TIMEOUT}ms`));
-          }, CONNECTION_TIMEOUT);
-        })
-      ]);
-
-      const duration = Date.now() - start;
-      
-      // Log slow queries with more context
-      if (duration > 1000) {
-        logError('Slow query detected:', {
-<<<<<<< HEAD
->>>>>>> loading
-          model: params.model,
-          action: params.action,
-          error,
-          args: params.args
-=======
           queryId,
           model: params.model,
           action: params.action,
-          duration,
+          error,
           args: params.args,
-          activeConnections: activeQueries.size
->>>>>>> loading
+          duration: Date.now() - start
         });
         throw error;
       }
-<<<<<<< HEAD
     });
 
     // Handle cleanup
@@ -184,36 +143,12 @@ const prismaClientSingleton = () => {
       });
     });
 
-    // Test the connection
-    client.$connect().catch(error => {
-      logError('Database connection test failed:', {
-        error,
-        nodeEnv: process.env.NODE_ENV,
-        hasDirectUrl: !!process.env.DIRECT_URL
-=======
-      
-      // Cleanup
-      activeQueries.delete(queryId);
-      return result;
-    } catch (error) {
-      logError('Database query error:', {
-        queryId,
-        model: params.model,
-        action: params.action,
-        error,
-        args: params.args,
-        duration: Date.now() - start
->>>>>>> loading
-      });
-      throw error;
-    });
-
     return client;
   } catch (error) {
     logError('PrismaClient initialization failed:', {
       error,
       nodeEnv: process.env.NODE_ENV,
-      hasDirectUrl: !!process.env.DIRECT_URL
+      hasDirectUrl: !!directUrl
     });
     throw error;
   }

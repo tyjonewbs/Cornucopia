@@ -39,7 +39,7 @@ export default async function Home({
     // Fetch initial products at the page level
     const initialProducts = await getHomeProducts(null);
     return <HomeClient initialProducts={initialProducts} />;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to load homepage:', {
       error,
       nodeEnv: process.env.NODE_ENV,
