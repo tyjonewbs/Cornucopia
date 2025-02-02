@@ -26,28 +26,40 @@ export function SupabaseProvider({
     const supabase = getSupabaseBrowser();
     
  
-    supabase.auth.getSession().then(({ data: { session } }) => {
-
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error fetching session:', error.message);
+        return;
+      }
       setUser(session?.user ?? null);
       setIsLoading(false);
     });
 
-
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-
       setUser(session?.user ?? null);
       setIsLoading(false);
-   ;
+
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        const response = await fetch('/api/auth/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event, session })
-        });
-        
-        if (!response.ok) {
+        try {
+          const response = await fetch('/api/auth/sync', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ event, session })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to sync auth state: ${response.statusText}`);
+          }
+        } catch (error) {
+          console.error('Error syncing auth state:', error);
         }
       }
     });

@@ -8,7 +8,6 @@ export default function MapView({ latitude, longitude, locationName }: MapViewPr
   // Validate coordinates
   if (typeof latitude !== 'number' || typeof longitude !== 'number' || 
       isNaN(latitude) || isNaN(longitude)) {
-    console.error('Invalid coordinates:', { latitude, longitude });
     return (
       <div className="w-full h-full min-h-[200px] flex items-center justify-center">
         Invalid coordinates

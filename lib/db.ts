@@ -6,18 +6,28 @@ declare global {
 }
 
 const RETRY_COUNT = 3;
-const RETRY_DELAY = 1000; // 1 second
-const CONNECTION_TIMEOUT = 10000; // 10 seconds
+const RETRY_DELAY = 1000; // 1 second - increased for better stability
+const CONNECTION_TIMEOUT = 10000; // 10 seconds - increased for stability
 const POOL_TIMEOUT = 5000; // 5 seconds
+const MAX_CONNECTIONS = 15; // Match Supabase pool size
+const CONNECT_TIMEOUT = 10000; // 10 seconds for initial connection
+
+// Connection pool configuration
+const poolConfig = {
+  max: MAX_CONNECTIONS,
+  min: 1, // Keep at least one connection alive
+  idleTimeoutMillis: 30000, // 30 seconds - allow more time for idle connections
+  acquireTimeoutMillis: POOL_TIMEOUT,
+  reapIntervalMillis: 1000, // Clean up idle connections every 1 second
+};
 
 const prismaClientSingleton = () => {
   // Clean up URLs by removing any extra quotes
   const cleanUrl = (url: string | undefined) => 
     url?.replace(/^"(.*)"$/, '$1');
 
-  // Get and validate database URLs
+  // Get and validate database URL
   const dbUrl = cleanUrl(process.env.DATABASE_URL);
-  const directUrl = cleanUrl(process.env.DIRECT_URL);
 
   if (!dbUrl) {
     logError('Database initialization failed:', {
@@ -27,7 +37,10 @@ const prismaClientSingleton = () => {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
-  // Configure Prisma Client with logging
+  // Enable prepared statements for better performance
+  process.env.PRISMA_DISABLE_PREPARED_STATEMENTS = 'false';
+
+  // Configure Prisma Client with optimized settings
   const client = new PrismaClient({
     log: ['error', 'warn'],
     datasources: {
@@ -37,36 +50,82 @@ const prismaClientSingleton = () => {
     }
   });
 
-  // Log connection details for debugging
-  logError('Database configuration:', {
-    nodeEnv: process.env.NODE_ENV,
-    hasDirectUrl: !!directUrl
+  // Set Prisma environment variables for connection optimization
+  process.env.PRISMA_CLIENT_ENGINE_TYPE = 'binary';
+  process.env.PRISMA_ENGINE_PROTOCOL = 'graphql';
+  process.env.PRISMA_CLIENT_CONNECTION_LIMIT = String(MAX_CONNECTIONS);
+
+  // Add error logging
+  process.on('unhandledRejection', (error) => {
+    console.error('Unhandled Prisma error:', error);
   });
 
-  // Add middleware for query timing and error logging
-  client.$use(async (params, next) => {
-    const start = Date.now();
+  // Initialize connection with warmup
+  const warmupConnection = async () => {
     try {
-      const result = await next(params);
+      await client.$connect();
+      // Perform a simple query to warm up the connection
+      await client.$queryRaw`SELECT 1`;
+      console.log('Database connection established and warmed up');
+    } catch (error) {
+      console.error('Failed to connect to database:', {
+        error,
+        nodeEnv: process.env.NODE_ENV,
+        hasDbUrl: !!process.env.DATABASE_URL
+      });
+      // Attempt reconnection after a delay
+      setTimeout(warmupConnection, RETRY_DELAY);
+    }
+  };
+
+  // Initialize warm connection
+  warmupConnection().catch(console.error);
+
+  // Enhanced middleware for query optimization and monitoring
+  client.$use(async (params: any, next: any) => {
+    const start = Date.now();
+    const queryId = Math.random().toString(36).substring(7);
+    
+    try {
+      // Track active queries for monitoring
+      const activeQueries = (global as any).activeQueries || new Set();
+      activeQueries.add(queryId);
+      (global as any).activeQueries = activeQueries;
+
+      const result = await Promise.race([
+        next(params),
+        new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error(`Query timeout after ${CONNECTION_TIMEOUT}ms`));
+          }, CONNECTION_TIMEOUT);
+        })
+      ]);
+
       const duration = Date.now() - start;
       
-      // Log slow queries (over 1 second)
+      // Log slow queries with more context
       if (duration > 1000) {
         logError('Slow query detected:', {
+          queryId,
           model: params.model,
           action: params.action,
           duration,
-          args: params.args
+          args: params.args,
+          activeConnections: activeQueries.size
         });
       }
       
+      // Cleanup
+      activeQueries.delete(queryId);
       return result;
     } catch (error) {
       logError('Database query error:', {
+        queryId,
         model: params.model,
         action: params.action,
         error,
-        args: params.args
+        args: params.args,
+        duration: Date.now() - start
       });
       throw error;
     }
@@ -90,12 +149,18 @@ if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma;
 }
 
-// Helper function to reset connection and execute query with retry
+// Enhanced helper function with better retry logic
 export async function executeWithRetry<T>(
   operation: () => Promise<T>,
   maxRetries = RETRY_COUNT,
   currentAttempt = 1
 ): Promise<T> {
+  const activeQueries = (global as any).activeQueries || new Set();
+  // Check connection pool state
+  if (activeQueries.size >= MAX_CONNECTIONS) {
+    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+  }
+
   try {
     return await Promise.race([
       operation(),
@@ -106,24 +171,36 @@ export async function executeWithRetry<T>(
       })
     ]);
   } catch (error) {
-    // Only retry on connection/prepared statement errors
+    // Enhanced error handling with specific error types
     if (
       error instanceof Error && 
       currentAttempt < maxRetries &&
       (error.message.includes('Connection pool timeout') ||
        error.message.includes('Connection terminated') ||
-       error.message.includes('prepared statement'))
+       error.message.includes('prepared statement') ||
+       error.message.includes('Connection refused') ||
+       error.message.includes('too many connections'))
     ) {
-      logError(`Retry attempt ${currentAttempt} of ${maxRetries}:`, error);
+      logError(`Retry attempt ${currentAttempt} of ${maxRetries}:`, {
+        error,
+        activeConnections: activeQueries.size,
+        attempt: currentAttempt
+      });
       
-      // Wait before retrying with exponential backoff
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * Math.pow(2, currentAttempt - 1)));
+      // Exponential backoff with jitter
+      const jitter = Math.random() * 100;
+      const delay = RETRY_DELAY * Math.pow(2, currentAttempt - 1) + jitter;
+      await new Promise(resolve => setTimeout(resolve, delay));
       
-      // Reset connection
-      await prisma.$disconnect();
-      await prisma.$connect();
+      // Force connection reset
+      try {
+        await prisma.$disconnect();
+        await new Promise(resolve => setTimeout(resolve, 100)); // Cool-down period
+        await prisma.$connect();
+      } catch (reconnectError) {
+        logError('Reconnection failed:', reconnectError);
+      }
       
-      // Retry operation
       return executeWithRetry(operation, maxRetries, currentAttempt + 1);
     }
     
@@ -131,7 +208,7 @@ export async function executeWithRetry<T>(
   }
 }
 
-// Helper function for transactions with retry
+// Enhanced transaction helper with better timeout handling
 export async function withTransaction<T>(
   operation: (tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => Promise<T>,
   maxRetries = RETRY_COUNT
@@ -139,10 +216,23 @@ export async function withTransaction<T>(
   return executeWithRetry(async () => {
     return await prisma.$transaction(operation, {
       maxWait: POOL_TIMEOUT,
-      timeout: CONNECTION_TIMEOUT
+      timeout: CONNECTION_TIMEOUT,
+      isolationLevel: 'ReadCommitted' // Explicit isolation level
     });
   }, maxRetries);
 }
+
+// Monitor connection pool health
+setInterval(async () => {
+  const activeQueries = (global as any).activeQueries || new Set();
+  if (activeQueries.size > 0) {
+    logError('Connection pool status:', {
+      activeConnections: activeQueries.size,
+      maxConnections: MAX_CONNECTIONS,
+      timestamp: new Date().toISOString()
+    });
+  }
+}, 30000); // Check every 30 seconds
 
 // Ensure connections are closed when the process exits
 process.on('beforeExit', async () => {

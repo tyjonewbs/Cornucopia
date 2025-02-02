@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Toaster } from "@/components/ui/sonner";
 import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
+import { ProductCacheProvider } from "@/components/providers/ProductCacheProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,9 +35,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SupabaseProvider>
-          <Navbar />
-          {children}
-          <Toaster />
+          <ProductCacheProvider>
+            <Navbar />
+            {children}
+            <Toaster />
+          </ProductCacheProvider>
         </SupabaseProvider>
       </body>
     </html>

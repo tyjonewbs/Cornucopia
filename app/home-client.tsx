@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from "react";
+import { useProductCache } from "@/components/providers/ProductCacheProvider";
 import { ProductGridClient } from "@/components/ProductGrid/ProductGridClient";
 import LoadingStateGrid from "@/components/LoadingStateGrid";
 import { ErrorBoundary } from "react-error-boundary";
@@ -23,6 +24,8 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
     setIsHydrated(true);
   }, []);
 
+  const { getCachedProducts, cacheProducts } = useProductCache();
+
   const handleLocationUpdate = useCallback(async (location: { lat: number; lng: number } | null) => {
     try {
       setIsLoading(true);
@@ -30,22 +33,34 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
       
       // Set location first to trigger proper loading state
       setUserLocation(newLocation);
+
+      // Check cache first
+      const cachedProducts = newLocation ? getCachedProducts({ lat: newLocation.coords.lat, lng: newLocation.coords.lng }) : null;
+      if (cachedProducts) {
+        console.log('Using cached products:', cachedProducts.length);
+        setProducts(cachedProducts);
+        setIsLoading(false);
+        return;
+      }
       
-      // Fetch new products sorted by the new location
+      // If not in cache, fetch new products
       const locationForApi = newLocation ? { coords: { ...newLocation.coords } } : null;
       const newProducts = await getHomeProducts(locationForApi);
-      console.log('New products fetched:', newProducts.length);
+      
+      // Cache the new products
+      if (newLocation) {
+        cacheProducts(newProducts, { lat: newLocation.coords.lat, lng: newLocation.coords.lng });
+      }
       
       setProducts(newProducts);
     } catch (error) {
-      console.error('Error updating products:', error);
       // Reset location and products on error
       setUserLocation(null);
       setProducts(initialProducts);
     } finally {
       setIsLoading(false);
     }
-  }, [initialProducts]);
+  }, [initialProducts, getCachedProducts, cacheProducts]);
 
   if (!isHydrated) {
     return <LoadingStateGrid />;

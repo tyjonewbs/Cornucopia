@@ -1,4 +1,7 @@
+export const dynamic = 'force-dynamic';
+
 import { getUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -6,6 +9,10 @@ import { CreditCard, Store, User } from "lucide-react";
 
 export default async function SettingsDashboard() {
   const user = await getUser();
+  
+  if (!user) {
+    redirect('/');
+  }
 
   const settingsCards = [
     {

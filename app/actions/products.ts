@@ -98,8 +98,20 @@ export async function getProducts({
       tags: product.tags,
       locationName: product.marketStand?.locationName
     }));
-  } catch {
-    throw new Error('Failed to fetch products');
+  } catch (error) {
+    console.error('Failed to fetch products:', {
+      error,
+      nodeEnv: process.env.NODE_ENV,
+      hasDbUrl: !!process.env.DATABASE_URL,
+      query: {
+        limit,
+        cursor,
+        isActive,
+        userId,
+        marketStandId
+      }
+    });
+    throw error;
   }
 }
 
@@ -148,8 +160,14 @@ export async function getProduct(id: string): Promise<ProductResponse | null> {
       tags: product.tags,
       locationName: product.marketStand?.locationName
     };
-  } catch {
-    throw new Error('Failed to fetch product');
+  } catch (error) {
+    console.error('Failed to fetch product:', {
+      error,
+      nodeEnv: process.env.NODE_ENV,
+      hasDbUrl: !!process.env.DATABASE_URL,
+      productId: id
+    });
+    throw error;
   }
 }
 
@@ -212,8 +230,13 @@ export async function createProduct(data: CreateProductInput): Promise<ProductRe
       tags: product.tags,
       locationName: product.marketStand?.locationName
     };
-  } catch {
-    throw new Error('Failed to create product');
+  } catch (error) {
+    console.error('Failed to create product:', {
+      error,
+      nodeEnv: process.env.NODE_ENV,
+      hasDbUrl: !!process.env.DATABASE_URL
+    });
+    throw error;
   }
 }
 
@@ -269,8 +292,14 @@ export async function updateProduct(
       tags: product.tags,
       locationName: product.marketStand?.locationName
     };
-  } catch {
-    throw new Error('Failed to update product');
+  } catch (error) {
+    console.error('Failed to update product:', {
+      error,
+      nodeEnv: process.env.NODE_ENV,
+      hasDbUrl: !!process.env.DATABASE_URL,
+      productId: id
+    });
+    throw error;
   }
 }
 
@@ -279,7 +308,13 @@ export async function deleteProduct(id: string): Promise<void> {
     await prisma.product.delete({
       where: { id }
     });
-  } catch {
-    throw new Error('Failed to delete product');
+  } catch (error) {
+    console.error('Failed to delete product:', {
+      error,
+      nodeEnv: process.env.NODE_ENV,
+      hasDbUrl: !!process.env.DATABASE_URL,
+      productId: id
+    });
+    throw error;
   }
 }
