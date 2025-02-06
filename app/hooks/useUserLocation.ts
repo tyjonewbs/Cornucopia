@@ -1,18 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-
-interface Coordinates {
-  lat: number;
-  lng: number;
-  accuracy: number;
-  timestamp: number;
-}
-
-interface UserLocation {
-  coords: Coordinates;
-  cached?: boolean;
-}
+import { type LocationType } from '../actions/home-products';
 
 interface UseUserLocationOptions {
   enableHighAccuracy?: boolean;
@@ -26,14 +15,14 @@ interface UseUserLocationOptions {
 }
 
 interface UseUserLocationResult {
-  userLocation: UserLocation | null;
+  userLocation: LocationType | null;
   locationError: string | null;
   isLoadingLocation: boolean;
   retryLocation: () => void;
   accuracy: number | null;
   lastUpdated: number | null;
   clearLocation: () => void;
-  setManualLocation: (location: UserLocation) => void;
+  setManualLocation: (location: LocationType) => void;
 }
 
 const DEFAULT_OPTIONS: UseUserLocationOptions = {
@@ -47,19 +36,19 @@ const DEFAULT_OPTIONS: UseUserLocationOptions = {
   retryDelay: 2000, // Increased delay between retries
 };
 
-const isLocationValid = (location: UserLocation | null, minAccuracy: number): boolean => {
+const isLocationValid = (location: LocationType | null, minAccuracy: number): boolean => {
   if (!location?.coords) return false;
-  return location.coords.accuracy <= minAccuracy;
+  return location.coords.accuracy ? location.coords.accuracy <= minAccuracy : true;
 };
 
-const getCachedLocation = (cacheKey: string): UserLocation | null => {
+const getCachedLocation = (cacheKey: string): LocationType | null => {
   try {
     const cached = localStorage.getItem(cacheKey);
     if (!cached) return null;
 
     const parsed = JSON.parse(cached);
     const now = Date.now();
-    const age = now - parsed.coords.timestamp;
+    const age = now - (parsed.coords.timestamp || 0);
 
     // Validate cache freshness (default 5 minutes)
     if (age > DEFAULT_OPTIONS.maximumAge!) {
@@ -67,19 +56,17 @@ const getCachedLocation = (cacheKey: string): UserLocation | null => {
       return null;
     }
 
-    return {
-      ...parsed,
-      cached: true
-    };
+    return parsed;
   } catch {
     return null;
   }
 };
 
-const cacheLocation = (location: UserLocation, cacheKey: string): void => {
+const cacheLocation = (location: LocationType, cacheKey: string): void => {
   try {
     localStorage.setItem(cacheKey, JSON.stringify(location));
   } catch (error) {
+    console.error('Failed to cache location:', error);
   }
 };
 
@@ -96,7 +83,7 @@ export default function useUserLocation(options: UseUserLocationOptions = {}): U
     retryDelay
   } = mergedOptions;
 
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(() => {
+  const [userLocation, setUserLocation] = useState<LocationType | null>(() => {
     // Initialize with cached data if available
     return getCachedLocation(cacheKey!);
   });
@@ -114,13 +101,14 @@ export default function useUserLocation(options: UseUserLocationOptions = {}): U
   const requestLocationFnRef = useRef<() => void>(() => requestLocationRef.current());
 
   const handleLocationSuccess = useCallback((position: GeolocationPosition): void => {
-    const newLocation: UserLocation = {
+    const newLocation: LocationType = {
       coords: {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
         accuracy: position.coords.accuracy,
         timestamp: position.timestamp
-      }
+      },
+      source: 'browser'
     };
 
     // Always set the location, but continue trying to get better accuracy if needed
@@ -245,11 +233,11 @@ export default function useUserLocation(options: UseUserLocationOptions = {}): U
     };
   }, []);
 
-  const setManualLocation = useCallback((location: UserLocation): void => {
+  const setManualLocation = useCallback((location: LocationType): void => {
     setUserLocation(location);
     setLocationError(null);
-    setAccuracy(0);
-    setLastUpdated(Date.now());
+    setAccuracy(location.coords.accuracy || 0);
+    setLastUpdated(location.coords.timestamp || Date.now());
     cacheLocation(location, cacheKey!);
   }, [cacheKey]);
 

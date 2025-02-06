@@ -31,7 +31,6 @@ export default function MarketStandsMapPage() {
         setIsLoading(false);
       })
       .catch(error => {
-        console.error('Error fetching market stands:', error);
         setIsLoading(false);
       });
   }, []);

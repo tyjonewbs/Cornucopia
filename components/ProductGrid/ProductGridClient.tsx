@@ -1,21 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useProductCache } from "@/components/providers/ProductCacheProvider";
+import { useState, useEffect } from 'react';
 import { ProductCard } from "@/components/ProductCard";
 import useUserLocation from "@/app/hooks/useUserLocation";
 import { Button } from "@/components/ui/button";
-import { getHomeProducts, type SerializedProduct, type UserLocation } from "@/app/actions/home-products";
+import { getHomeProducts, type SerializedProduct, type LocationType } from "@/app/actions/home-products";
 import LoadingStateGrid from "@/components/LoadingStateGrid";
 
 interface ProductGridClientProps {
   initialProducts: SerializedProduct[];
-  userLocation: { coords: { lat: number; lng: number } } | null;
+  userLocation: LocationType | null;
 }
 
 export function ProductGridClient({ initialProducts, userLocation }: ProductGridClientProps) {
-  // Convert to UserLocation type for home-products action
-  const location = userLocation ? { coords: { ...userLocation.coords } } : null;
   const [localProducts, setLocalProducts] = useState<SerializedProduct[]>([]);
   const [exploreProducts, setExploreProducts] = useState<SerializedProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,11 +30,13 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
   useEffect(() => {
     if (!isHydrated) return;
 
+    console.log('Products update:', { userLocation, initialProducts });
     
     if (userLocation) {
       const local = initialProducts.filter(p => p.distance !== null && p.distance <= 241.4);
       const explore = initialProducts.filter(p => p.distance === null || p.distance > 241.4);
-        
+      console.log('Filtered products:', { local: local.length, explore: explore.length });
+      
       setLocalProducts(local);
       setExploreProducts(explore);
       if (explore.length > 0) {
@@ -60,45 +59,39 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
     }
   }, [userLocation, initialProducts]);
 
+  // Log state changes
+  useEffect(() => {
+    console.log('State update:', { 
+      localProducts, 
+      exploreProducts, 
+      userLocation: userLocation ? {
+        source: userLocation.source,
+        accuracy: userLocation.coords.accuracy,
+        coords: {
+          lat: userLocation.coords.lat,
+          lng: userLocation.coords.lng
+        }
+      } : null 
+    });
+  }, [localProducts, exploreProducts, userLocation]);
 
-  const { getCachedProducts, cacheProducts } = useProductCache();
-
-  const loadMoreProducts = useCallback(async () => {
+  const loadMoreProducts = async () => {
     if (!lastProductId) return;
     
     try {
       setIsLoading(true);
       setError(null);
-
-      // Check cache first for paginated results
-      const locationForCache = userLocation ? { lat: userLocation.coords.lat, lng: userLocation.coords.lng } : null;
-      const cachedProducts = locationForCache ? getCachedProducts(locationForCache, lastProductId) : null;
-      
-      if (cachedProducts) {
-        if (cachedProducts.length > 0) {
-          setLastProductId(cachedProducts[cachedProducts.length - 1].id);
-          setExploreProducts(prev => [...prev, ...cachedProducts]);
-        }
-      } else {
-        // If not in cache, fetch new products
-        const newProducts = await getHomeProducts(location, lastProductId);
-        
-        if (newProducts.length > 0) {
-          // Cache the paginated results
-          if (locationForCache) {
-            cacheProducts(newProducts, locationForCache, lastProductId);
-          }
-          
-          setLastProductId(newProducts[newProducts.length - 1].id);
-          setExploreProducts(prev => [...prev, ...newProducts]);
-        }
+      const newProducts = await getHomeProducts(userLocation, lastProductId);
+      if (newProducts.length > 0) {
+        setLastProductId(newProducts[newProducts.length - 1].id);
+        setExploreProducts(prev => [...prev, ...newProducts]);
       }
     } catch (err) {
       setError('Failed to load more products');
     } finally {
       setIsLoading(false);
     }
-  }, [lastProductId, location, userLocation, getCachedProducts, cacheProducts]);
+  };
 
   if (!isHydrated || isLoading) {
     return <LoadingStateGrid />;

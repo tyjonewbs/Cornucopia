@@ -29,7 +29,6 @@ export function SupabaseProvider({
     // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        console.error('Error fetching session:', error.message);
         return;
       }
       setUser(session?.user ?? null);
@@ -59,7 +58,6 @@ export function SupabaseProvider({
             throw new Error(`Failed to sync auth state: ${response.statusText}`);
           }
         } catch (error) {
-          console.error('Error syncing auth state:', error);
         }
       }
     });

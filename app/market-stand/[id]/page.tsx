@@ -61,7 +61,6 @@ async function getData(encodedId: string) {
       }))
     };
   } catch (err) {
-    console.error('Failed to fetch market stand:', err instanceof Error ? err.message : 'Unknown error');
     return null;
   }
 }
