@@ -7,7 +7,6 @@ import { FallbackProps } from "react-error-boundary";
 export default function ProductError({ error, resetErrorBoundary }: FallbackProps) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Product loading error:', error);
   }, [error]);
 
   return (

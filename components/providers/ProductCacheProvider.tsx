@@ -56,7 +56,6 @@ export function ProductCacheProvider({ children }: { children: ReactNode }) {
 
       return products;
     } catch (error) {
-      console.error('Error reading from cache:', error);
       return null;
     }
   }, []);
@@ -75,7 +74,6 @@ export function ProductCacheProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     } catch (error) {
-      console.error('Error writing to cache:', error);
     }
   }, []);
 
@@ -90,7 +88,6 @@ export function ProductCacheProvider({ children }: { children: ReactNode }) {
         }
       });
     } catch (error) {
-      console.error('Error clearing cache:', error);
     }
   }, []);
 

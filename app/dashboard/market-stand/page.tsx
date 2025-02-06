@@ -45,7 +45,6 @@ async function getMarketStands(userId: string) {
       }
     }));
   } catch (err) {
-    console.error('Failed to fetch market stands:', err instanceof Error ? err.message : 'Unknown error');
     return [];
   }
 }

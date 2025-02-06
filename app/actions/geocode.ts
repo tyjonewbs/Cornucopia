@@ -3,11 +3,12 @@
 interface GeocodingResponse {
   lat: number;
   lng: number;
+  source: 'browser' | 'zipcode';
+  accuracy?: number;
 }
 
 export async function geocodeZipCode(zipCode: string): Promise<GeocodingResponse | null> {
   try {
-    console.log('Geocoding zip code:', zipCode);
     // Using Zippopotam.us API - free, no auth required, and specifically for ZIP codes
     const response = await fetch(
       `https://api.zippopotam.us/us/${zipCode}`,
@@ -18,15 +19,12 @@ export async function geocodeZipCode(zipCode: string): Promise<GeocodingResponse
     );
 
     if (!response.ok) {
-      console.error('Geocoding API error:', response.status, response.statusText);
       return null;
     }
 
     const data = await response.json();
-    console.log('Geocoding response:', data);
     
     if (!data.places?.[0]) {
-      console.log('No location found for zip code');
       return null;
     }
 
@@ -35,14 +33,42 @@ export async function geocodeZipCode(zipCode: string): Promise<GeocodingResponse
     const lng = parseFloat(data.places[0].longitude);
 
     if (isNaN(lat) || isNaN(lng)) {
-      console.error('Invalid coordinates in response:', data.places[0]);
       return null;
     }
 
-    console.log('Location found:', { lat, lng });
-    return { lat, lng };
+    return { 
+      lat, 
+      lng,
+      source: 'zipcode',
+      accuracy: 5000 // ZIP codes typically have accuracy within 5km
+    };
   } catch (error) {
-    console.error('Geocoding error:', error);
     return null;
   }
+}
+
+export async function getBrowserLocation(): Promise<GeocodingResponse | null> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          source: 'browser',
+          accuracy: position.coords.accuracy
+        });
+      },
+      () => resolve(null),
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
+  });
 }
