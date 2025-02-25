@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       'Expires': '0'
     };
     
-    if (event === 'SIGNED_IN' || event === 'INITIAL') {
+    if (event === 'SIGNED_IN' || event === 'INITIAL' || event === 'TOKEN_REFRESHED') {
       // Set the session cookie
       const response = new NextResponse(JSON.stringify({ 
         status: 'success',
@@ -31,7 +31,11 @@ export async function POST(request: Request) {
       
       // Set auth cookie
       if (session) {
-        await supabase.auth.setSession(session);
+        // Explicitly set the session with the provided session data
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        });
       }
       
       return response;

@@ -9,6 +9,7 @@ let clientInstance: ReturnType<typeof createClientComponentClient> | null = null
 export function getSupabaseBrowser() {
   try {
     if (!clientInstance) {
+      // Create client with default options
       clientInstance = createClientComponentClient();
 
       // Initialize auth state - no automatic reload to prevent loops

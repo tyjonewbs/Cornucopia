@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ProductCard } from "@/components/ProductCard";
 import useUserLocation from "@/app/hooks/useUserLocation";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,12 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { locationError, isLoadingLocation, retryLocation } = useUserLocation();
+  const isHydrated = useRef(false);
+
+  // Set hydration state
+  useEffect(() => {
+    isHydrated.current = true;
+  }, []);
 
   // Update products when location or initial data changes
   useEffect(() => {

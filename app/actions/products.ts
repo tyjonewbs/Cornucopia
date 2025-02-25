@@ -1,7 +1,9 @@
 "use server";
 
-import prisma from "lib/db";
+import prisma from "@/lib/db";
 import { Status } from "@prisma/client";
+import { serializeProduct, serializeProducts } from "@/lib/serializers";
+import { handleDatabaseError, createErrorResponse, createNotFoundResponse } from "@/lib/error-handler";
 
 // Types for product responses
 export interface ProductResponse {
@@ -72,46 +74,21 @@ export async function getProducts({
       },
     });
 
-    return products.map(product => ({
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      images: product.images,
-      inventory: product.inventory,
-      inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
-      status: product.status,
-      isActive: product.isActive,
-      userId: product.userId,
-      marketStandId: product.marketStandId,
-      createdAt: product.createdAt.toISOString(),
-      updatedAt: product.updatedAt.toISOString(),
-      totalReviews: product.totalReviews,
-      averageRating: product.averageRating,
-      marketStand: product.marketStand ? {
-        id: product.marketStand.id,
-        name: product.marketStand.name,
-        locationName: product.marketStand.locationName,
-        latitude: product.marketStand.latitude,
-        longitude: product.marketStand.longitude
-      } : undefined,
-      tags: product.tags,
-      locationName: product.marketStand?.locationName
-    }));
+    // Use the serializer to convert Prisma models to plain objects
+    return serializeProducts(products);
   } catch (error: unknown) {
-    console.error('Failed to fetch products:', {
-      error,
-      nodeEnv: process.env.NODE_ENV,
-      hasDbUrl: !!process.env.DATABASE_URL,
-      query: {
-        limit,
-        cursor,
-        isActive,
-        userId,
-        marketStandId
-      }
+    // Use the error handler utility to handle the error consistently
+    const errorData = handleDatabaseError(error, "Failed to fetch products", {
+      limit,
+      cursor,
+      isActive,
+      userId,
+      marketStandId
     });
-    throw error;
+    
+    // For product listing, we'll return an empty array instead of throwing
+    console.error('Error fetching products:', errorData);
+    return [];
   }
 }
 
@@ -133,41 +110,17 @@ export async function getProduct(id: string): Promise<ProductResponse | null> {
     });
     
     if (!product) return null;
-
-    return {
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      images: product.images,
-      inventory: product.inventory,
-      inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
-      status: product.status,
-      isActive: product.isActive,
-      userId: product.userId,
-      marketStandId: product.marketStandId,
-      createdAt: product.createdAt.toISOString(),
-      updatedAt: product.updatedAt.toISOString(),
-      totalReviews: product.totalReviews,
-      averageRating: product.averageRating,
-      marketStand: product.marketStand ? {
-        id: product.marketStand.id,
-        name: product.marketStand.name,
-        locationName: product.marketStand.locationName,
-        latitude: product.marketStand.latitude,
-        longitude: product.marketStand.longitude
-      } : undefined,
-      tags: product.tags,
-      locationName: product.marketStand?.locationName
-    };
+    
+    // Use the serializer to convert Prisma model to plain object
+    return serializeProduct(product);
   } catch (error: unknown) {
-    console.error('Failed to fetch product:', {
-      error,
-      nodeEnv: process.env.NODE_ENV,
-      hasDbUrl: !!process.env.DATABASE_URL,
+    // Use the error handler utility to handle the error consistently
+    const errorData = handleDatabaseError(error, "Failed to fetch product", {
       productId: id
     });
-    throw error;
+    
+    console.error('Error fetching product:', errorData);
+    return null;
   }
 }
 
@@ -204,39 +157,17 @@ export async function createProduct(data: CreateProductInput): Promise<ProductRe
       }
     });
 
-    return {
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      images: product.images,
-      inventory: product.inventory,
-      inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
-      status: product.status,
-      isActive: product.isActive,
-      userId: product.userId,
-      marketStandId: product.marketStandId,
-      createdAt: product.createdAt.toISOString(),
-      updatedAt: product.updatedAt.toISOString(),
-      totalReviews: product.totalReviews,
-      averageRating: product.averageRating,
-      marketStand: product.marketStand ? {
-        id: product.marketStand.id,
-        name: product.marketStand.name,
-        locationName: product.marketStand.locationName,
-        latitude: product.marketStand.latitude,
-        longitude: product.marketStand.longitude
-      } : undefined,
-      tags: product.tags,
-      locationName: product.marketStand?.locationName
-    };
+    // Use the serializer to convert Prisma model to plain object
+    return serializeProduct(product);
   } catch (error: unknown) {
-    console.error('Failed to create product:', {
-      error,
-      nodeEnv: process.env.NODE_ENV,
-      hasDbUrl: !!process.env.DATABASE_URL
+    // Use the error handler utility to handle the error consistently
+    const errorData = handleDatabaseError(error, "Failed to create product", {
+      name: data.name,
+      userId: data.userId,
+      marketStandId: data.marketStandId
     });
-    throw error;
+    
+    throw new Error(errorData.error);
   }
 }
 
@@ -266,40 +197,21 @@ export async function updateProduct(
       }
     });
 
-    return {
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      images: product.images,
-      inventory: product.inventory,
-      inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
-      status: product.status,
-      isActive: product.isActive,
-      userId: product.userId,
-      marketStandId: product.marketStandId,
-      createdAt: product.createdAt.toISOString(),
-      updatedAt: product.updatedAt.toISOString(),
-      totalReviews: product.totalReviews,
-      averageRating: product.averageRating,
-      marketStand: product.marketStand ? {
-        id: product.marketStand.id,
-        name: product.marketStand.name,
-        locationName: product.marketStand.locationName,
-        latitude: product.marketStand.latitude,
-        longitude: product.marketStand.longitude
-      } : undefined,
-      tags: product.tags,
-      locationName: product.marketStand?.locationName
-    };
+    // Use the serializer to convert Prisma model to plain object
+    return serializeProduct(product);
   } catch (error: unknown) {
-    console.error('Failed to update product:', {
-      error,
-      nodeEnv: process.env.NODE_ENV,
-      hasDbUrl: !!process.env.DATABASE_URL,
-      productId: id
+    // Check for "not found" error specifically
+    if (error instanceof Error && error.message.includes('Record to update not found')) {
+      throw new Error(`Product with ID ${id} not found`);
+    }
+    
+    // Use the error handler utility for other errors
+    const errorData = handleDatabaseError(error, "Failed to update product", {
+      productId: id,
+      ...data
     });
-    throw error;
+    
+    throw new Error(errorData.error);
   }
 }
 
@@ -309,12 +221,16 @@ export async function deleteProduct(id: string): Promise<void> {
       where: { id }
     });
   } catch (error: unknown) {
-    console.error('Failed to delete product:', {
-      error,
-      nodeEnv: process.env.NODE_ENV,
-      hasDbUrl: !!process.env.DATABASE_URL,
+    // Check for "not found" error specifically
+    if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
+      throw new Error(`Product with ID ${id} not found`);
+    }
+    
+    // Use the error handler utility for other errors
+    const errorData = handleDatabaseError(error, "Failed to delete product", {
       productId: id
     });
-    throw error;
+    
+    throw new Error(errorData.error);
   }
 }

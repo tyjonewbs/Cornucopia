@@ -69,8 +69,8 @@ export async function GET(request: Request) {
       response.cookies.set(`sb-${projectRef}-auth-token`, JSON.stringify({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
+        expires_in: 60 * 60 * 24 * 7, // 7 days
         token_type: 'bearer',
         user: session.user
       }), {
@@ -78,10 +78,10 @@ export async function GET(request: Request) {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 // 1 hour
+        maxAge: 60 * 60 * 24 * 7 // 7 days
       });
 
-      // Also set the refresh token cookie
+      // Also set the refresh token cookie with longer expiration
       response.cookies.set(`sb-${projectRef}-refresh-token`, session.refresh_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

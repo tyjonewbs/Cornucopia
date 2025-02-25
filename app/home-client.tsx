@@ -50,10 +50,14 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
     } catch (error) {
       console.error('Error updating products:', error);
       setError('Failed to update products. Please try again.');
+      
+      // Reset location and products on error
+      setUserLocation(null);
+      setProducts(initialProducts);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [initialProducts]);
 
   if (!isHydrated) {
     return <LoadingStateGrid />;

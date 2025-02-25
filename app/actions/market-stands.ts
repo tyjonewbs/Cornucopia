@@ -4,7 +4,8 @@ import { cache } from 'react';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 import db from "@/lib/db";
-import { logError } from "@/lib/logger";
+import { handleDatabaseError } from "@/lib/error-handler";
+import { serializeMarketStands } from "@/lib/serializers";
 
 export interface MarketStand {
   id: string;
@@ -62,18 +63,15 @@ export const getUserMarketStands = cache(async (userId: string): Promise<MarketS
       }
     });
 
-    return stands;
+    // Use the serializer to convert Prisma models to plain objects
+    return serializeMarketStands(stands);
   } catch (error) {
-    // Log detailed error information
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      logError('Prisma known request error:', {
-        code: error.code,
-        meta: error.meta,
-        message: error.message
-      });
-    } else {
-      logError('Unknown error fetching user market stands:', error);
-    }
+    // Use the error handler utility to handle the error consistently
+    const errorData = handleDatabaseError(error, "Failed to fetch user market stands", {
+      userId
+    });
+    
+    console.error('Error fetching user market stands:', errorData);
     
     // Return empty array as fallback
     return [];
@@ -97,25 +95,15 @@ export const getMarketStands = cache(async (): Promise<MarketStand[]> => {
       }
     });
 
-    return stands;
+    // Use the serializer to convert Prisma models to plain objects
+    return serializeMarketStands(stands);
   } catch (error) {
-    // Log detailed error information
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      logError('Prisma known request error:', {
-        code: error.code,
-        meta: error.meta,
-        message: error.message
-      });
-    } else if (error instanceof Prisma.PrismaClientInitializationError) {
-      logError('Prisma initialization error:', {
-        message: error.message,
-        clientVersion: error.clientVersion
-      });
-    } else {
-      logError('Unknown error fetching market stands:', error);
-    }
+    // Use the error handler utility to handle the error consistently
+    const errorData = handleDatabaseError(error, "Failed to fetch market stands");
     
-    // Re-throw specific errors that should be handled by the UI
+    console.error('Error fetching market stands:', errorData);
+    
+    // Re-throw database connection errors that should be handled by the UI
     if (error instanceof Prisma.PrismaClientInitializationError) {
       throw new Error('Database connection error. Please try again later.');
     }

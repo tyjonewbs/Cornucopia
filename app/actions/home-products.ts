@@ -1,6 +1,7 @@
 'use server';
 
 import { getProducts, type ProductResponse } from "./products";
+import { handleDatabaseError } from "@/lib/error-handler";
 
 export interface LocationType {
   coords: {
@@ -110,8 +111,9 @@ export const getHomeProducts = async (userLocation: LocationType | null, cursor?
       }));
       console.log('Product distances:', productsWithDistanceInfo);
 
-      // Use 100 miles (160.934 km) as the standard local radius
-      const localRadius = 160.934; // 100 miles in kilometers
+      // Use a larger radius for zip code locations since they're less precise
+      const localRadius = userLocation.source === 'zipcode' ? 321.87 : 241.4; // 200 miles for zip, 150 miles for browser
+      
       const localProducts = sortedProducts.filter(p => p.distance !== null && p.distance <= localRadius);
       const otherProducts = sortedProducts.filter(p => p.distance === null || p.distance > localRadius);
       
@@ -144,7 +146,14 @@ export const getHomeProducts = async (userLocation: LocationType | null, cursor?
     console.log('Returning all products:', sortedProducts.length);
     return sortedProducts;
   } catch (error) {
-    console.error('Error fetching home products:', error);
+    // Use the error handler utility to handle the error consistently
+    const errorData = handleDatabaseError(error, "Failed to fetch home products", {
+      hasLocation: !!userLocation,
+      locationSource: userLocation?.source,
+      cursor
+    });
+    
+    console.error('Error fetching home products:', errorData);
     return [];
   }
 };

@@ -88,6 +88,22 @@ export function SupabaseProvider({
       }
     });
 
+    // Set up auto token refresh
+    const refreshInterval = setInterval(async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          // Refresh the session
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData.session) {
+            syncAuthState('TOKEN_REFRESHED', refreshData.session);
+          }
+        }
+      } catch (error) {
+        console.error('Token refresh error:', error);
+      }
+    }, 10 * 60 * 1000); // Refresh every 10 minutes
+
     // Listen for auth changes
     const {
       data: { subscription },
@@ -119,6 +135,7 @@ export function SupabaseProvider({
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
       }
+      clearInterval(refreshInterval);
     };
   }, []);
 

@@ -3,7 +3,8 @@
 import prisma, { executeWithRetry, withTransaction } from "@/lib/db";
 import { WeeklyHours } from "@/types/hours";
 import { Prisma } from "@prisma/client";
-import { logError } from "@/lib/logger";
+import { serializeMarketStand } from "@/lib/serializers";
+import { handleDatabaseError, createErrorResponse, createNotFoundResponse } from "@/lib/error-handler";
 
 export async function CreateMarketStand(
   _: { status: undefined; message: null },
@@ -42,45 +43,18 @@ export async function CreateMarketStand(
       });
     });
 
-    // Convert Prisma model to plain object to avoid serialization issues
-    const plainMarketStand = {
-      id: marketStand.id,
-      name: marketStand.name,
-      description: marketStand.description,
-      locationName: marketStand.locationName,
-      locationGuide: marketStand.locationGuide,
-      latitude: marketStand.latitude,
-      longitude: marketStand.longitude,
-      website: marketStand.website,
-      images: marketStand.images,
-      tags: marketStand.tags,
-      socialMedia: marketStand.socialMedia,
-      hours: marketStand.hours,
-      userId: marketStand.userId,
-      createdAt: marketStand.createdAt.toISOString(),
-      updatedAt: marketStand.updatedAt.toISOString()
-    };
+    // Use the serializer to convert Prisma model to plain object
+    const plainMarketStand = serializeMarketStand(marketStand);
 
     return Response.json({ success: true, marketStand: plainMarketStand });
   } catch (error) {
-    // Log detailed error information to the console
-    console.error("Error creating market stand:", error);
-    
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error("Prisma error code:", error.code);
-      console.error("Prisma error meta:", error.meta);
-    }
-    
-    logError("Error creating market stand:", {
-      error,
+    // Use the error handler utility to handle the error consistently
+    const errorData = handleDatabaseError(error, "Error creating market stand", {
       userId: formData.get("userId"),
       name: formData.get("name")
     });
     
-    return Response.json(
-      { error: `Failed to create market stand: ${error instanceof Error ? error.message : 'Unknown error'}` },
-      { status: 500 }
-    );
+    return createErrorResponse(errorData);
   }
 }
 
@@ -130,51 +104,23 @@ export async function UpdateMarketStand(
       });
     });
 
-    // Convert Prisma model to plain object to avoid serialization issues
-    const plainMarketStand = {
-      id: marketStand.id,
-      name: marketStand.name,
-      description: marketStand.description,
-      locationName: marketStand.locationName,
-      locationGuide: marketStand.locationGuide,
-      latitude: marketStand.latitude,
-      longitude: marketStand.longitude,
-      website: marketStand.website,
-      images: marketStand.images,
-      tags: marketStand.tags,
-      socialMedia: marketStand.socialMedia,
-      hours: marketStand.hours,
-      userId: marketStand.userId,
-      createdAt: marketStand.createdAt.toISOString(),
-      updatedAt: marketStand.updatedAt.toISOString()
-    };
+    // Use the serializer to convert Prisma model to plain object
+    const plainMarketStand = serializeMarketStand(marketStand);
 
     return Response.json({ success: true, marketStand: plainMarketStand });
   } catch (error) {
-    // Log detailed error information to the console
-    console.error("Error updating market stand:", error);
-    
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error("Prisma error code:", error.code);
-      console.error("Prisma error meta:", error.meta);
+    // Handle "not found" error specifically
+    if (error instanceof Error && error.message === 'Market stand not found') {
+      const marketStandId = formData.get("id") as string;
+      return createNotFoundResponse('Market stand', marketStandId);
     }
     
-    logError("Error updating market stand:", {
-      error,
+    // Use the error handler utility for other errors
+    const errorData = handleDatabaseError(error, "Error updating market stand", {
       id: formData.get("id"),
       name: formData.get("name")
     });
     
-    if (error instanceof Error && error.message === 'Market stand not found') {
-      return Response.json(
-        { error: "Market stand not found" },
-        { status: 404 }
-      );
-    }
-    
-    return Response.json(
-      { error: `Failed to update market stand: ${error instanceof Error ? error.message : 'Unknown error'}` },
-      { status: 500 }
-    );
+    return createErrorResponse(errorData);
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { geocodeZipCode } from "@/app/actions/geocode";
@@ -57,6 +57,7 @@ export function ZipSearchBanner({ onLocationUpdate }: ZipSearchBannerProps) {
         source: 'zipcode'
       };
 
+      console.log('Zip code location found:', zipLocation);
       onLocationUpdate(zipLocation);
     } catch (err) {
       console.error('Geocoding error:', err);
@@ -98,6 +99,15 @@ export function ZipSearchBanner({ onLocationUpdate }: ZipSearchBannerProps) {
             className="shadow-lg text-lg px-8 bg-[#0B4D2C] hover:bg-[#0B4D2C]/90 text-white"
           >
             {isLoading ? 'Searching...' : 'Search'}
+          </Button>
+          <Button
+            onClick={retryLocation}
+            variant="outline"
+            className="shadow-lg"
+            disabled={isLoadingLocation}
+          >
+            <MapPin className="h-4 w-4 mr-2" />
+            Use My Location
           </Button>
         </div>
         {error && (
