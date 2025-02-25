@@ -12,6 +12,7 @@ interface UseUserLocationOptions {
   cacheKey?: string;
   retryAttempts?: number;
   retryDelay?: number;
+  onSuccess?: (location: LocationType) => void;
 }
 
 interface UseUserLocationResult {
@@ -116,6 +117,11 @@ export default function useUserLocation(options: UseUserLocationOptions = {}): U
     setAccuracy(position.coords.accuracy);
     setLastUpdated(position.timestamp);
     cacheLocation(newLocation, cacheKey!);
+    
+    // Call onSuccess callback if provided
+    if (mergedOptions.onSuccess) {
+      mergedOptions.onSuccess(newLocation);
+    }
 
     if (!isLocationValid(newLocation, minAccuracy!)) {
       setLocationError(`Location accuracy is ${Math.round(position.coords.accuracy)}m (trying to improve...)`);

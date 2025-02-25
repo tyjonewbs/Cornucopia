@@ -1,95 +1,73 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-const protectedRoutes = [
-  '/sell',
-  '/settings',
-  '/billing',
-  '/dashboard/market-stand',
-  '/dashboard/sell',
-  '/dashboard/settings'
-];
-
-// Public routes that should never redirect
-const publicRoutes = ['/', '/login', '/signup', '/auth-error'];
 
 export async function middleware(request: NextRequest) {
   try {
+    const pathname = request.nextUrl.pathname;
     const response = NextResponse.next();
     const supabase = createMiddlewareClient({ req: request, res: response });
+    const { data: { session } } = await supabase.auth.getSession();
 
-    // Get the current session
-    const {
-      data: { session },
-      error: sessionError
-    } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      return NextResponse.redirect(new URL('/auth-error', request.url));
-    }
-    
-    const pathname = request.nextUrl.pathname;
-
-    // Handle /dashboard redirect
-    if (pathname === '/dashboard') {
-      if (!session) {
-        return NextResponse.redirect(new URL('/', request.url));
+    // Check if this is an admin route
+    if (pathname.startsWith('/admin')) {
+      if (!session?.user) {
+        return NextResponse.redirect(new URL('/auth/admin/login', request.url));
       }
-      return NextResponse.redirect(new URL('/dashboard/market-stand', request.url));
-    }
 
-    // Check if the request is for a protected route
-    const isProtectedRoute = protectedRoutes.some(route => 
-      pathname.startsWith(route)
-    );
-
-    // Check if it's a public route
-    const isPublicRoute = publicRoutes.some(route => 
-      pathname === route || pathname.startsWith(route)
-    );
-
-    // Handle protected routes
-    if (isProtectedRoute) {
-      if (!session) {
-        const returnUrl = encodeURIComponent(pathname);
-        return NextResponse.redirect(new URL(`/?returnUrl=${returnUrl}`, request.url));
+      // Check user role from metadata
+      const userRole = session.user.user_metadata?.role;
+      if (!userRole || !['ADMIN', 'SUPER_ADMIN'].includes(userRole)) {
+        console.log('[Middleware] Non-admin access attempt:', userRole);
+        return NextResponse.redirect(new URL('/auth/admin/login', request.url));
       }
-      // User is authenticated, allow access to protected route
+
       return response;
     }
 
-    // For public routes, continue
-    if (isPublicRoute) {
-      return response;
+    // Handle other protected routes
+    if (
+      pathname.startsWith('/dashboard') || 
+      pathname.startsWith('/settings') || 
+      pathname.startsWith('/market-stand/setup') ||
+      pathname.startsWith('/local/setup')
+    ) {
+      if (!session) {
+        const loginUrl = new URL('/auth/login', request.url);
+        loginUrl.searchParams.set('returnTo', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
     }
 
-    // For all other routes, continue if authenticated
-    if (session) {
-      return response;
+    // Handle auth routes
+    if (pathname.startsWith('/auth')) {
+      // Allow access to admin login page
+      if (pathname === '/auth/admin/login') {
+        return response;
+      }
+
+      // Redirect authenticated users
+      if (session) {
+        const returnTo = request.nextUrl.searchParams.get('returnTo') || '/dashboard/market-stand';
+        return NextResponse.redirect(new URL(returnTo, request.url));
+      }
     }
 
-    // Redirect to home for unauthenticated users
-    return NextResponse.redirect(new URL('/', request.url));
-
-  } catch {
-    return NextResponse.redirect(new URL('/auth-error', request.url));
+    return response;
+  } catch (error) {
+    console.error('[Middleware] Error:', error);
+    return NextResponse.next();
   }
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public (public files)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
-    '/api/auth/:path*',
-    '/api/stripe/:path*',
-    '/api/user/:path*',
-    '/dashboard/:path*'
-  ],
+    // Match admin and protected routes
+    '/admin/:path*',
+    '/dashboard/:path*',
+    '/auth/:path*',
+    '/settings/:path*',
+    '/market-stand/setup/:path*',
+    '/local/setup/:path*'
+  ]
 };

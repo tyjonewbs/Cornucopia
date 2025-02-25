@@ -6,7 +6,7 @@ import { createServerSupabaseClient } from '@/lib/auth';
 export async function uploadImageWithAuth(
   fileBase64: string,
   filename: string,
-  bucket: string = 'images',
+  bucket: string = 'products',
   path: string = ''
 ): Promise<string> {
   const user = await getUser();
@@ -45,7 +45,7 @@ export async function uploadImageWithAuth(
 
 export async function uploadImagesWithAuth(
   files: { base64: string; name: string }[],
-  bucket?: string,
+  bucket: string = 'products',
   path?: string
 ): Promise<string[]> {
   const uploadPromises = files.map(file => 

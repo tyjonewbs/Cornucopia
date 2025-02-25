@@ -38,8 +38,8 @@ export function NavbarLinks() {
           key={item.id}
           className={cn(
             location === item.href
-              ? "text-primary font-medium"
-              : "text-muted-foreground hover:text-primary",
+              ? "text-white font-medium"
+              : "text-white/80 hover:text-white",
             "transition-colors"
           )}
         >

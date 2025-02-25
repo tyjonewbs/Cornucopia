@@ -1,31 +1,51 @@
 import { getSupabaseServer } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const { event, session } = await request.json();
     
     // Get server client
     const supabase = getSupabaseServer();
+
+    // Common headers for all responses
+    const headers = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    };
     
-    if (event === 'SIGNED_IN') {
+    if (event === 'SIGNED_IN' || event === 'INITIAL') {
       // Set the session cookie
-      const response = new NextResponse(JSON.stringify({ status: 'success' }), {
+      const response = new NextResponse(JSON.stringify({ 
+        status: 'success',
+        event,
+        timestamp: Date.now()
+      }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers
       });
       
       // Set auth cookie
-      await supabase.auth.setSession(session);
+      if (session) {
+        await supabase.auth.setSession(session);
+      }
       
       return response;
     }
     
     if (event === 'SIGNED_OUT') {
       // Clear the session cookie
-      const response = new NextResponse(JSON.stringify({ status: 'success' }), {
+      const response = new NextResponse(JSON.stringify({ 
+        status: 'success',
+        event,
+        timestamp: Date.now()
+      }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers
       });
       
       // Sign out to clear the session
@@ -34,15 +54,26 @@ export async function POST(request: Request) {
       return response;
     }
     
-    return new NextResponse(JSON.stringify({ status: 'ignored' }), {
+    return new NextResponse(JSON.stringify({ 
+      status: 'ignored',
+      event,
+      timestamp: Date.now()
+    }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers
     });
     
-  } catch {
-    return new NextResponse(JSON.stringify({ error: 'Internal Server Error' }), {
+  } catch (error) {
+    console.error('Auth sync error:', error);
+    return new NextResponse(JSON.stringify({ 
+      error: 'Internal Server Error',
+      timestamp: Date.now()
+    }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store'
+      }
     });
   }
 }

@@ -1,6 +1,4 @@
-"use client";
-
-import { CreateMarketStand, UpdateMarketStand } from "@/app/actions";
+import { CreateMarketStand, UpdateMarketStand } from "@/app/actions/market-stand";
 import {
   CardContent,
   CardDescription,
@@ -8,6 +6,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DEFAULT_WEEKLY_HOURS, WeeklyHours } from "@/types/hours";
+import { HoursInput } from "./HoursInput";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
@@ -34,7 +35,9 @@ interface MarketStandFormProps {
     locationGuide: string;
     website?: string;
     socialMedia?: string[];
+    hours?: WeeklyHours;
   };
+  onSuccess?: () => void;
 }
 
 interface FormState {
@@ -50,6 +53,7 @@ interface FormState {
     website: string;
     socialMedia: string[];
     currentSocialMedia: string;
+    hours: WeeklyHours;
   };
   errors: {
     name?: string;
@@ -61,12 +65,13 @@ interface FormState {
     images?: string;
     website?: string;
     socialMedia?: string;
+    hours?: string;
   };
 }
 
-const validateField = (name: string, value: string | string[]): string | undefined => {
-  // Skip validation for array values (tags, socialMedia)
-  if (Array.isArray(value)) return undefined;
+const validateField = (name: string, value: string | string[] | WeeklyHours): string | undefined => {
+  // Skip validation for array values and WeeklyHours
+  if (Array.isArray(value) || typeof value === 'object') return undefined;
   
   if (!value || value.trim() === '') {
     // Website is optional, so don't require it
@@ -105,7 +110,7 @@ const validateField = (name: string, value: string | string[]): string | undefin
   }
 };
 
-export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): JSX.Element {
+export function MarketStandForm({ userId, marketStand, onSuccess }: MarketStandFormProps): JSX.Element {
   const router = useRouter();
   const [images, setImages] = useState<string[]>(marketStand?.images || []);
   const [formState, setFormState] = useState<FormState>({
@@ -120,7 +125,8 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
       currentTag: '',
       website: marketStand?.website || '',
       socialMedia: marketStand?.socialMedia || [],
-      currentSocialMedia: ''
+      currentSocialMedia: '',
+      hours: marketStand?.hours || DEFAULT_WEEKLY_HOURS
     },
     errors: {}
   });
@@ -270,7 +276,27 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const createFormData = () => {
+    const formData = new FormData();
+    
+    // Add all form values manually instead of relying on the form element
+    formData.append('name', formState.values.name);
+    formData.append('description', formState.values.description);
+    formData.append('locationName', formState.values.locationName);
+    formData.append('locationGuide', formState.values.locationGuide);
+    formData.append('latitude', formState.values.latitude);
+    formData.append('longitude', formState.values.longitude);
+    formData.append('images', JSON.stringify(images));
+    formData.append('tags', JSON.stringify(formState.values.tags));
+    formData.append('website', formState.values.website);
+    formData.append('socialMedia', JSON.stringify(formState.values.socialMedia));
+    formData.append('hours', JSON.stringify(formState.values.hours));
+    formData.append('userId', userId);
+    
+    return formData;
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, retryCount = 0) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -278,12 +304,10 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
       return;
     }
 
-    const formData = new FormData(e.currentTarget);
-    formData.append('images', JSON.stringify(images));
-    formData.append('tags', JSON.stringify(formState.values.tags));
-    formData.append('website', formState.values.website);
-    formData.append('socialMedia', JSON.stringify(formState.values.socialMedia));
-    formData.append('userId', userId);
+    const formData = createFormData();
+
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
 
     try {
       if (marketStand) {
@@ -293,22 +317,53 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
         
         if (result.ok && data.success) {
           toast.success("Market stand updated successfully");
-          router.push('/dashboard/market-stand');
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            router.push('/dashboard/market-stand/setup');
+          }
         } else {
+          console.error('Update failed:', data.error);
+          if (retryCount < maxRetries) {
+            toast.error(`Update failed, retrying... (${retryCount + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            await handleSubmit(e, retryCount + 1);
+            return;
+          }
           toast.error(data.error || "Failed to update market stand");
           return;
         }
       } else {
         const result = await CreateMarketStand({ status: undefined, message: null }, formData);
         const data = await result.json();
-        if (!result.ok) {
-          toast.error(data.error);
+        
+        if (result.ok && data.success) {
+          toast.success("Market stand created successfully");
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            router.push('/dashboard/market-stand/setup');
+          }
+        } else {
+          console.error('Creation failed:', data.error);
+          if (retryCount < maxRetries) {
+            toast.error(`Creation failed, retrying... (${retryCount + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            await handleSubmit(e, retryCount + 1);
+            return;
+          }
+          toast.error(data.error || "Failed to create market stand");
           return;
         }
-        toast.success("Market stand created successfully");
-        router.push('/dashboard/sell');
       }
-    } catch {
+    } catch (error) {
+      console.error('Submission error:', error);
+      if (retryCount < maxRetries) {
+        toast.error(`An error occurred, retrying... (${retryCount + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        await handleSubmit(e, retryCount + 1);
+        return;
+      }
       toast.error("An error occurred. Please try again.");
     }
   };
@@ -334,7 +389,6 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle>{marketStand ? 'Edit your market stand' : 'Create your market stand'}</CardTitle>
         <CardDescription>
           Please provide details about your market stand
         </CardDescription>
@@ -508,6 +562,22 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
           </div>
         </div>
 
+        <div className="flex flex-col gap-y-2">
+          <Label>Operating Hours</Label>
+          <HoursInput
+            value={formState.values.hours || DEFAULT_WEEKLY_HOURS}
+            onChange={(hours) => {
+              setFormState(prev => ({
+                ...prev,
+                values: { ...prev.values, hours }
+              }));
+            }}
+          />
+          {formState.errors.hours && (
+            <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.hours}</p>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div className="flex flex-col gap-y-2">
             <Label>Latitude</Label>
@@ -553,13 +623,33 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               {images.map((url, index) => (
                 <div key={index} className="relative aspect-square group">
-                  <Image
-                    src={url}
-                    alt={`Market stand image ${index + 1}`}
-                    className="object-cover rounded-lg"
-                    fill
-                    sizes="(max-width: 768px) 50vw, 33vw"
-                  />
+                  <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
+                    <Image
+                      src={url}
+                      alt={`Market stand image ${index + 1}`}
+                      className="object-cover rounded-lg"
+                      fill
+                      sizes="(max-width: 768px) 50vw, 33vw"
+                      onError={(e) => {
+                        // Replace with placeholder
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          const placeholder = document.createElement('div');
+                          placeholder.className = 'flex flex-col items-center justify-center h-full';
+                          placeholder.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2 text-muted-foreground">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                              <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                            <span class="text-sm text-muted-foreground">Image not available</span>
+                          `;
+                          parent.appendChild(placeholder);
+                        }
+                      }}
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="destructive"
@@ -575,8 +665,10 @@ export function MarketStandForm({ userId, marketStand }: MarketStandFormProps): 
           )}
           <ImageUpload
             onUploadComplete={(urls) => {
-              setImages(prev => [...prev, ...urls]);
-              toast.success("Images uploaded successfully");
+              if (urls && urls.length > 0) {
+                setImages(prev => [...prev, ...urls]);
+                toast.success("Images uploaded successfully");
+              }
             }}
             maxFiles={5}
           />

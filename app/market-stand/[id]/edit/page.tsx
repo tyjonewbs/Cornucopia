@@ -93,10 +93,6 @@ export default async function EditMarketStandPage({
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Edit Market Stand</h1>
-        <p className="text-muted-foreground">Update your market stand details</p>
-      </div>
       <Card>
         <MarketStandForm 
           userId={user.id} 

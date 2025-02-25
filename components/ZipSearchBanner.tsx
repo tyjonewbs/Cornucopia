@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { geocodeZipCode } from "@/app/actions/geocode";
 import { type LocationType } from "@/app/actions/home-products";
 import { MapPin } from 'lucide-react';
+import useUserLocation from '@/app/hooks/useUserLocation';
 
 interface ZipSearchBannerProps {
   onLocationUpdate: (location: LocationType | null) => void;
@@ -15,47 +16,22 @@ export function ZipSearchBanner({ onLocationUpdate }: ZipSearchBannerProps) {
   const [zipCode, setZipCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [browserLocationStatus, setBrowserLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  
+  const { 
+    userLocation,
+    locationError,
+    isLoadingLocation,
+    retryLocation
+  } = useUserLocation({
+    enableHighAccuracy: true,
+    timeout: 5000,
+    maximumAge: 0,
+    onSuccess: useCallback((location: LocationType) => {
+      onLocationUpdate(location);
+    }, [onLocationUpdate])
+  });
 
-  // Try to get browser location on mount
-  useEffect(() => {
-    const getBrowserLocation = () => {
-      if (!navigator.geolocation) {
-        setBrowserLocationStatus('error');
-        return;
-      }
-
-      setBrowserLocationStatus('loading');
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location: LocationType = {
-            coords: {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-              accuracy: position.coords.accuracy,
-              timestamp: position.timestamp
-            },
-            source: 'browser'
-          };
-          onLocationUpdate(location);
-          setBrowserLocationStatus('success');
-        },
-        (error) => {
-          console.error('Browser location error:', error);
-          setBrowserLocationStatus('error');
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
-        }
-      );
-    };
-
-    getBrowserLocation();
-  }, [onLocationUpdate]);
-
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     if (!zipCode.match(/^\d{5}$/)) {
       setError('Please enter a valid 5-digit zip code');
       return;
@@ -81,7 +57,6 @@ export function ZipSearchBanner({ onLocationUpdate }: ZipSearchBannerProps) {
         source: 'zipcode'
       };
 
-      console.log('Zip code location found:', zipLocation);
       onLocationUpdate(zipLocation);
     } catch (err) {
       console.error('Geocoding error:', err);
@@ -90,24 +65,22 @@ export function ZipSearchBanner({ onLocationUpdate }: ZipSearchBannerProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [zipCode, onLocationUpdate]);
 
   return (
-    <div className="w-full h-[300px] relative mb-8">
+    <div className="w-full h-[500px] relative mb-8">
       <div 
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: 'url("/images/zip-search-banner.avif")' }}
       >
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/60" />
       </div>
       <div className="relative h-full flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-md">
+        <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-6 drop-shadow-md max-w-4xl">
           Harvesting Nature's Best for You
         </h1>
-        <p className="text-white text-lg mb-2 max-w-2xl drop-shadow">
+        <p className="text-white text-xl mb-12 max-w-2xl drop-shadow">
           Experience the finest organic produce, sustainably grown and handpicked with care.
-        </p>
-        <p className="text-white text-sm mb-10 max-w-2xl drop-shadow">
           Join us in nurturing the earth while enjoying its freshest offerings.
         </p>
         <div className="flex gap-2 justify-center">
@@ -122,62 +95,17 @@ export function ZipSearchBanner({ onLocationUpdate }: ZipSearchBannerProps) {
           <Button 
             onClick={handleSearch}
             disabled={isLoading}
-            className="shadow-lg text-lg px-8 bg-[#526D4E] hover:bg-[#526D4E]/90 text-white"
+            className="shadow-lg text-lg px-8 bg-[#0B4D2C] hover:bg-[#0B4D2C]/90 text-white"
           >
             {isLoading ? 'Searching...' : 'Search'}
           </Button>
-          {browserLocationStatus === 'error' && (
-            <Button
-              onClick={() => {
-                setBrowserLocationStatus('idle');
-                const getBrowserLocation = () => {
-                  if (!navigator.geolocation) {
-                    setBrowserLocationStatus('error');
-                    return;
-                  }
-
-                  setBrowserLocationStatus('loading');
-                  navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                      const location: LocationType = {
-                        coords: {
-                          lat: position.coords.latitude,
-                          lng: position.coords.longitude,
-                          accuracy: position.coords.accuracy,
-                          timestamp: position.timestamp
-                        },
-                        source: 'browser'
-                      };
-                      onLocationUpdate(location);
-                      setBrowserLocationStatus('success');
-                    },
-                    (error) => {
-                      console.error('Browser location error:', error);
-                      setBrowserLocationStatus('error');
-                    },
-                    {
-                      enableHighAccuracy: true,
-                      timeout: 5000,
-                      maximumAge: 0
-                    }
-                  );
-                };
-                getBrowserLocation();
-              }}
-              variant="outline"
-              className="shadow-lg"
-            >
-              <MapPin className="h-4 w-4 mr-2" />
-              Use My Location
-            </Button>
-          )}
         </div>
         {error && (
           <p className="text-red-500 text-sm mt-2 bg-white/95 px-3 py-1 rounded shadow">
             {error}
           </p>
         )}
-        {browserLocationStatus === 'loading' && (
+        {isLoadingLocation && (
           <p className="text-white text-sm mt-2 bg-black/30 px-3 py-1 rounded">
             Getting your location...
           </p>

@@ -1,14 +1,305 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["metrics", "relationJoins", "fullTextSearchPostgres", "postgresqlExtensions"]
+  previewFeatures = ["fullTextSearchPostgres", "metrics", "postgresqlExtensions", "relationJoins"]
   engineType      = "binary"
 }
 
 datasource db {
   provider     = "postgresql"
   url          = env("DATABASE_URL")
-  directUrl    = env("DIRECT_URL")
   relationMode = "foreignKeys"
+  extensions   = [uuid_ossp(map: "uuid-ossp", schema: "extensions")]
+}
+
+model User {
+  id                    String                 @id @unique
+  email                 String                 @db.VarChar(255)
+  firstName             String                 @db.VarChar(100)
+  lastName              String                 @db.VarChar(100)
+  profileImage          String
+  connectedAccountId    String?                @db.VarChar(100)
+  stripeConnectedLinked Boolean                @default(false)
+  role                  UserRole               @default(USER)
+  locals                Local[]
+  marketStands          MarketStand[]
+  products              Product[]
+  productReviews        ProductReview[]
+  productStatusChanges  ProductStatusHistory[]
+  standReviews          StandReview[]
+  standStatusChanges    StandStatusHistory[]
+  engagement            UserEngagement?
+  sessions              VisitorSession[]
+
+  @@index([email], map: "user_email_idx")
+  @@index([connectedAccountId], map: "user_stripe_idx")
+}
+
+model MarketStand {
+  id            String               @id @default(uuid())
+  name          String               @db.VarChar(255)
+  description   String?
+  images        String[]
+  tags          String[]             @db.VarChar(50)
+  latitude      Float
+  longitude     Float
+  locationName  String               @db.VarChar(255)
+  locationGuide String
+  website       String?
+  socialMedia   String[]
+  status        Status               @default(PENDING)
+  isActive      Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  userId        String
+  averageRating Float?
+  totalReviews  Int                  @default(0)
+  hours         Json?
+  user          User                 @relation(fields: [userId], references: [id])
+  products      Product[]            @relation("ProductToMarketStand")
+  metrics       StandMetrics?
+  reviews       StandReview[]
+  statusHistory StandStatusHistory[]
+
+  @@index([latitude, longitude], map: "market_stand_location_idx")
+  @@index([isActive], map: "market_stand_active_idx")
+  @@index([userId])
+}
+
+model Product {
+  id                 String                 @id @default(uuid())
+  name               String                 @db.VarChar(255)
+  price              Int
+  description        String
+  images             String[]
+  tags               String[]               @db.VarChar(50)
+  inventory          Int                    @default(0)
+  inventoryUpdatedAt DateTime?
+  status             Status                 @default(PENDING)
+  isActive           Boolean                @default(true)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  userId             String
+  marketStandId      String
+  localId            String?
+  averageRating      Float?
+  totalReviews       Int                    @default(0)
+  local              Local?                 @relation("ProductToLocal", fields: [localId], references: [id])
+  marketStand        MarketStand            @relation("ProductToMarketStand", fields: [marketStandId], references: [id])
+  user               User                   @relation(fields: [userId], references: [id])
+  metrics            ProductMetrics?
+  reviews            ProductReview[]
+  statusHistory      ProductStatusHistory[]
+
+  @@index([isActive, inventory], map: "product_active_inventory_idx")
+  @@index([updatedAt(sort: Desc)], map: "product_updated_at_idx")
+  @@index([marketStandId], map: "product_market_stand_idx")
+  @@index([localId], map: "product_local_idx")
+  @@index([userId], map: "product_user_idx")
+}
+
+model ProductReview {
+  id                 String   @id @default(uuid())
+  rating             Int      @db.SmallInt
+  comment            String
+  images             String[]
+  isVerifiedPurchase Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  productId          String
+  userId             String
+  helpfulVotes       Int      @default(0)
+  reportCount        Int      @default(0)
+  isVisible          Boolean  @default(true)
+  product            Product  @relation(fields: [productId], references: [id])
+  user               User     @relation(fields: [userId], references: [id])
+
+  @@index([productId, isVisible], map: "product_review_product_idx")
+  @@index([userId])
+}
+
+model StandReview {
+  id                 String      @id @default(uuid())
+  rating             Int         @db.SmallInt
+  comment            String
+  images             String[]
+  isVerifiedCustomer Boolean     @default(false)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  marketStandId      String
+  userId             String
+  helpfulVotes       Int         @default(0)
+  reportCount        Int         @default(0)
+  isVisible          Boolean     @default(true)
+  marketStand        MarketStand @relation(fields: [marketStandId], references: [id])
+  user               User        @relation(fields: [userId], references: [id])
+
+  @@index([marketStandId, isVisible], map: "stand_review_stand_idx")
+  @@index([userId])
+}
+
+model ProductStatusHistory {
+  id          String   @id @default(uuid())
+  productId   String
+  oldStatus   Status
+  newStatus   Status
+  changedById String
+  note        String
+  createdAt   DateTime @default(now())
+  changedBy   User     @relation(fields: [changedById], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([changedById])
+}
+
+model StandStatusHistory {
+  id            String      @id @default(uuid())
+  marketStandId String
+  oldStatus     Status
+  newStatus     Status
+  changedById   String
+  note          String
+  createdAt     DateTime    @default(now())
+  changedBy     User        @relation(fields: [changedById], references: [id])
+  marketStand   MarketStand @relation(fields: [marketStandId], references: [id])
+
+  @@index([marketStandId])
+  @@index([changedById])
+}
+
+model ProductMetrics {
+  id             String                @id @default(uuid())
+  productId      String                @unique
+  views          Int                   @default(0)
+  uniqueViews    Int                   @default(0)
+  addedToCart    Int                   @default(0)
+  purchases      Int                   @default(0)
+  revenue        Int                   @default(0)
+  conversionRate Float?
+  dailyMetrics   ProductDailyMetrics[]
+  product        Product               @relation(fields: [productId], references: [id])
+
+  @@index([productId], map: "product_metrics_product_idx")
+}
+
+model ProductDailyMetrics {
+  id              String         @id @default(uuid())
+  productMetricId String
+  date            DateTime       @db.Date
+  views           Int            @default(0)
+  uniqueViews     Int            @default(0)
+  addedToCart     Int            @default(0)
+  purchases       Int            @default(0)
+  revenue         Int            @default(0)
+  productMetrics  ProductMetrics @relation(fields: [productMetricId], references: [id])
+
+  @@index([productMetricId, date])
+}
+
+model StandMetrics {
+  id                 String              @id @default(uuid())
+  marketStandId      String              @unique
+  totalViews         Int                 @default(0)
+  uniqueViews        Int                 @default(0)
+  totalOrders        Int                 @default(0)
+  totalRevenue       Int                 @default(0)
+  averageOrderValue  Float?
+  returningCustomers Int                 @default(0)
+  dailyMetrics       StandDailyMetrics[]
+  marketStand        MarketStand         @relation(fields: [marketStandId], references: [id])
+
+  @@index([marketStandId], map: "stand_metrics_stand_idx")
+}
+
+model StandDailyMetrics {
+  id            String       @id @default(uuid())
+  standMetricId String
+  date          DateTime     @db.Date
+  views         Int          @default(0)
+  uniqueViews   Int          @default(0)
+  orders        Int          @default(0)
+  revenue       Int          @default(0)
+  standMetrics  StandMetrics @relation(fields: [standMetricId], references: [id])
+
+  @@index([standMetricId, date])
+}
+
+model UserEngagement {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  lastVisit      DateTime
+  totalVisits    Int      @default(0)
+  totalPurchases Int      @default(0)
+  totalSpent     Int      @default(0)
+  favoriteStands String[]
+  searchHistory  String[]
+  categoryViews  Json
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model VisitorSession {
+  id          String    @id @default(uuid())
+  sessionId   String    @unique
+  userId      String?
+  startTime   DateTime  @default(now())
+  endTime     DateTime?
+  deviceType  String?   @db.VarChar(50)
+  browser     String?   @db.VarChar(50)
+  ipAddress   String?   @db.VarChar(45)
+  pagesViewed Json
+  user        User?     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model Local {
+  id               String        @id @default(uuid())
+  name             String        @db.VarChar(255)
+  description      String
+  story            String
+  images           String[]
+  farmingPractices String
+  teamMembers      Json
+  certifications   Json
+  seasonalSchedule Json
+  events           Json
+  operatingHours   Json
+  wholesaleInfo    String?
+  contactForm      Boolean       @default(true)
+  latitude         Float
+  longitude        Float
+  locationName     String        @db.VarChar(255)
+  locationGuide    String
+  website          String?
+  socialMedia      String[]
+  status           Status        @default(PENDING)
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  userId           String
+  user             User          @relation(fields: [userId], references: [id])
+  metrics          LocalMetrics?
+  products         Product[]     @relation("ProductToLocal")
+
+  @@index([latitude, longitude], map: "local_location_idx")
+  @@index([isActive], map: "local_active_idx")
+  @@index([userId], map: "local_user_idx")
+}
+
+model LocalMetrics {
+  id                     String @id @default(uuid())
+  localId                String @unique
+  views                  Int    @default(0)
+  uniqueViews            Int    @default(0)
+  contactFormSubmissions Int    @default(0)
+  productViews           Int    @default(0)
+  eventSignups           Int    @default(0)
+  local                  Local  @relation(fields: [localId], references: [id])
+
+  @@index([localId], map: "local_metrics_local_idx")
 }
 
 enum UserRole {
@@ -22,243 +313,4 @@ enum Status {
   APPROVED
   REJECTED
   SUSPENDED
-}
-
-model User {
-  id                    String                @id @unique
-  email                 String                @db.VarChar(255)
-  firstName             String                @db.VarChar(100)
-  lastName              String                @db.VarChar(100)
-  profileImage          String                @db.Text
-  connectedAccountId    String?               @db.VarChar(100)
-  stripeConnectedLinked Boolean               @default(false)
-  role                  UserRole              @default(USER)
-  products              Product[]
-  marketStands          MarketStand[]
-  productStatusChanges  ProductStatusHistory[]
-  standStatusChanges    StandStatusHistory[]
-  productReviews        ProductReview[]
-  standReviews          StandReview[]
-  engagement           UserEngagement?
-  sessions             VisitorSession[]      
-
-  @@index([email], name: "user_email_idx")
-  @@index([connectedAccountId], name: "user_stripe_idx")
-}
-
-model MarketStand {
-  id              String               @id @default(uuid())
-  name            String               @db.VarChar(255)
-  description     String?              @db.Text
-  images          String[]             @db.Text
-  tags            String[]             @db.VarChar(50)
-  latitude        Float
-  longitude       Float
-  locationName    String               @db.VarChar(255)
-  locationGuide   String               @db.Text
-  website         String?              @db.Text
-  socialMedia     String[]             @db.Text
-  status          Status               @default(PENDING)
-  isActive        Boolean              @default(true)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  userId          String
-  user            User                 @relation(fields: [userId], references: [id])
-  products        Product[]            @relation("ProductToMarketStand")
-  statusHistory   StandStatusHistory[]
-  reviews         StandReview[]
-  averageRating   Float?
-  totalReviews    Int                  @default(0)
-  metrics         StandMetrics?
-
-  @@index([latitude, longitude], name: "market_stand_location_idx")
-  @@index([isActive], name: "market_stand_active_idx")
-  @@index([userId])
-}
-
-model Product {
-  id                String                @id @default(uuid())
-  name              String                @db.VarChar(255)
-  price             Int
-  description       String                @db.Text
-  images            String[]              @db.Text
-  tags              String[]              @db.VarChar(50)
-  inventory         Int                   @default(0)
-  inventoryUpdatedAt DateTime?
-  status            Status                @default(PENDING)
-  isActive          Boolean               @default(true)
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  userId            String
-  user              User                  @relation(fields: [userId], references: [id])
-  marketStand       MarketStand          @relation("ProductToMarketStand", fields: [marketStandId], references: [id])
-  marketStandId     String
-  statusHistory     ProductStatusHistory[]
-  reviews           ProductReview[]
-  averageRating     Float?
-  totalReviews      Int                  @default(0)
-  metrics           ProductMetrics?
-
-  @@index([isActive, inventory], name: "product_active_inventory_idx")
-  @@index([updatedAt(sort: Desc)], name: "product_updated_at_idx")
-  @@index([marketStandId], name: "product_market_stand_idx")
-  @@index([userId], name: "product_user_idx")
-}
-
-model ProductReview {
-  id                 String    @id @default(uuid())
-  rating             Int       @db.SmallInt
-  comment            String    @db.Text
-  images             String[]  @db.Text
-  isVerifiedPurchase Boolean   @default(false)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  productId          String
-  product            Product   @relation(fields: [productId], references: [id])
-  userId             String
-  user               User      @relation(fields: [userId], references: [id])
-  helpfulVotes       Int       @default(0)
-  reportCount        Int       @default(0)
-  isVisible          Boolean   @default(true)
-
-  @@index([productId, isVisible], name: "product_review_product_idx")
-  @@index([userId])
-}
-
-model StandReview {
-  id                 String      @id @default(uuid())
-  rating             Int         @db.SmallInt
-  comment            String      @db.Text
-  images             String[]    @db.Text
-  isVerifiedCustomer Boolean     @default(false)
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  marketStandId      String
-  marketStand        MarketStand @relation(fields: [marketStandId], references: [id])
-  userId             String
-  user               User        @relation(fields: [userId], references: [id])
-  helpfulVotes       Int         @default(0)
-  reportCount        Int         @default(0)
-  isVisible          Boolean     @default(true)
-
-  @@index([marketStandId, isVisible], name: "stand_review_stand_idx")
-  @@index([userId])
-}
-
-model ProductStatusHistory {
-  id          String    @id @default(uuid())
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id])
-  oldStatus   Status
-  newStatus   Status
-  changedById String
-  changedBy   User      @relation(fields: [changedById], references: [id])
-  note        String    @db.Text
-  createdAt   DateTime  @default(now())
-
-  @@index([productId])
-  @@index([changedById])
-}
-
-model StandStatusHistory {
-  id            String      @id @default(uuid())
-  marketStandId String
-  marketStand   MarketStand @relation(fields: [marketStandId], references: [id])
-  oldStatus     Status
-  newStatus     Status
-  changedById   String
-  changedBy     User        @relation(fields: [changedById], references: [id])
-  note          String      @db.Text
-  createdAt     DateTime    @default(now())
-
-  @@index([marketStandId])
-  @@index([changedById])
-}
-
-model ProductMetrics {
-  id              String    @id @default(uuid())
-  productId       String    @unique
-  product         Product   @relation(fields: [productId], references: [id])
-  views           Int       @default(0)
-  uniqueViews     Int       @default(0)
-  addedToCart     Int       @default(0)
-  purchases       Int       @default(0)
-  revenue         Int       @default(0)
-  conversionRate  Float?
-  dailyMetrics    ProductDailyMetrics[]
-
-  @@index([productId], name: "product_metrics_product_idx")
-}
-
-model ProductDailyMetrics {
-  id              String         @id @default(uuid())
-  productMetricId String
-  productMetrics  ProductMetrics @relation(fields: [productMetricId], references: [id])
-  date            DateTime       @db.Date
-  views           Int           @default(0)
-  uniqueViews     Int           @default(0)
-  addedToCart     Int           @default(0)
-  purchases       Int           @default(0)
-  revenue         Int           @default(0)
-
-  @@index([productMetricId, date])
-}
-
-model StandMetrics {
-  id                String    @id @default(uuid())
-  marketStandId     String    @unique
-  marketStand       MarketStand @relation(fields: [marketStandId], references: [id])
-  totalViews        Int       @default(0)
-  uniqueViews       Int       @default(0)
-  totalOrders       Int       @default(0)
-  totalRevenue      Int       @default(0)
-  averageOrderValue Float?
-  returningCustomers Int      @default(0)
-  dailyMetrics      StandDailyMetrics[]
-
-  @@index([marketStandId], name: "stand_metrics_stand_idx")
-}
-
-model StandDailyMetrics {
-  id              String       @id @default(uuid())
-  standMetricId   String
-  standMetrics    StandMetrics @relation(fields: [standMetricId], references: [id])
-  date            DateTime     @db.Date
-  views           Int         @default(0)
-  uniqueViews     Int         @default(0)
-  orders          Int         @default(0)
-  revenue         Int         @default(0)
-
-  @@index([standMetricId, date])
-}
-
-model UserEngagement {
-  id              String    @id @default(uuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id])
-  lastVisit       DateTime
-  totalVisits     Int       @default(0)
-  totalPurchases  Int       @default(0)
-  totalSpent      Int       @default(0)
-  favoriteStands  String[]  @db.Text
-  searchHistory   String[]  @db.Text
-  categoryViews   Json      @db.JsonB
-
-  @@index([userId])
-}
-
-model VisitorSession {
-  id           String    @id @default(uuid())
-  sessionId    String    @unique
-  userId       String?
-  user         User?     @relation(fields: [userId], references: [id])
-  startTime    DateTime  @default(now())
-  endTime      DateTime?
-  deviceType   String?   @db.VarChar(50)
-  browser      String?   @db.VarChar(50)
-  ipAddress    String?   @db.VarChar(45)
-  pagesViewed  Json      @db.JsonB
-
-  @@index([userId])
-  @@index([sessionId])
 }

@@ -1,10 +1,12 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Package, Pencil } from "lucide-react";
+import { MapPin, Package, Pencil, Clock, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
 
 interface MarketStandCardProps {
   stand: {
@@ -17,51 +19,60 @@ interface MarketStandCardProps {
     longitude: number;
     images: string[];
     tags: string[];
-    _count: {
+    _count?: {
       products: number;
     };
+    lastProductUpdate?: Date | null;
   };
-  userId?: string;
 }
 
-export function MarketStandCard({ stand, userId }: MarketStandCardProps) {
+export function MarketStandCard({ stand }: MarketStandCardProps) {
+  const [imageError, setImageError] = useState(false);
+  
   if (!stand) {
     return null;
   }
 
   return (
-    <div className="group">
-      <Card className="h-full hover:shadow-lg transition-shadow relative">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle>{stand.name}</CardTitle>
-          {userId && (
-            <Link 
-              href={`/market-stand/${stand.id}/edit`}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+    <Card className="overflow-hidden">
+      <div className="flex">
+        {/* Image Section - Fixed width and aspect ratio */}
+        <div className="relative w-72 h-48 bg-muted flex items-center justify-center">
+          {stand.images[0] && !imageError ? (
+            <Image
+              src={stand.images[0]}
+              alt={stand.name}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center text-muted-foreground">
+              <ImageIcon className="h-12 w-12 mb-2" />
+              <span className="text-sm">Image not available</span>
+            </div>
+          )}
+        </div>
+
+        {/* Content Section */}
+        <div className="flex-1 flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle>{stand.name}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {stand.description}
+              </p>
+            </div>
+            <Link href={`/dashboard/market-stand/setup/edit/${stand.id}`}>
+              <Button variant="outline" size="icon" className="h-8 w-8">
                 <Pencil className="h-4 w-4" />
                 <span className="sr-only">Edit market stand</span>
               </Button>
             </Link>
-          )}
-        </CardHeader>
-        <Link href={`/market-stand/${stand.id}`}>
-          <CardContent>
-            {stand.images[0] && (
-              <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden">
-                <Image
-                  src={stand.images[0]}
-                  alt={stand.name}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-              </div>
-            )}
-            <p className="text-sm text-muted-foreground mb-4">
-              {stand.description}
-            </p>
+          </CardHeader>
+
+          <CardContent className="flex-1 flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1">
@@ -70,9 +81,16 @@ export function MarketStandCard({ stand, userId }: MarketStandCardProps) {
                 </div>
                 <div className="flex items-center gap-1">
                   <Package className="h-4 w-4" />
-                  {stand._count.products} products
+                  {stand._count?.products || 0} products
                 </div>
+                {stand.lastProductUpdate && (
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    Updated {formatDistanceToNow(new Date(stand.lastProductUpdate), { addSuffix: true })}
+                  </div>
+                )}
               </div>
+
               {stand.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {stand.tags.map((tag, index) => (
@@ -87,8 +105,8 @@ export function MarketStandCard({ stand, userId }: MarketStandCardProps) {
               )}
             </div>
           </CardContent>
-        </Link>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </Card>
   );
 }

@@ -31,7 +31,7 @@ export default async function SettingsDashboard() {
       title: "Market Stand Settings",
       description: "Configure your market stand preferences",
       icon: Store,
-      href: "/market-stand/setup",
+      href: "/dashboard/market-stand/setup",
     },
   ];
 

@@ -1,50 +1,49 @@
-import { getSupabaseServer } from '@/lib/supabase-server';
-import { NextResponse } from 'next/server';
-
 export const dynamic = 'force-dynamic';
+
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url);
     const code = requestUrl.searchParams.get('code');
-    const next = requestUrl.searchParams.get('next') || '/dashboard';
+    const returnTo = requestUrl.searchParams.get('returnTo');
 
-    // Handle email confirmation for sign up
-    const type = requestUrl.searchParams.get('type');
-    if (type === 'signup' && !code) {
-      return NextResponse.redirect(
-        `${requestUrl.origin}/?message=Please check your email to confirm your account`
-      );
-    }
+    console.log('[Auth Callback] Processing with code:', code ? 'present' : 'missing');
+    console.log('[Auth Callback] Return path:', returnTo || 'default');
 
-    // Validate the code parameter for other auth flows
     if (!code) {
-      return NextResponse.redirect(`${requestUrl.origin}/auth-error?error=no_code`);
+      console.error('[Auth Callback] No code provided');
+      return NextResponse.redirect(new URL('/', requestUrl.origin));
     }
 
-    const supabase = getSupabaseServer();
-
-    // Exchange the code for a session
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
     
+    // Exchange the code for a session
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
     if (error) {
-      return NextResponse.redirect(`${requestUrl.origin}/auth-error?error=session_error`);
+      console.error('[Auth Callback] Session exchange error:', error);
+      return NextResponse.redirect(new URL('/', requestUrl.origin));
     }
 
-    if (!data.session) {
-      return NextResponse.redirect(`${requestUrl.origin}/auth-error?error=no_session`);
+    // Get the session to confirm it was set
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('[Auth Callback] Session established:', session ? 'yes' : 'no');
+
+    // Only redirect to protected routes if we have a session
+    if (session) {
+      const redirectPath = returnTo || '/dashboard/market-stand';
+      console.log('[Auth Callback] Redirecting to:', redirectPath);
+      return NextResponse.redirect(new URL(redirectPath, requestUrl.origin));
+    } else {
+      console.log('[Auth Callback] No session, redirecting to home');
+      return NextResponse.redirect(new URL('/', requestUrl.origin));
     }
-
-    // Set session before redirecting
-    await supabase.auth.setSession(data.session);
-
-    // Redirect to the next parameter or fall back to dashboard
-    return NextResponse.redirect(new URL(next, requestUrl.origin));
   } catch (error) {
-    // Include error details in the redirect for better debugging
-    const errorMessage = encodeURIComponent((error as Error).message);
-    return NextResponse.redirect(
-      `${new URL(request.url).origin}/auth-error?error=unexpected&message=${errorMessage}`
-    );
+    console.error('[Auth Callback] Error:', error);
+    return NextResponse.redirect(new URL('/', request.url));
   }
 }

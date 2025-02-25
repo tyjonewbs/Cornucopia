@@ -1,12 +1,13 @@
-import { getUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getUser } from "@/lib/auth";
 
 export default async function DashboardPage() {
   const user = await getUser();
-
+  
   if (!user) {
-    return redirect('/');
+    redirect('/');
   }
 
-  return redirect("/dashboard/market-stand");
+  // Redirect to market-stand dashboard by default
+  redirect('/dashboard/market-stand');
 }

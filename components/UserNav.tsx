@@ -2,6 +2,7 @@
 
 import { useSupabase } from "./providers/SupabaseProvider";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,27 +15,28 @@ import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { AuthDialog } from "./AuthDialog";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { getAuthRedirectUrl } from "@/lib/supabase-config";
 
 export function UserNav() {
   const { user, isLoading } = useSupabase();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-
+  const router = useRouter();
 
   const handleLogout = async () => {
     try {
       setIsAuthenticating(true);
       const supabase = getSupabaseBrowser();
       await supabase.auth.signOut();
-      window.location.href = window.location.origin;
-    } catch {
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
     } finally {
       setIsAuthenticating(false);
     }
   };
 
   const navigate = (path: string) => {
-       const fullUrl = `${window.location.origin}${path}`;
-    window.location.href = fullUrl;
+    router.push(path);
   };
 
   if (isLoading || isAuthenticating) {
@@ -50,12 +52,28 @@ export function UserNav() {
   if (!user) {
     return (
       <div className="flex items-center gap-4">
-        <AuthDialog mode="login" />
+        <AuthDialog 
+          mode="login"
+          trigger={
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              disabled={isAuthenticating}
+              className="text-white hover:text-white/80"
+            >
+              Login
+            </Button>
+          }
+        />
         <AuthDialog 
           mode="signup" 
           trigger={
-            <Button size="sm" disabled={isAuthenticating}>
-              Sign Up
+            <Button 
+              size="sm" 
+              disabled={isAuthenticating}
+              className="bg-white text-[#0B4D2C] hover:bg-white/90"
+            >
+              Create an account
             </Button>
           }
         />
@@ -96,7 +114,13 @@ export function UserNav() {
           className="cursor-pointer"
           onClick={() => navigate('/dashboard/market-stand')}
         >
-          Dashboard
+          Market Stands
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={() => navigate('/dashboard/local')}
+        >
+          Farm/Ranch Profiles
         </DropdownMenuItem>
         <DropdownMenuItem 
           className="cursor-pointer"

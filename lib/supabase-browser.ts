@@ -1,21 +1,37 @@
 'use client';
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { env } from './env';  // Import env directly
 
 // Singleton instance for client-side
 let clientInstance: ReturnType<typeof createClientComponentClient> | null = null;
 
 export function getSupabaseBrowser() {
-  if (!clientInstance) {
-    clientInstance = createClientComponentClient();
+  try {
+    if (!clientInstance) {
+      clientInstance = createClientComponentClient();
+
+      // Initialize auth state - no automatic reload to prevent loops
+      clientInstance.auth.onAuthStateChange((event, session) => {
+        // Let SupabaseProvider handle auth state changes
+        // This prevents the reload loop issue
+      });
+    }
+    return clientInstance;
+  } catch (error) {
+    console.error('Error creating Supabase client:', error);
+    // Create a fallback client with default values if env variables are missing
+    return createClientComponentClient({
+      supabaseUrl: env.SUPABASE_URL || 'https://fzlelklnibjzpgrquzrq.supabase.co',
+      supabaseKey: env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6bGVsa2xuaWJqenBncnF1enJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwNTYwNjcsImV4cCI6MjA1MDYzMjA2N30.TEaKFsDU7JJwmX70KTRX740oH43wEDQjn1tguG0n7_o'
+    });
   }
-  return clientInstance;
 }
 
 // Helper function for uploading images
 export async function uploadImage(
   file: File,
-  bucket: string = 'images',
+  bucket: string = 'products',
   path: string = ''
 ): Promise<string> {
   try {
@@ -27,7 +43,8 @@ export async function uploadImage(
       throw new Error('Authentication required for image upload');
     }
 
-    const fileName = `${path}${Date.now()}-${file.name}`;
+    // Include user ID in the path to prevent conflicts
+    const fileName = `${session.user.id}/${path}${Date.now()}-${file.name}`;
 
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -57,7 +74,7 @@ export async function uploadImage(
 // Helper function for deleting images
 export async function deleteImage(
   url: string,
-  bucket: string = 'images'
+  bucket: string = 'products'
 ): Promise<void> {
   const supabase = getSupabaseBrowser();
   
@@ -77,9 +94,32 @@ export async function deleteImage(
 // Helper function for uploading multiple images
 export async function uploadImages(
   files: File[],
-  bucket: string = 'images',
+  bucket: string = 'products',
   path: string = ''
 ): Promise<string[]> {
-  const uploadPromises = files.map(file => uploadImage(file, bucket, path));
-  return Promise.all(uploadPromises);
+  try {
+    const uploadPromises = files.map(file => uploadImage(file, bucket, path));
+    const results = await Promise.allSettled(uploadPromises);
+    
+    // Filter out rejected promises and return successful uploads
+    const successfulUploads = results
+      .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
+      .map(result => result.value);
+    
+    // Log errors for failed uploads
+    results
+      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+      .forEach(result => {
+        console.error('Image upload failed:', result.reason);
+      });
+    
+    if (successfulUploads.length === 0 && files.length > 0) {
+      throw new Error('All image uploads failed');
+    }
+    
+    return successfulUploads;
+  } catch (error) {
+    console.error('Error in uploadImages:', error);
+    throw error;
+  }
 }

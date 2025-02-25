@@ -7,15 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { getAuthRedirectUrl } from "@/lib/supabase-config";
 import { signInWithEmail, signUpWithEmail } from "@/app/actions/auth";
 
 interface AuthDialogProps {
   mode?: 'login' | 'signup';
   trigger?: React.ReactNode;
   className?: string;
+  returnTo?: string;
 }
 
-export function AuthDialog({ mode = 'login', trigger, className }: AuthDialogProps) {
+export function AuthDialog({ mode = 'login', trigger, className, returnTo }: AuthDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +32,12 @@ export function AuthDialog({ mode = 'login', trigger, className }: AuthDialogPro
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}${window.location.pathname}`,
+          redirectTo: `${window.location.origin}/api/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-          },
+            returnTo: returnTo || window.location.pathname
+          }
         },
       });
     } catch (error) {

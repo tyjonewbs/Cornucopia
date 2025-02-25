@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { uploadImages } from '@/lib/supabase-browser';
 
 interface ImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -24,25 +25,7 @@ export function ImageUpload({
     setIsUploading(true);
 
     try {
-      const uploadPromises = files.map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(error);
-        }
-
-        const data = await response.json();
-        return data.url;
-      });
-
-      const urls = await Promise.all(uploadPromises);
+      const urls = await uploadImages(files, 'products');
       onUploadComplete(urls);
       toast.success(`Successfully uploaded ${urls.length} image${urls.length === 1 ? '' : 's'}`);
     } catch (error) {

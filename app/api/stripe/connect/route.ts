@@ -71,7 +71,7 @@ export async function POST() {
     try {
       const accountLink = await stripe.accountLinks.create({
         account: account.id,
-        refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/market-stand/setup`,
+        refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/market-stand/setup`,
         return_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/stripe/connect/success`,
         type: "account_onboarding",
       });

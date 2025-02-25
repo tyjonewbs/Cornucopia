@@ -13,87 +13,113 @@ interface ProductGridClientProps {
 }
 
 export function ProductGridClient({ initialProducts, userLocation }: ProductGridClientProps) {
-  const [localProducts, setLocalProducts] = useState<SerializedProduct[]>([]);
-  const [exploreProducts, setExploreProducts] = useState<SerializedProduct[]>([]);
+  const [products, setProducts] = useState(() => {
+    try {
+      console.log('Initializing products state with:', {
+        hasLocation: !!userLocation,
+        initialProductsCount: initialProducts.length
+      });
+      
+      // Initialize products state once during component mount
+      if (userLocation) {
+        const local = initialProducts.filter(p => p.distance !== null && p.distance <= 160.934);
+        const explore = initialProducts.filter(p => p.distance === null || p.distance > 160.934);
+        console.log('Initial products split:', {
+          localCount: local.length,
+          exploreCount: explore.length
+        });
+        return {
+          local,
+          explore,
+          lastId: explore.length > 0 ? explore[explore.length - 1].id : undefined
+        };
+      }
+      return {
+        local: [],
+        explore: initialProducts,
+        lastId: initialProducts.length > 0 ? initialProducts[initialProducts.length - 1].id : undefined
+      };
+    } catch (error) {
+      console.error('Error initializing products state:', error);
+      // Provide a safe fallback state
+      return {
+        local: [],
+        explore: [],
+        lastId: undefined
+      };
+    }
+  });
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { locationError, isLoadingLocation, retryLocation } = useUserLocation();
-  const [lastProductId, setLastProductId] = useState<string | undefined>(undefined);
-  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Handle hydration
+  // Update products when location or initial data changes
   useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+    try {
+      console.log('Updating products state:', {
+        hasLocation: !!userLocation,
+        initialProductsCount: initialProducts.length
+      });
 
-  // Initialize products when userLocation or initialProducts change
-  useEffect(() => {
-    if (!isHydrated) return;
-
-    console.log('Products update:', { userLocation, initialProducts });
-    
-    if (userLocation) {
-      const local = initialProducts.filter(p => p.distance !== null && p.distance <= 241.4);
-      const explore = initialProducts.filter(p => p.distance === null || p.distance > 241.4);
-      console.log('Filtered products:', { local: local.length, explore: explore.length });
-      
-      setLocalProducts(local);
-      setExploreProducts(explore);
-      if (explore.length > 0) {
-        setLastProductId(explore[explore.length - 1].id);
+      if (userLocation) {
+        const local = initialProducts.filter(p => p.distance !== null && p.distance <= 160.934);
+        const explore = initialProducts.filter(p => p.distance === null || p.distance > 160.934);
+        console.log('Updated products split:', {
+          localCount: local.length,
+          exploreCount: explore.length
+        });
+        setProducts({
+          local,
+          explore,
+          lastId: explore.length > 0 ? explore[explore.length - 1].id : undefined
+        });
+      } else {
+        setProducts({
+          local: [],
+          explore: initialProducts,
+          lastId: initialProducts.length > 0 ? initialProducts[initialProducts.length - 1].id : undefined
+        });
       }
-    } else {
-      setLocalProducts([]);
-      setExploreProducts(initialProducts);
-      if (initialProducts.length > 0) {
-        setLastProductId(initialProducts[initialProducts.length - 1].id);
-      }
+    } catch (error) {
+      console.error('Error updating products state:', error);
+      // Don't update state on error to prevent reverting to explore-only view
     }
-  }, [initialProducts, userLocation, isHydrated]);
-
-  // Reset products when location changes
-  useEffect(() => {
-    if (!userLocation) {
-      setLocalProducts([]);
-      setExploreProducts(initialProducts);
-    }
-  }, [userLocation, initialProducts]);
-
-  // Log state changes
-  useEffect(() => {
-    console.log('State update:', { 
-      localProducts, 
-      exploreProducts, 
-      userLocation: userLocation ? {
-        source: userLocation.source,
-        accuracy: userLocation.coords.accuracy,
-        coords: {
-          lat: userLocation.coords.lat,
-          lng: userLocation.coords.lng
-        }
-      } : null 
-    });
-  }, [localProducts, exploreProducts, userLocation]);
+  }, [initialProducts, userLocation]);
 
   const loadMoreProducts = async () => {
-    if (!lastProductId) return;
+    if (!products.lastId) return;
     
     try {
       setIsLoading(true);
       setError(null);
-      const newProducts = await getHomeProducts(userLocation, lastProductId);
+      console.log('Loading more products with cursor:', products.lastId);
+      const newProducts = await getHomeProducts(userLocation, products.lastId);
+      console.log('Loaded additional products:', newProducts.length);
+      
       if (newProducts.length > 0) {
-        setLastProductId(newProducts[newProducts.length - 1].id);
-        setExploreProducts(prev => [...prev, ...newProducts]);
+        setProducts(prev => {
+          const updatedState = {
+            ...prev,
+            explore: [...prev.explore, ...newProducts],
+            lastId: newProducts[newProducts.length - 1].id
+          };
+          console.log('Updated products state:', {
+            localCount: updatedState.local.length,
+            exploreCount: updatedState.explore.length
+          });
+          return updatedState;
+        });
       }
     } catch (err) {
+      console.error('Error loading more products:', err);
       setError('Failed to load more products');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isHydrated || isLoading) {
+  if (isLoading) {
     return <LoadingStateGrid />;
   }
 
@@ -126,32 +152,46 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
         </div>
       )}
 
-      {userLocation && localProducts.length > 0 && (
+      {userLocation && (
         <>
           <h2 className="text-2xl font-bold mb-6">Local Products</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 gap-10 mb-12">
-            {localProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                name={product.name}
-                images={product.images}
-                locationName={product.marketStand.locationName}
-                updatedAt={product.updatedAt}
-                price={product.price}
-                tags={product.tags}
-                distance={product.distance}
-              />
-            ))}
-          </div>
+          {products.local.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 gap-10 mb-12">
+              {products.local.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  images={product.images}
+                  locationName={product.marketStand.locationName}
+                  updatedAt={product.updatedAt}
+                  price={product.price}
+                  tags={product.tags}
+                  distance={product.distance}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-lg mb-12">
+              <h3 className="text-xl font-semibold mb-4">No Local Products Yet</h3>
+              <p className="text-gray-600 mb-6">Be the first to sell products in your area!</p>
+              <Button
+                onClick={() => window.location.href = '/market-stand/setup'}
+                size="lg"
+                className="bg-primary hover:bg-primary/90"
+              >
+                Become the First
+              </Button>
+            </div>
+          )}
         </>
       )}
 
-      {exploreProducts.length > 0 && (
+      {(!userLocation || products.local.length < 15) && products.explore.length > 0 && (
         <>
           <h2 className="text-2xl font-bold mb-6">Explore Products</h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 gap-10">
-            {exploreProducts.map((product) => (
+            {products.explore.map((product) => (
               <ProductCard
                 key={product.id}
                 id={product.id}
@@ -174,7 +214,7 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
         </div>
       )}
 
-      {exploreProducts.length >= 12 && (
+      {products.explore.length >= 12 && (
         <div className="flex justify-center mt-8">
           <Button
             onClick={loadMoreProducts}

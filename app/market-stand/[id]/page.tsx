@@ -2,8 +2,10 @@ import prisma from "@/lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
 import { MapPin, Package, Clock, Navigation, Globe, Twitter, Instagram, Facebook, Youtube, Linkedin } from "lucide-react";
+import { WeeklyHours, DAYS_OF_WEEK } from "@/types/hours";
 import { ProductCard } from "@/components/ProductCard";
 import { Card, CardContent } from "@/components/ui/card";
+import { MarketStandHours } from "@/components/MarketStandHours";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import MapView from "@/components/MapView";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +30,7 @@ async function getData(encodedId: string) {
         tags: true,
         website: true,
         socialMedia: true,
+        hours: true,
         products: {
           select: {
             id: true,
@@ -51,14 +54,21 @@ async function getData(encodedId: string) {
 
     if (!marketStand) return null;
 
-    // Serialize dates
+    // Serialize dates and validate hours format
+    const hours = marketStand.hours as WeeklyHours | null;
+    
     return {
       ...marketStand,
       createdAt: marketStand.createdAt.toISOString(),
       products: marketStand.products.map(product => ({
         ...product,
         updatedAt: product.updatedAt.toISOString()
-      }))
+      })),
+      hours: hours && DAYS_OF_WEEK.every(day => 
+        hours[day] && 
+        typeof hours[day].isOpen === 'boolean' && 
+        Array.isArray(hours[day].timeSlots)
+      ) ? hours : null
     };
   } catch (err) {
     return null;
@@ -218,6 +228,15 @@ export default async function MarketStandPage({
               </div>
             </CardContent>
           </Card>
+
+          {/* Hours Card */}
+          {marketStand.hours && (
+            <Card>
+              <CardContent className="p-6">
+                <MarketStandHours hours={marketStand.hours} />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Social Media Card */}
           {(marketStand.website || (marketStand.socialMedia && marketStand.socialMedia.length > 0)) && (

@@ -1,6 +1,7 @@
 'use server'
 
 import { getSupabaseServer } from '@/lib/supabase-server';
+import { getAuthRedirectUrl } from '@/lib/supabase-config';
 import jwt from 'jsonwebtoken';
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -32,7 +33,7 @@ export async function signUpWithEmail(email: string, password: string) {
     email,
     password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      emailRedirectTo: getAuthRedirectUrl('/dashboard'),
     },
   });
 

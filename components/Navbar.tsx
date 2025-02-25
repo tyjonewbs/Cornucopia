@@ -7,23 +7,16 @@ import Image from "next/image";
 
 export function Navbar() {
   return (
-    <nav className="border-b">
+    <nav className="bg-[#0B4D2C]">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
         <Link href="/" className="flex items-center">
           <div className="relative w-[180px] h-[45px]">
             <Image
-            src="/logos/cornucopia.svg"
-            alt="Cornucopia"
-            fill
-            priority
-            className="block dark:hidden"
-          />
-          <Image
-            src="/logos/cornucopia-dark.svg"
-            alt="Cornucopia"
-            fill
-            priority
-            className="hidden dark:block"
+              src="/logos/cornucopia-dark.svg"
+              alt="Cornucopia"
+              fill
+              priority
+              className="brightness-0 invert"
             />
           </div>
         </Link>
