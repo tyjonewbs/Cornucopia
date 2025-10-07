@@ -1,59 +1,65 @@
-export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Disable static page generation
-
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import HomeClient from "./home-client";
 import { getHomeProducts } from "./actions/home-products";
+import { ProductGridSkeleton } from "@/components/skeletons/ProductCardSkeleton";
+
+// Enable ISR with 60 second revalidation
+export const revalidate = 60;
+
+async function ProductsLoader() {
+  try {
+    const initialProducts = await getHomeProducts(null);
+    return <HomeClient initialProducts={initialProducts} />;
+  } catch (error: unknown) {
+    console.error('Failed to load products:', error);
+    return <HomeClient initialProducts={[]} />;
+  }
+}
 
 export default async function Home({
   searchParams,
 }: {
   searchParams: { returnUrl?: string };
 }) {
-  try {
-    const supabase = getSupabaseServer();
-    
-    // Get session
-    const { data: { session } } = await supabase.auth.getSession();
+  const supabase = getSupabaseServer();
+  
+  // Get session (this is fast, no need to defer)
+  const { data: { session } } = await supabase.auth.getSession();
 
-    // Handle authenticated users with returnUrl
-    if (session && searchParams.returnUrl) {
-      const decodedUrl = decodeURIComponent(searchParams.returnUrl);
-      const protectedRoutes = [
-        '/sell',
-        '/settings',
-        '/dashboard/market-stand/setup',
-        '/billing',
-        '/dashboard/market-stand',
-        '/dashboard/sell',
-        '/dashboard/settings'
-      ];
+  // Handle authenticated users with returnUrl
+  if (session && searchParams.returnUrl) {
+    const decodedUrl = decodeURIComponent(searchParams.returnUrl);
+    const protectedRoutes = [
+      '/sell',
+      '/settings',
+      '/dashboard/market-stand/setup',
+      '/billing',
+      '/dashboard/market-stand',
+      '/dashboard/sell',
+      '/dashboard/settings'
+    ];
 
-      // Only redirect to protected routes
-      if (protectedRoutes.some(route => decodedUrl.startsWith(route))) {
-        redirect(decodedUrl);
-      }
+    // Only redirect to protected routes
+    if (protectedRoutes.some(route => decodedUrl.startsWith(route))) {
+      redirect(decodedUrl);
     }
-
-    // Cache initial products for 30 seconds
-    const initialProducts = await getHomeProducts(null);
-    
-    // Return the client component with initial data
-    return (
-      <HomeClient 
-        key={session?.user?.id || 'anonymous'} 
-        initialProducts={initialProducts} 
-      />
-    );
-  } catch (error: unknown) {
-    console.error('Failed to load homepage:', {
-      error,
-      nodeEnv: process.env.NODE_ENV,
-      hasDbUrl: !!process.env.DATABASE_URL
-    });
-    
-    // Return empty state instead of throwing
-    return <HomeClient initialProducts={[]} />;
   }
+
+  // Stream products with Suspense
+  return (
+    <Suspense
+      fallback={
+        <main className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+          <div className="mb-8">
+            <div className="h-16 bg-gray-200 rounded-lg animate-pulse" />
+          </div>
+          <ProductGridSkeleton count={12} />
+        </main>
+      }
+    >
+      <ProductsLoader key={session?.user?.id || 'anonymous'} />
+    </Suspense>
+  );
 }

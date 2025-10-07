@@ -8,11 +8,13 @@ import { uploadImages } from '@/lib/supabase-browser';
 interface ImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
   maxFiles?: number;
+  bucket?: string;
 }
 
 export function ImageUpload({
   onUploadComplete,
   maxFiles = 5,
+  bucket = 'product-images',
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -25,7 +27,7 @@ export function ImageUpload({
     setIsUploading(true);
 
     try {
-      const urls = await uploadImages(files, 'products');
+      const urls = await uploadImages(files, bucket);
       onUploadComplete(urls);
       toast.success(`Successfully uploaded ${urls.length} image${urls.length === 1 ? '' : 's'}`);
     } catch (error) {

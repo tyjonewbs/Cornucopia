@@ -8,6 +8,7 @@ import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
 import { ProductCacheProvider } from "@/components/providers/ProductCacheProvider";
 import { EnvProvider } from "@/components/providers/EnvProvider";
 import { PHProvider } from "@/components/providers/PostHogProvider";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -50,6 +51,7 @@ export default function RootLayout({
                   <Navbar />
                   {children}
                   <Toaster />
+                  <ServiceWorkerRegistration />
                 </ProductCacheProvider>
               </SupabaseProvider>
             </EnvProvider>

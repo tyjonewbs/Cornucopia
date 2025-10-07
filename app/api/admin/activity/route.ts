@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@/lib/supabase-route'
 
 export async function GET() {
   try {
     // Check authentication and admin role
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createRouteHandlerClient()
     const { data: { session } } = await supabase.auth.getSession()
 
     if (!session?.user) {

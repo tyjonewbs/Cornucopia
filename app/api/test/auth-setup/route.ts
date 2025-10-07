@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { Analytics } from '@/lib/analytics'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createRouteHandlerClient } from '@/lib/supabase-route'
 import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
 import { Status } from '@prisma/client'
 
 const TEST_USER_EMAIL = 'test@example.com'
@@ -11,10 +10,7 @@ const TEST_USER_PASSWORD = 'test123456'
 
 export async function GET() {
   try {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ 
-      cookies: () => cookieStore
-    })
+    const supabase = createRouteHandlerClient()
 
     // Create or sign in user with admin client
     const adminClient = createClient(

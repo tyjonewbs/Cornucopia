@@ -1,11 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { getSupabaseServer } from '@/lib/supabase-server'
 import prisma from '@/lib/db'
 import { redirect } from 'next/navigation'
 
 async function checkSuperAdmin() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = getSupabaseServer()
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session?.user) {

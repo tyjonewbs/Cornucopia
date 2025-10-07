@@ -4,7 +4,7 @@ import { getProducts } from "@/app/actions/products";
 import { Status } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { InventoryManager } from "@/components/InventoryManager";
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabaseBrowser } from '@/lib/supabase-browser';
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -114,7 +114,7 @@ export default function SellClient() {
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = getSupabaseBrowser();
 
   useEffect(() => {
     const fetchData = async () => {

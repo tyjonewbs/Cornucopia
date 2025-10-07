@@ -1,32 +1,29 @@
 'use client';
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { env } from './env';  // Import env directly
+import { createBrowserClient } from '@supabase/ssr';
 
 // Singleton instance for client-side
-let clientInstance: ReturnType<typeof createClientComponentClient> | null = null;
+let clientInstance: ReturnType<typeof createBrowserClient> | null = null;
 
 export function getSupabaseBrowser() {
-  try {
-    if (!clientInstance) {
-      // Create client with default options
-      clientInstance = createClientComponentClient();
+  if (!clientInstance) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-      // Initialize auth state - no automatic reload to prevent loops
-      clientInstance.auth.onAuthStateChange((event, session) => {
-        // Let SupabaseProvider handle auth state changes
-        // This prevents the reload loop issue
-      });
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables');
     }
-    return clientInstance;
-  } catch (error) {
-    console.error('Error creating Supabase client:', error);
-    // Create a fallback client with default values if env variables are missing
-    return createClientComponentClient({
-      supabaseUrl: env.SUPABASE_URL || 'https://fzlelklnibjzpgrquzrq.supabase.co',
-      supabaseKey: env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6bGVsa2xuaWJqenBncnF1enJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwNTYwNjcsImV4cCI6MjA1MDYzMjA2N30.TEaKFsDU7JJwmX70KTRX740oH43wEDQjn1tguG0n7_o'
+
+    // Create client with default options
+    clientInstance = createBrowserClient(supabaseUrl, supabaseKey);
+
+    // Initialize auth state - no automatic reload to prevent loops
+    clientInstance.auth.onAuthStateChange(() => {
+      // Let SupabaseProvider handle auth state changes
+      // This prevents the reload loop issue
     });
   }
+  return clientInstance;
 }
 
 // Helper function for uploading images

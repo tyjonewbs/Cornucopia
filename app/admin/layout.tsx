@@ -1,14 +1,12 @@
 import { redirect } from 'next/navigation'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { getSupabaseServer } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
 import prisma from '@/lib/db'
 import Link from 'next/link'
 import { AdminNav } from '@/components/admin/AdminNav'
 
 async function getUser() {
-  const cookieStore = cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = getSupabaseServer()
   const { data: { session }, error } = await supabase.auth.getSession()
 
   if (error) {

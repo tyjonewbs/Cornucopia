@@ -4,11 +4,10 @@ import prisma from '@/lib/db'
 import { LineChart } from '@/components/ui/line-chart'
 import { DataTable } from '@/components/ui/data-table'
 import { columns } from './columns'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { getSupabaseServer } from '@/lib/supabase-server'
 
 async function getUserAnalyticsData() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = getSupabaseServer()
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session?.user) {

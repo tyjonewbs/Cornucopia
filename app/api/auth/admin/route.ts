@@ -1,13 +1,11 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@/lib/supabase-route'
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = createRouteHandlerClient()
 
     // Sign in user
     const { data: { session }, error } = await supabase.auth.signInWithPassword({

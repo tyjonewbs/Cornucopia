@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createRouteHandlerClient } from '@/lib/supabase-route';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -18,8 +17,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/', requestUrl.origin));
     }
 
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    const supabase = createRouteHandlerClient();
     
     // Exchange the code for a session
     const { error } = await supabase.auth.exchangeCodeForSession(code);

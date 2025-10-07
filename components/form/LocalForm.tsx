@@ -154,6 +154,7 @@ export function LocalForm({
               <ImageUpload
                 onUploadComplete={handleImageUpload}
                 maxFiles={5}
+                bucket="local-images"
               />
               {images.length > 0 && (
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

@@ -1,11 +1,14 @@
 'use server';
 
-import prisma, { executeWithRetry, withTransaction } from "@/lib/db";
-import { WeeklyHours } from "@/types/hours";
-import { Prisma } from "@prisma/client";
-import { serializeMarketStand } from "@/lib/serializers";
-import { handleDatabaseError, createErrorResponse, createNotFoundResponse } from "@/lib/error-handler";
+import { marketStandService } from "@/lib/services/marketStandService";
+import { MarketStandDTO, WeeklyHours } from "@/lib/dto/marketStand.dto";
+import { createErrorResponse, createNotFoundResponse } from "@/lib/error-handler";
+import { Status } from "@prisma/client";
 
+/**
+ * Create a new market stand
+ * Uses the market stand service layer for business logic and validation
+ */
 export async function CreateMarketStand(
   _: { status: undefined; message: null },
   formData: FormData
@@ -24,40 +27,36 @@ export async function CreateMarketStand(
     const socialMedia = JSON.parse(formData.get("socialMedia") as string) as string[];
     const hours = JSON.parse(formData.get("hours") as string) as WeeklyHours;
 
-    const marketStand = await withTransaction(async (tx) => {
-      return tx.marketStand.create({
-        data: {
-          userId,
-          name,
-          description,
-          locationName,
-          locationGuide,
-          latitude,
-          longitude,
-          website,
-          images,
-          tags,
-          socialMedia,
-          hours,
-        },
-      });
+    const marketStand = await marketStandService.createMarketStand({
+      userId,
+      name,
+      description,
+      locationName,
+      locationGuide,
+      latitude,
+      longitude,
+      website: website || null,
+      images,
+      tags,
+      socialMedia,
+      hours,
+      status: Status.PENDING,
+      isActive: true,
     });
 
-    // Use the serializer to convert Prisma model to plain object
-    const plainMarketStand = serializeMarketStand(marketStand);
-
-    return Response.json({ success: true, marketStand: plainMarketStand });
+    return { success: true, marketStand };
   } catch (error) {
-    // Use the error handler utility to handle the error consistently
-    const errorData = handleDatabaseError(error, "Error creating market stand", {
-      userId: formData.get("userId"),
-      name: formData.get("name")
-    });
-    
-    return createErrorResponse(errorData);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Error creating market stand"
+    };
   }
 }
 
+/**
+ * Update an existing market stand
+ * Uses the market stand service layer for business logic and validation
+ */
 export async function UpdateMarketStand(
   _: { status: undefined; message: null },
   formData: FormData
@@ -76,51 +75,25 @@ export async function UpdateMarketStand(
     const socialMedia = JSON.parse(formData.get("socialMedia") as string) as string[];
     const hours = JSON.parse(formData.get("hours") as string) as WeeklyHours;
 
-    const marketStand = await withTransaction(async (tx) => {
-      // First verify the market stand exists
-      const existing = await tx.marketStand.findUnique({
-        where: { id }
-      });
-
-      if (!existing) {
-        throw new Error('Market stand not found');
-      }
-
-      return tx.marketStand.update({
-        where: { id },
-        data: {
-          name,
-          description,
-          locationName,
-          locationGuide,
-          latitude,
-          longitude,
-          website,
-          images,
-          tags,
-          socialMedia,
-          hours,
-        },
-      });
+    const marketStand = await marketStandService.updateMarketStand(id, {
+      name,
+      description,
+      locationName,
+      locationGuide,
+      latitude,
+      longitude,
+      website: website || null,
+      images,
+      tags,
+      socialMedia,
+      hours,
     });
 
-    // Use the serializer to convert Prisma model to plain object
-    const plainMarketStand = serializeMarketStand(marketStand);
-
-    return Response.json({ success: true, marketStand: plainMarketStand });
+    return { success: true, marketStand };
   } catch (error) {
-    // Handle "not found" error specifically
-    if (error instanceof Error && error.message === 'Market stand not found') {
-      const marketStandId = formData.get("id") as string;
-      return createNotFoundResponse('Market stand', marketStandId);
-    }
-    
-    // Use the error handler utility for other errors
-    const errorData = handleDatabaseError(error, "Error updating market stand", {
-      id: formData.get("id"),
-      name: formData.get("name")
-    });
-    
-    return createErrorResponse(errorData);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Error updating market stand"
+    };
   }
 }

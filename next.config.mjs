@@ -7,12 +7,17 @@ if (process.env.NODE_ENV !== 'development') {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Performance optimizations
+  compress: true,
+  poweredByHeader: false,
+  
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'cornucopia-dev.vercel.app'],
       bodySizeLimit: '2mb'
     },
-    serverComponentsExternalPackages: ['@prisma/client', 'prisma']
+    serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons']
   },
   eslint: {
     ignoreDuringBuilds: true // Temporarily ignore ESLint during builds
@@ -106,6 +111,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'fzlelklnibjzpgrquzrq.supabase.co',
+        pathname: '/storage/v1/object/public/**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'swhinhgrtcowjmpstozh.supabase.co',
         pathname: '/storage/v1/object/public/**'
       },
       {
