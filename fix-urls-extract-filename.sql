@@ -25,7 +25,7 @@ BEGIN
   END IF;
   
   -- Build the correct URL
-  RETURN 'https://fzlelklnibjzpgrquzrq.supabase.co/storage/v1/object/public/products/' || filename;
+  RETURN 'https://swhinhgrtcowjmpstozh.supabase.co/storage/v1/object/public/products/' || filename;
 END;
 $$ LANGUAGE plpgsql;
 

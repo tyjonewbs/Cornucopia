@@ -21,13 +21,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const user = await prisma.user.findUnique({
+    // Ensure user exists in database and check if admin
+    const user = await prisma.user.upsert({
       where: { id: session.user.id },
+      update: {
+        email: session.user.email || '',
+        firstName: session.user.user_metadata?.first_name || session.user.user_metadata?.firstName || 'User',
+        lastName: session.user.user_metadata?.last_name || session.user.user_metadata?.lastName || '',
+        profileImage: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
+      },
+      create: {
+        id: session.user.id,
+        email: session.user.email || '',
+        firstName: session.user.user_metadata?.first_name || session.user.user_metadata?.firstName || 'User',
+        lastName: session.user.user_metadata?.last_name || session.user.user_metadata?.lastName || '',
+        profileImage: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
+        role: 'USER',
+      },
       select: { role: true }
     })
 
-    if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
     }
 

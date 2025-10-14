@@ -1,4 +1,4 @@
-import prisma from "@/lib/db";
+import prisma, { executeWithRetry } from "@/lib/db";
 import { Prisma, Status } from "@prisma/client";
 import { serializeProduct, serializeProducts } from "@/lib/serializers";
 import { ProductWithMarketStandDTO, ProductQueryFilters } from "@/lib/dto/product.dto";
@@ -45,30 +45,32 @@ export class ProductRepository {
     );
 
     return cacheAside(cacheKey, CACHE_TTL.PRODUCT_LISTING, async () => {
-      const products = await prisma.product.findMany({
-        take: limit,
-        skip: cursor ? 1 : 0,
-        cursor: cursor ? { id: cursor } : undefined,
-        where: {
-          isActive,
-          ...(userId && { userId }),
-          ...(marketStandId && { marketStandId }),
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        include: {
-          marketStand: {
-            select: {
-              id: true,
-              name: true,
-              locationName: true,
-              latitude: true,
-              longitude: true,
+      const products = await executeWithRetry(() => 
+        prisma.product.findMany({
+          take: limit,
+          skip: cursor ? 1 : 0,
+          cursor: cursor ? { id: cursor } : undefined,
+          where: {
+            isActive,
+            ...(userId && { userId }),
+            ...(marketStandId && { marketStandId }),
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          include: {
+            marketStand: {
+              select: {
+                id: true,
+                name: true,
+                locationName: true,
+                latitude: true,
+                longitude: true,
+              },
             },
           },
-        },
-      });
+        })
+      );
 
       return serializeProducts(products);
     });
@@ -82,20 +84,22 @@ export class ProductRepository {
     const cacheKey = generateCacheKey(CACHE_KEYS.PRODUCT, id);
 
     return cacheAside(cacheKey, CACHE_TTL.PRODUCT_LISTING, async () => {
-      const product = await prisma.product.findUnique({
-        where: { id },
-        include: {
-          marketStand: {
-            select: {
-              id: true,
-              name: true,
-              locationName: true,
-              latitude: true,
-              longitude: true,
+      const product = await executeWithRetry(() =>
+        prisma.product.findUnique({
+          where: { id },
+          include: {
+            marketStand: {
+              select: {
+                id: true,
+                name: true,
+                locationName: true,
+                latitude: true,
+                longitude: true,
+              },
             },
           },
-        },
-      });
+        })
+      );
 
       if (!product) return null;
 

@@ -69,8 +69,12 @@ export default async function EditMarketStandPage({ params }: EditMarketStandPag
         </div>
 
         <Card className="mb-8">
-          <MarketStandForm 
-            userId={user.id.toString()} 
+          <MarketStandForm
+            userId={user.id.toString()}
+            userEmail={user.email || ''}
+            userFirstName={(user.user_metadata?.first_name || user.user_metadata?.firstName || (user.user_metadata?.name ? String(user.user_metadata.name).split(' ')[0] : '') || 'User')}
+            userLastName={(user.user_metadata?.last_name || user.user_metadata?.lastName || (user.user_metadata?.name ? String(user.user_metadata.name).split(' ')[1] : '') || '')}
+            userProfileImage={(user.user_metadata?.avatar_url || user.user_metadata?.picture || '')}
             marketStand={transformedStand}
           />
         </Card>

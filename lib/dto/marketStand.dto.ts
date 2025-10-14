@@ -1,21 +1,8 @@
 import { Status } from "@prisma/client";
+import { WeeklyHours } from "@/types/hours";
 
-// Weekly hours type
-export interface DayHours {
-  open: string | null;
-  close: string | null;
-  closed: boolean;
-}
-
-export interface WeeklyHours {
-  monday: DayHours;
-  tuesday: DayHours;
-  wednesday: DayHours;
-  thursday: DayHours;
-  friday: DayHours;
-  saturday: DayHours;
-  sunday: DayHours;
-}
+// Re-export WeeklyHours for backward compatibility
+export type { WeeklyHours };
 
 // Base market stand DTO
 export interface MarketStandDTO {

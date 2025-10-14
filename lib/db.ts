@@ -9,9 +9,9 @@ declare global {
 /**
  * Get Prisma Client with optimized connection pooling
  * Connection pool configuration for production:
- * - Pool size: 5-10 connections (adjustable based on load)
- * - Connection timeout: 20 seconds
- * - Query timeout: 15 seconds
+ * - Pool size: 5 connections (set via URL params)
+ * - Connection timeout: 10 seconds
+ * - Pool timeout: 10 seconds
  */
 function getPrismaClient(): PrismaClient {
   console.log('Creating new Prisma client with DATABASE_URL:', env.DATABASE_URL.substring(0, 50) + '...');
@@ -27,6 +27,7 @@ function getPrismaClient(): PrismaClient {
         url: env.DATABASE_URL,
       },
     },
+    errorFormat: 'minimal',
   });
 }
 

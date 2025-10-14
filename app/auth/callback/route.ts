@@ -22,9 +22,23 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/auth/login', requestUrl.origin))
     }
 
-    // Get user role from database
-    const user = await prisma.user.findUnique({
+    // Ensure user exists in database (create if not exists)
+    const user = await prisma.user.upsert({
       where: { id: session.user.id },
+      update: {
+        email: session.user.email || '',
+        firstName: session.user.user_metadata?.first_name || session.user.user_metadata?.firstName || 'User',
+        lastName: session.user.user_metadata?.last_name || session.user.user_metadata?.lastName || '',
+        profileImage: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
+      },
+      create: {
+        id: session.user.id,
+        email: session.user.email || '',
+        firstName: session.user.user_metadata?.first_name || session.user.user_metadata?.firstName || 'User',
+        lastName: session.user.user_metadata?.last_name || session.user.user_metadata?.lastName || '',
+        profileImage: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
+        role: 'USER',
+      },
       select: { role: true }
     })
 

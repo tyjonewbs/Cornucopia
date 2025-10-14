@@ -8,18 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { WeeklyHours, DayHours } from "@/lib/dto/marketStand.dto";
-
-// Default hours that match the DTO/validator structure
-const DEFAULT_WEEKLY_HOURS: WeeklyHours = {
-  monday: { open: null, close: null, closed: true },
-  tuesday: { open: null, close: null, closed: true },
-  wednesday: { open: null, close: null, closed: true },
-  thursday: { open: null, close: null, closed: true },
-  friday: { open: null, close: null, closed: true },
-  saturday: { open: null, close: null, closed: true },
-  sunday: { open: null, close: null, closed: true },
-};
+import { WeeklyHours } from "@/lib/dto/marketStand.dto";
+import { DEFAULT_WEEKLY_HOURS } from "@/types/hours";
 import { HoursInput } from "./HoursInput";
 
 import { Input } from "@/components/ui/input";
@@ -36,6 +26,10 @@ import { SubmitStandButton } from "./SubmitStandButton";
 
 interface MarketStandFormProps {
   userId: string;
+  userEmail: string;
+  userFirstName: string;
+  userLastName: string;
+  userProfileImage: string;
   marketStand?: {
     id: string;
     name: string;
@@ -123,7 +117,7 @@ const validateField = (name: string, value: string | string[] | WeeklyHours): st
   }
 };
 
-export function MarketStandForm({ userId, marketStand, onSuccess }: MarketStandFormProps): JSX.Element {
+export function MarketStandForm({ userId, userEmail, userFirstName, userLastName, userProfileImage, marketStand, onSuccess }: MarketStandFormProps): JSX.Element {
   const router = useRouter();
   const [images, setImages] = useState<string[]>(marketStand?.images || []);
   const [formState, setFormState] = useState<FormState>({
@@ -305,6 +299,10 @@ export function MarketStandForm({ userId, marketStand, onSuccess }: MarketStandF
     formData.append('socialMedia', JSON.stringify(formState.values.socialMedia));
     formData.append('hours', JSON.stringify(formState.values.hours));
     formData.append('userId', userId);
+    formData.append('userEmail', userEmail);
+    formData.append('userFirstName', userFirstName);
+    formData.append('userLastName', userLastName);
+    formData.append('userProfileImage', userProfileImage);
     
     return formData;
   };
@@ -573,8 +571,7 @@ export function MarketStandForm({ userId, marketStand, onSuccess }: MarketStandF
           </div>
         </div>
 
-        {/* TODO: Fix HoursInput component to match DTO structure */}
-        {/* <div className="flex flex-col gap-y-2">
+        <div className="flex flex-col gap-y-2">
           <Label>Operating Hours</Label>
           <HoursInput
             value={formState.values.hours || DEFAULT_WEEKLY_HOURS}
@@ -588,7 +585,7 @@ export function MarketStandForm({ userId, marketStand, onSuccess }: MarketStandF
           {formState.errors.hours && (
             <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.hours}</p>
           )}
-        </div> */}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div className="flex flex-col gap-y-2">

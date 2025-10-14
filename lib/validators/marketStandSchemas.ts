@@ -1,21 +1,25 @@
 import { z } from "zod";
 import { Status } from "@prisma/client";
 
-// Weekly hours schema
-const dayHoursSchema = z.object({
-  open: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).nullable(),
-  close: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).nullable(),
-  closed: z.boolean().default(false),
+// Weekly hours schema based on types/hours.ts
+const timeSlotSchema = z.object({
+  open: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  close: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+});
+
+const dayScheduleSchema = z.object({
+  isOpen: z.boolean(),
+  timeSlots: z.array(timeSlotSchema),
 });
 
 export const weeklyHoursSchema = z.object({
-  monday: dayHoursSchema,
-  tuesday: dayHoursSchema,
-  wednesday: dayHoursSchema,
-  thursday: dayHoursSchema,
-  friday: dayHoursSchema,
-  saturday: dayHoursSchema,
-  sunday: dayHoursSchema,
+  monday: dayScheduleSchema,
+  tuesday: dayScheduleSchema,
+  wednesday: dayScheduleSchema,
+  thursday: dayScheduleSchema,
+  friday: dayScheduleSchema,
+  saturday: dayScheduleSchema,
+  sunday: dayScheduleSchema,
 });
 
 // Market stand creation schema

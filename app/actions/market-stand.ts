@@ -4,6 +4,7 @@ import { marketStandService } from "@/lib/services/marketStandService";
 import { MarketStandDTO, WeeklyHours } from "@/lib/dto/marketStand.dto";
 import { createErrorResponse, createNotFoundResponse } from "@/lib/error-handler";
 import { Status } from "@prisma/client";
+import prisma from "@/lib/db";
 
 /**
  * Create a new market stand
@@ -15,6 +16,30 @@ export async function CreateMarketStand(
 ) {
   try {
     const userId = formData.get("userId") as string;
+    const userEmail = formData.get("userEmail") as string;
+    const userFirstName = formData.get("userFirstName") as string || 'User';
+    const userLastName = formData.get("userLastName") as string || '';
+    const userProfileImage = formData.get("userProfileImage") as string || '';
+    
+    // Ensure user exists in database (create if not exists)
+    await prisma.user.upsert({
+      where: { id: userId },
+      update: {
+        email: userEmail || '',
+        firstName: userFirstName,
+        lastName: userLastName,
+        profileImage: userProfileImage,
+      },
+      create: {
+        id: userId,
+        email: userEmail || '',
+        firstName: userFirstName,
+        lastName: userLastName,
+        profileImage: userProfileImage,
+        role: 'USER',
+      },
+    });
+
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     const locationName = formData.get("locationName") as string;

@@ -88,7 +88,7 @@ export default function HowItWorks() {
             </div>
             <div className="relative h-[400px] rounded-lg overflow-hidden">
               <Image
-                src="https://fzlelklnibjzpgrquzrq.supabase.co/storage/v1/object/public/images/pexels-wildlittlethingsphoto-841303.jpg?t=2025-01-21T16%3A44%3A16.245Z"
+                src="https://swhinhgrtcowjmpstozh.supabase.co/storage/v1/object/public/images/pexels-wildlittlethingsphoto-841303.jpg?t=2025-01-21T16%3A44%3A16.245Z"
                 alt="Customer browsing local produce"
                 fill
                 className="object-cover"
@@ -106,7 +106,7 @@ export default function HowItWorks() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="relative h-[400px] rounded-lg overflow-hidden order-2 md:order-1">
               <Image
-                src="https://fzlelklnibjzpgrquzrq.supabase.co/storage/v1/object/public/images/pexels-pixabay-235725.jpg"
+                src="https://swhinhgrtcowjmpstozh.supabase.co/storage/v1/object/public/images/pexels-pixabay-235725.jpg"
                 alt="Local farmer with fresh produce"
                 fill
                 className="object-cover"
