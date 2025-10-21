@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { type LocationType } from '../actions/home-products';
+import { type LocationType } from '@/app/actions/home-products';
 
 interface UseUserLocationOptions {
   enableHighAccuracy?: boolean;
