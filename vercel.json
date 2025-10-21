@@ -7,7 +7,7 @@
         "maxDuration": 10
       }
     },
-    "env": {
-      "NEXT_PUBLIC_APP_URL": "cornucopialocal.com"
-    }
+  "env": {
+    "NEXT_PUBLIC_APP_URL": "https://cornucopialocal.com"
+  }
   }
