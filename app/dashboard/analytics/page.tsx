@@ -6,6 +6,10 @@ import { DataTable } from '@/components/ui/data-table'
 import { columns } from './columns'
 import { getSupabaseServer } from '@/lib/supabase-server'
 
+// Force dynamic rendering - page uses cookies() via getSupabaseServer() and database queries
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getUserAnalyticsData() {
   const supabase = getSupabaseServer()
   const { data: { session } } = await supabase.auth.getSession()

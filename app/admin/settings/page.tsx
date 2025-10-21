@@ -3,6 +3,10 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 import prisma from '@/lib/db'
 import { redirect } from 'next/navigation'
 
+// Force dynamic rendering - page uses cookies() via getSupabaseServer() and database queries
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function checkSuperAdmin() {
   const supabase = getSupabaseServer()
   const { data: { session } } = await supabase.auth.getSession()

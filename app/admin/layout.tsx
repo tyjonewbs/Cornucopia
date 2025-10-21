@@ -5,6 +5,10 @@ import prisma from '@/lib/db'
 import Link from 'next/link'
 import { AdminNav } from '@/components/admin/AdminNav'
 
+// Force dynamic rendering - layout uses cookies() via getSupabaseServer()
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getUser() {
   const supabase = getSupabaseServer()
   const { data: { session }, error } = await supabase.auth.getSession()

@@ -4,6 +4,7 @@ import prisma from "../../../../lib/db";
 import { getUser } from "@/lib/auth";
 import { Card } from "../../../../components/ui/card";
 import { MarketStandForm } from "../../../../components/form/MarketStandForm";
+import { WeeklyHours } from "@/types/hours";
 
 async function getData(encodedId: string) {
   try {
@@ -21,7 +22,10 @@ async function getData(encodedId: string) {
         latitude: true,
         longitude: true,
         tags: true,
-        userId: true
+        userId: true,
+        website: true,
+        socialMedia: true,
+        hours: true
       }
     });
 
@@ -40,7 +44,10 @@ async function getData(encodedId: string) {
       latitude: marketStand.latitude,
       longitude: marketStand.longitude,  
       tags: marketStand.tags || [],
-      userId: marketStand.userId
+      userId: marketStand.userId,
+      website: marketStand.website || undefined,
+      socialMedia: marketStand.socialMedia || undefined,
+      hours: marketStand.hours ? (marketStand.hours as unknown as WeeklyHours) : undefined
     };
   } catch {
     return null;

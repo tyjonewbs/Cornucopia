@@ -5,6 +5,10 @@ import { LineChart } from '@/components/ui/line-chart'
 import { DataTable } from '@/components/ui/data-table'
 import { columns } from './columns'
 
+// Force dynamic rendering - don't statically generate this page at build time
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getAdminAnalyticsData() {
   // Get total counts with more detailed breakdowns
   const [

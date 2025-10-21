@@ -50,7 +50,7 @@ export default async function EditMarketStandPage({ params }: EditMarketStandPag
       tags: marketStand.tags,
       website: marketStand.website || undefined,
       socialMedia: marketStand.socialMedia || undefined,
-      hours: marketStand.hours as WeeklyHours || undefined
+      hours: marketStand.hours ? (marketStand.hours as unknown as WeeklyHours) : undefined
     };
 
     return (

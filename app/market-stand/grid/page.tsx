@@ -2,6 +2,10 @@ import { getMarketStands } from "@/app/actions/market-stands";
 import { MarketStandsGrid } from "./MarketStandsGrid";
 import { Suspense } from "react";
 
+// Force dynamic rendering - page fetches data from database
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 function LoadingGrid() {
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-8">

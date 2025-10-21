@@ -6,6 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { ColumnDef } from '@tanstack/react-table'
 import { UserRole } from '@prisma/client'
 
+// Force dynamic rendering - don't statically generate this page at build time
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type UserWithRelations = {
   id: string
   email: string

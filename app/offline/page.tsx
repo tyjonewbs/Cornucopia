@@ -1,9 +1,6 @@
-import { Button } from "@/components/ui/button";
+'use client';
 
-export const metadata = {
-  title: 'Offline - Cornucopia',
-  description: 'You are currently offline',
-};
+import { Button } from "@/components/ui/button";
 
 export default function OfflinePage() {
   return (
