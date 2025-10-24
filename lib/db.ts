@@ -57,16 +57,7 @@ async function initializePrismaClient(client: PrismaClient): Promise<void> {
 }
 
 // Create or reuse PrismaClient instance
-const prisma = global.prisma ?? (() => {
-  const client = getPrismaClient();
-
-  // Initialize the client
-  initializePrismaClient(client).catch(error => {
-    logError('Failed to initialize Prisma client:', error);
-  });
-
-  return client;
-})();
+const prisma = global.prisma ?? getPrismaClient();
 
 // Save client reference in development
 if (process.env.NODE_ENV !== 'production') {
