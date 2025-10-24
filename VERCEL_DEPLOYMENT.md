@@ -1,5 +1,10 @@
 # Vercel Deployment Guide
 
+## ⚠️ SECURITY NOTICE
+**NEVER commit actual credentials to version control**. Always use placeholders in documentation files. Set real values only in:
+- `.env.local` (gitignored, for local development)
+- Vercel Dashboard → Settings → Environment Variables (for production)
+
 ## Environment Variables Setup
 
 This project requires environment variables to be configured in Vercel for successful deployment.
@@ -13,46 +18,46 @@ Add these variables in your Vercel project dashboard:
    - Click on "Settings" tab
    - Select "Environment Variables"
 
-2. **Add the following variables:**
+2. **Add the following variables with YOUR OWN VALUES:**
 
 ```bash
-# Supabase Configuration - CRITICAL: Use the correct values for your project!
-NEXT_PUBLIC_SUPABASE_URL=https://swhinhgrtcowjmpstozh.supabase.co
+# Supabase Configuration - GET FROM YOUR SUPABASE DASHBOARD
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3aGluaGdydGNvd2ptcHN0b3poIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjY3OTksImV4cCI6MjA3NTM0Mjc5OX0.iE1Sd6CdF-weqqjMlZFJw56Uf-MxoF9dx-DRNVCSMek
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
-SUPABASE_JWT_SECRET=ZYPX7/BjldmstZS0Wr9udSv3GboYOule1ef30W4N14OgXKNsXedq+X/kep/YZIN9O+97J3/frs3wi8Z1+Mo2FA==
+SUPABASE_JWT_SECRET=your_supabase_jwt_secret_here
 
-# Database Connection - Use session pooler for serverless
-DATABASE_URL=postgresql://postgres.swhinhgrtcowjmpstozh:tyler996@aws-1-us-east-2.pooler.supabase.com:5432/postgres
+# Database Connection - GET FROM SUPABASE DASHBOARD
+# Use session pooler connection string for serverless environments
+DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 
-DIRECT_URL=postgresql://postgres.swhinhgrtcowjmpstozh:tyler996@aws-1-us-east-2.pooler.supabase.com:5432/postgres
+DIRECT_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 
 # Application URL - REPLACE with your actual Vercel deployment URL
 NEXT_PUBLIC_APP_URL=https://your-project-name.vercel.app
 
-# Optional: Google Maps (if using maps features) - Add your own keys
-NEXT_PUBLIC_GOOGLE_MAPS=your_google_maps_api_key
+# Optional: Google Maps (if using maps features)
+NEXT_PUBLIC_GOOGLE_MAPS=your_google_maps_api_key_here
 
-NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token
+NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token_here
 
-# Optional: Stripe (if using payment features) - Add your own keys
-NEXT_PUBLIC_STRIPE_KEY=your_stripe_publishable_key
+# Optional: Stripe (if using payment features)
+NEXT_PUBLIC_STRIPE_KEY=pk_test_your_stripe_publishable_key
 
-STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 
-# Optional: Redis Cache (if using caching) - Add your own credentials
-UPSTASH_REDIS_REST_URL=your_redis_url
+# Optional: Redis Cache (if using caching)
+UPSTASH_REDIS_REST_URL=https://your-redis-instance.upstash.io
 
-UPSTASH_REDIS_REST_TOKEN=your_redis_token
+UPSTASH_REDIS_REST_TOKEN=your_redis_token_here
 ```
 
 **IMPORTANT NOTES:**
-- Replace `https://your-project-name.vercel.app` with your actual Vercel deployment URL
-- All the Supabase values above are from YOUR actual project (`swhinhgrtcowjmpstozh`)
-- The anon key and project URL MUST match the same Supabase project
-- The database URLs use the session pooler (required for serverless environments like Vercel)
-- Add your own API keys for optional services (Stripe, Maps, Redis)
+- **NEVER** commit these actual values to git
+- Get all Supabase values from your Supabase Dashboard (see below)
+- The database URLs use the session pooler (required for serverless environments)
+- Replace ALL placeholder values with your actual credentials
 
 3. **Set Environment Scope**
    - For each variable, select which environments it applies to:
@@ -62,16 +67,24 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 
 ## How to Find Your Supabase Values
 
-If you need to verify or get fresh values:
-
 1. Go to [Supabase Dashboard](https://app.supabase.com)
-2. Select your project (`swhinhgrtcowjmpstozh`)
+2. Select your project
 3. Click "Settings" → "API"
    - **Project URL**: Copy this for `NEXT_PUBLIC_SUPABASE_URL`
    - **anon/public key**: Copy this for `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - **JWT Secret**: Copy this for `SUPABASE_JWT_SECRET`
 4. Click "Settings" → "Database"
-   - **Connection string** → Choose "Session mode" for `DATABASE_URL`
-   - Use the same for `DIRECT_URL`
+   - **Connection string** → Choose "Session mode (port 5432)" for `DATABASE_URL`
+   - Use the same connection string for `DIRECT_URL`
+   - **Important**: Use the session pooler connection string, not the direct connection
+
+## 🔒 Security Best Practices
+
+1. **Never commit credentials**: Always use `.env.local` (gitignored) for local development
+2. **Rotate exposed credentials immediately**: If credentials are accidentally exposed, rotate them in Supabase
+3. **Use environment-specific secrets**: Different credentials for dev, preview, and production
+4. **Enable GitHub Secret Scanning**: Helps prevent accidental credential exposure
+5. **Limit database user permissions**: Use role-based access control in Supabase
 
 ## Changes Made to Fix Deployment
 
@@ -91,27 +104,34 @@ Refactored environment handling to:
 
 ## Local Development
 
-For local development, you use `.env.local` (which is gitignored):
+For local development, create a `.env.local` file (which is gitignored):
 
 ```bash
-# .env.local (this file stays on your machine, never committed to git)
-NEXT_PUBLIC_SUPABASE_URL=https://swhinhgrtcowjmpstozh.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3aGluaGdydGNvd2ptcHN0b3poIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjY3OTksImV4cCI6MjA3NTM0Mjc5OX0.iE1Sd6CdF-weqqjMlZFJw56Uf-MxoF9dx-DRNVCSMek
-# ... other variables from your actual .env.local
+# .env.local (this file stays on your machine, NEVER committed to git)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_actual_anon_key
+SUPABASE_JWT_SECRET=your_actual_jwt_secret
+DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+DIRECT_URL=postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+# ... add other variables as needed
 ```
 
 Next.js automatically loads `.env.local` during local development.
 
 ## Deployment Process
 
-1. **Update environment variables in Vercel** (use the values above)
+1. **Set environment variables in Vercel Dashboard** (one-time setup)
 
-2. **Redeploy your application**:
-   - Vercel automatically deploys when you push to GitHub
-   - Or manually trigger: Go to Deployments → Click "..." → "Redeploy"
+2. **Push to GitHub** - Vercel automatically deploys:
+   ```bash
+   git add .
+   git commit -m "Your commit message"
+   git push origin main
+   ```
 
-3. **Monitor the build logs** in Vercel dashboard
-   - The new validation will show if any required variables are missing
+3. **Monitor build logs** in Vercel dashboard
+   - The validation will show if any required variables are missing
    - Clear error messages will guide you to fix any issues
 
 ## Troubleshooting
@@ -122,15 +142,12 @@ This means `NEXT_PUBLIC_SUPABASE_URL` is either:
 - Set to an invalid value (not a valid URL)
 - Set to a value from a different Supabase project
 
-**Fix**: Verify in Vercel dashboard that `NEXT_PUBLIC_SUPABASE_URL` is set to:
-```
-https://swhinhgrtcowjmpstozh.supabase.co
-```
+**Fix**: Verify the value in Vercel Dashboard matches your Supabase project URL
 
 ### Authentication Errors / "Missing anon key"
 The `NEXT_PUBLIC_SUPABASE_ANON_KEY` must match the same Supabase project as the URL.
 
-**Fix**: Verify both values are from the same project in Supabase dashboard.
+**Fix**: Get both values from the same project in Supabase Dashboard → Settings → API
 
 ### Build Fails Locally
 1. Ensure `.env.local` exists in project root
@@ -143,10 +160,11 @@ After changing environment variables in Vercel:
 1. Go to Deployments tab
 2. Click "..." menu on latest deployment
 3. Select "Redeploy"
-4. Check "Use existing Build Cache" is OFF
+4. Uncheck "Use existing Build Cache"
 
 ### Database Connection Issues
 If using Prisma/database features:
 - Ensure you're using the **Session Pooler** connection string (port 5432)
 - The pooler is required for serverless environments like Vercel
-- Format: `postgresql://[user]:[password]@[host]:5432/postgres`
+- Don't use the direct connection (port 6543 with pgbouncer)
+- Format: `postgresql://postgres.[PROJECT-REF]:[PASSWORD]@[HOST]:5432/postgres`
