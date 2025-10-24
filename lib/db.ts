@@ -7,66 +7,48 @@ declare global {
 }
 
 /**
- * Get Prisma Client with optimized connection pooling
- * Connection pool configuration for production:
- * - Pool size: 5 connections (set via URL params)
- * - Connection timeout: 10 seconds
- * - Pool timeout: 10 seconds
+ * Get Prisma Client optimized for serverless environments
+ * 
+ * Key optimizations:
+ * - Connection limit: 1 per instance (serverless best practice)
+ * - Connection timeout: 10s
+ * - Pool timeout: 0 (no pooling in serverless)
  */
 function getPrismaClient(): PrismaClient {
-  console.log('Creating new Prisma client with DATABASE_URL:', env.DATABASE_URL.substring(0, 50) + '...');
-  
   const isDevelopment = process.env.NODE_ENV !== 'production';
+  
+  // Add serverless-optimized connection parameters to DATABASE_URL
+  const databaseUrl = env.DATABASE_URL.includes('?')
+    ? `${env.DATABASE_URL}&connection_limit=1&pool_timeout=0&connect_timeout=10`
+    : `${env.DATABASE_URL}?connection_limit=1&pool_timeout=0&connect_timeout=10`;
+  
+  console.log('Creating Prisma client for serverless environment');
   
   return new PrismaClient({
     log: isDevelopment 
-      ? ['query', 'error', 'warn', 'info']
-      : ['error', 'warn'],
+      ? ['error', 'warn']
+      : ['error'],
     datasources: {
       db: {
-        url: env.DATABASE_URL,
+        url: databaseUrl,
       },
     },
     errorFormat: 'minimal',
   });
 }
 
-/**
- * Initialize Prisma Client with connection verification and metrics
- */
-async function initializePrismaClient(client: PrismaClient): Promise<void> {
-  try {
-    console.log('Attempting to connect to database...');
-    await client.$connect();
-    console.log('Connected to database, verifying connection...');
-    
-    const result = await client.$queryRaw`SELECT current_database(), current_schema()`;
-    console.log('Database connection verified:', result);
-    
-    // Enable query logging in development
-    if (process.env.NODE_ENV !== 'production') {
-      client.$on('query' as any, (e: any) => {
-        console.log('Query: ' + e.query);
-        console.log('Duration: ' + e.duration + 'ms');
-      });
-    }
-  } catch (error) {
-    console.error('Failed to initialize Prisma client:', error);
-    throw error;
-  }
-}
-
 // Create or reuse PrismaClient instance
+// In serverless, each invocation may get a new instance
 const prisma = global.prisma ?? getPrismaClient();
 
-// Save client reference in development
+// Save client reference in development to prevent hot reload issues
 if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma;
 }
 
 /**
  * Utility function to execute database operations with retry logic
- * Useful for handling temporary connection issues
+ * Essential for handling temporary connection issues in serverless
  */
 export async function executeWithRetry<T>(
   operation: () => Promise<T>,
