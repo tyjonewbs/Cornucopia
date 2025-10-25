@@ -14,13 +14,18 @@ export function getSupabaseBrowser() {
       throw new Error('Missing Supabase environment variables');
     }
 
-    // Create client with default options
-    clientInstance = createBrowserClient(supabaseUrl, supabaseKey);
-
-    // Initialize auth state - no automatic reload to prevent loops
-    clientInstance.auth.onAuthStateChange(() => {
-      // Let SupabaseProvider handle auth state changes
-      // This prevents the reload loop issue
+    // Create client with Realtime disabled to prevent WebSocket connection errors
+    clientInstance = createBrowserClient(supabaseUrl, supabaseKey, {
+      realtime: {
+        params: {
+          eventsPerSecond: 0,
+        },
+      },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
     });
   }
   return clientInstance;

@@ -10,10 +10,22 @@ export const revalidate = 60;
 
 async function ProductsLoader() {
   try {
-    const initialProducts = await getHomeProducts(null);
+    // Add 8-second timeout to prevent Vercel 10s timeout
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Products fetch timeout')), 8000)
+    );
+    
+    const productsPromise = getHomeProducts(null);
+    
+    const initialProducts = await Promise.race([
+      productsPromise,
+      timeoutPromise
+    ]);
+    
     return <HomeClient initialProducts={initialProducts} />;
   } catch (error: unknown) {
     console.error('Failed to load products:', error);
+    // Return empty array on timeout or error - page will still render
     return <HomeClient initialProducts={[]} />;
   }
 }

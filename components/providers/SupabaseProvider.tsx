@@ -23,24 +23,51 @@ export function SupabaseProvider({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const supabase = getSupabaseBrowser();
+    let mounted = true;
     
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
+    const initAuth = async () => {
+      try {
+        const supabase = getSupabaseBrowser();
+        
+        // Get initial session with error handling
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.warn('Error getting session:', error);
+        }
+        
+        if (mounted) {
+          setUser(session?.user ?? null);
+          setIsLoading(false);
+        }
 
-    // Listen for auth changes - Supabase handles all session management
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
+        // Listen for auth changes - Supabase handles all session management
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (mounted) {
+            setUser(session?.user ?? null);
+            setIsLoading(false);
+          }
+        });
 
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    const cleanup = initAuth();
+    
     return () => {
-      subscription.unsubscribe();
+      mounted = false;
+      cleanup?.then(fn => fn?.());
     };
   }, []);
 

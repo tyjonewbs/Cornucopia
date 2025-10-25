@@ -5,6 +5,9 @@ import { createRouteHandlerClient } from '@/lib/supabase-route'
 import { createClient } from '@supabase/supabase-js'
 import { Status } from '@prisma/client'
 
+// Force dynamic rendering since this route uses cookies
+export const dynamic = 'force-dynamic'
+
 const TEST_USER_EMAIL = 'test@example.com'
 const TEST_USER_PASSWORD = 'test123456'
 
