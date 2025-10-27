@@ -7,32 +7,37 @@ import { Minus, Plus } from "lucide-react";
 
 interface ProductQuantityControlProps {
   quantity: number;
-  onChange: (newQuantity: number) => void;
+  onUpdate: (newQuantity: number) => void;
   min?: number;
   max?: number;
 }
 
 export function ProductQuantityControl({
   quantity,
-  onChange,
+  onUpdate,
   min = 0,
   max = Infinity,
 }: ProductQuantityControlProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState(quantity.toString());
+  const safeQuantity = quantity ?? 0;
+  const [currentQuantity, setCurrentQuantity] = useState(safeQuantity);
+  const [inputValue, setInputValue] = useState(safeQuantity.toString());
 
   useEffect(() => {
-    setInputValue(quantity.toString());
-  }, [quantity]);
+    setCurrentQuantity(safeQuantity);
+    setInputValue(safeQuantity.toString());
+  }, [safeQuantity]);
 
   const handleIncrement = () => {
-    const newValue = Math.min(quantity + 1, max);
-    onChange(newValue);
+    const newValue = Math.min(currentQuantity + 1, max);
+    setCurrentQuantity(newValue);
+    setInputValue(newValue.toString());
   };
 
   const handleDecrement = () => {
-    const newValue = Math.max(quantity - 1, min);
-    onChange(newValue);
+    const newValue = Math.max(currentQuantity - 1, min);
+    setCurrentQuantity(newValue);
+    setInputValue(newValue.toString());
   };
 
   const handleInputChange = (value: string) => {
@@ -43,9 +48,10 @@ export function ProductQuantityControl({
     const newValue = parseInt(inputValue, 10);
     if (!isNaN(newValue)) {
       const clampedValue = Math.min(Math.max(newValue, min), max);
-      onChange(clampedValue);
+      setCurrentQuantity(clampedValue);
+      setInputValue(clampedValue.toString());
     } else {
-      setInputValue(quantity.toString());
+      setInputValue(currentQuantity.toString());
     }
     setIsEditing(false);
   };
@@ -56,13 +62,17 @@ export function ProductQuantityControl({
     }
   };
 
+  const handleUpdate = () => {
+    onUpdate(currentQuantity);
+  };
+
   return (
     <div className="flex items-center space-x-2">
       <Button
         variant="outline"
         size="icon"
         onClick={handleDecrement}
-        disabled={quantity <= min}
+        disabled={currentQuantity <= min}
         className="h-8 w-8"
       >
         <Minus className="h-4 w-4" />
@@ -84,7 +94,7 @@ export function ProductQuantityControl({
           onClick={() => setIsEditing(true)}
           className="w-16 h-8 px-2"
         >
-          {quantity}
+          {currentQuantity}
         </Button>
       )}
 
@@ -92,10 +102,18 @@ export function ProductQuantityControl({
         variant="outline"
         size="icon"
         onClick={handleIncrement}
-        disabled={quantity >= max}
+        disabled={currentQuantity >= max}
         className="h-8 w-8"
       >
         <Plus className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="default"
+        onClick={handleUpdate}
+        className="h-8"
+      >
+        Update
       </Button>
     </div>
   );

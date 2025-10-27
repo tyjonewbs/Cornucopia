@@ -25,7 +25,7 @@ export async function GET(
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    // Get products for the market stand
+    // Get products for the market stand with optimized query
     const products = await prisma.product.findMany({
       where: {
         marketStandId: params.id,
@@ -38,21 +38,20 @@ export async function GET(
         inventory: true,
         updatedAt: true,
       },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      take: 100, // Limit to 100 products for performance
     });
 
-    // Format products for response
-    const formattedProducts = products.map(product => ({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.images[0] || '', // Use first image or empty string
-      quantity: product.inventory || 0,
-      updatedAt: product.updatedAt,
-    }));
-
-    return NextResponse.json(formattedProducts);
+    // Return products in the format the client expects
+    return NextResponse.json(products);
   } catch (error) {
     console.error('[MARKET_STAND_PRODUCTS_GET]', error);
-    return new NextResponse("Internal Error", { status: 500 });
+    // Return JSON error response instead of plain text
+    return NextResponse.json(
+      { error: "Internal Server Error", message: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
   }
 }

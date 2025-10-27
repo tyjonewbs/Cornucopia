@@ -37,7 +37,6 @@ export default async function Home({
       '/dashboard/market-stand/setup',
       '/billing',
       '/dashboard/market-stand',
-      '/dashboard/sell',
       '/dashboard/settings'
     ];
 

@@ -52,8 +52,8 @@ export function MarketStandDashboardClient({ initialMarketStands }: MarketStandD
           id: product.id,
           name: product.name,
           price: product.price,
-          image: product.images[0],
-          quantity: product.inventory,
+          image: product.images?.[0] || '',
+          quantity: product.inventory ?? 0,
           updatedAt: new Date(product.updatedAt)
         }));
         setProducts(transformedData);
@@ -72,24 +72,49 @@ export function MarketStandDashboardClient({ initialMarketStands }: MarketStandD
       // Optimistic update
       setProducts(products.map(product => 
         product.id === productId 
-          ? { ...product, quantity: newQuantity }
+          ? { ...product, quantity: newQuantity, updatedAt: new Date() }
           : product
       ));
 
       // Update on server
-      await fetch(`/api/product/${productId}/quantity`, {
+      const response = await fetch(`/api/product/${productId}/quantity`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ quantity: newQuantity }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to update quantity');
+      }
+
+      // Refresh products to get accurate updatedAt from server
+      const refreshResponse = await fetch(`/api/market-stand/${selectedStandId}/products`);
+      const data = await refreshResponse.json();
+      const transformedData = data.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0] || '',
+        quantity: product.inventory ?? 0,
+        updatedAt: new Date(product.updatedAt)
+      }));
+      setProducts(transformedData);
     } catch (error) {
       console.error('Error updating quantity:', error);
       // Revert on error
       const response = await fetch(`/api/market-stand/${selectedStandId}/products`);
       const data = await response.json();
-      setProducts(data);
+      const transformedData = data.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0] || '',
+        quantity: product.inventory ?? 0,
+        updatedAt: new Date(product.updatedAt)
+      }));
+      setProducts(transformedData);
     }
   };
 
@@ -104,7 +129,7 @@ export function MarketStandDashboardClient({ initialMarketStands }: MarketStandD
             Manage your market stands and their products
           </p>
         </div>
-        <Link href="/dashboard/market-stand/setup">
+        <Link href="/dashboard/market-stand/setup/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             New Market Stand
@@ -118,7 +143,7 @@ export function MarketStandDashboardClient({ initialMarketStands }: MarketStandD
           <p className="text-muted-foreground mb-4">
             Create your first market stand to start selling products
           </p>
-          <Link href="/dashboard/market-stand/setup">
+          <Link href="/dashboard/market-stand/setup/new">
             <Button>
               <Plus className="h-4 w-4 mr-2" />
               Create Market Stand
@@ -135,9 +160,19 @@ export function MarketStandDashboardClient({ initialMarketStands }: MarketStandD
 
           {selectedStand && (
             <div className="grid gap-6">
-              <MarketStandCard 
-                stand={selectedStand}
-              />
+              <div className="flex justify-between items-start">
+                <MarketStandCard 
+                  stand={selectedStand}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Link href={`/product/new?marketStandId=${selectedStandId}`}>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Product
+                  </Button>
+                </Link>
+              </div>
               <ProductList
                 products={products}
                 onQuantityChange={handleQuantityChange}

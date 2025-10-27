@@ -6,7 +6,6 @@ import Image from "next/image";
 import {
   LayoutDashboard,
   Store,
-  Package,
   ShoppingCart,
   Calendar,
   BarChart2,
@@ -18,7 +17,6 @@ import {
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { name: "Farm Page Management", icon: Store, href: "/dashboard/farm-page" },
-  { name: "Product Catalog", icon: Package, href: "/dashboard/sell" },
   { name: "Market Stand", icon: Store, href: "/dashboard/market-stand" },
   { name: "Orders & Sales", icon: ShoppingCart, href: "/dashboard/orders" },
   { name: "Events & Activities", icon: Calendar, href: "/dashboard/events" },

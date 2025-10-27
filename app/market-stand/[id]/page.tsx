@@ -97,27 +97,34 @@ export default async function MarketStandPage({
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-8">
           {/* Image Carousel */}
-          <div className="relative">
-            <Carousel className="w-full">
-              <CarouselContent>
-                {marketStand.images.map((image, index) => (
-                  <CarouselItem key={index}>
-                    <div className="aspect-video relative rounded-lg overflow-hidden">
-                      <Image
-                        src={image}
-                        alt={`${marketStand.name} ${index + 1}`}
-                        fill
-                        className="object-cover"
-                        priority={index === 0}
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-4" />
-              <CarouselNext className="right-4" />
-            </Carousel>
-          </div>
+          {marketStand.images && marketStand.images.length > 0 && (
+            <div className="relative">
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {marketStand.images.map((image, index) => (
+                    <CarouselItem key={index}>
+                      <div className="relative w-full h-0 pb-[56.25%] rounded-lg overflow-hidden">
+                        <Image
+                          src={image}
+                          alt={`${marketStand.name} ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          priority={index === 0}
+                          sizes="(max-width: 1024px) 100vw, 66vw"
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                {marketStand.images.length > 1 && (
+                  <>
+                    <CarouselPrevious className="left-4" />
+                    <CarouselNext className="right-4" />
+                  </>
+                )}
+              </Carousel>
+            </div>
+          )}
 
           {/* Name and Tags */}
           <div className="space-y-4">

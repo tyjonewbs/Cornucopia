@@ -8,5 +8,5 @@ export default async function SellRoute() {
     return redirect('/');
   }
 
-  return redirect('/dashboard/sell');
+  return redirect('/dashboard/market-stand');
 }

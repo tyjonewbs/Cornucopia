@@ -83,8 +83,8 @@ model Product {
   localId            String?
   averageRating      Float?
   totalReviews       Int                    @default(0)
-  local              Local?                 @relation("ProductToLocal", fields: [localId], references: [id])
-  marketStand        MarketStand            @relation("ProductToMarketStand", fields: [marketStandId], references: [id])
+  local              Local?                 @relation("ProductToLocal", fields: [localId], references: [id], onDelete: SetNull)
+  marketStand        MarketStand            @relation("ProductToMarketStand", fields: [marketStandId], references: [id], onDelete: Cascade)
   user               User                   @relation(fields: [userId], references: [id])
   metrics            ProductMetrics?
   reviews            ProductReview[]
@@ -110,7 +110,7 @@ model ProductReview {
   helpfulVotes       Int      @default(0)
   reportCount        Int      @default(0)
   isVisible          Boolean  @default(true)
-  product            Product  @relation(fields: [productId], references: [id])
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user               User     @relation(fields: [userId], references: [id])
 
   @@index([productId, isVisible], map: "product_review_product_idx")
@@ -130,7 +130,7 @@ model StandReview {
   helpfulVotes       Int         @default(0)
   reportCount        Int         @default(0)
   isVisible          Boolean     @default(true)
-  marketStand        MarketStand @relation(fields: [marketStandId], references: [id])
+  marketStand        MarketStand @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
   user               User        @relation(fields: [userId], references: [id])
 
   @@index([marketStandId, isVisible], map: "stand_review_stand_idx")
@@ -146,7 +146,7 @@ model ProductStatusHistory {
   note        String
   createdAt   DateTime @default(now())
   changedBy   User     @relation(fields: [changedById], references: [id])
-  product     Product  @relation(fields: [productId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@index([changedById])
@@ -161,7 +161,7 @@ model StandStatusHistory {
   note          String
   createdAt     DateTime    @default(now())
   changedBy     User        @relation(fields: [changedById], references: [id])
-  marketStand   MarketStand @relation(fields: [marketStandId], references: [id])
+  marketStand   MarketStand @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
 
   @@index([marketStandId])
   @@index([changedById])
@@ -177,7 +177,7 @@ model ProductMetrics {
   revenue        Int                   @default(0)
   conversionRate Float?
   dailyMetrics   ProductDailyMetrics[]
-  product        Product               @relation(fields: [productId], references: [id])
+  product        Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId], map: "product_metrics_product_idx")
 }
@@ -191,7 +191,7 @@ model ProductDailyMetrics {
   addedToCart     Int            @default(0)
   purchases       Int            @default(0)
   revenue         Int            @default(0)
-  productMetrics  ProductMetrics @relation(fields: [productMetricId], references: [id])
+  productMetrics  ProductMetrics @relation(fields: [productMetricId], references: [id], onDelete: Cascade)
 
   @@index([productMetricId, date])
 }
@@ -206,7 +206,7 @@ model StandMetrics {
   averageOrderValue  Float?
   returningCustomers Int                 @default(0)
   dailyMetrics       StandDailyMetrics[]
-  marketStand        MarketStand         @relation(fields: [marketStandId], references: [id])
+  marketStand        MarketStand         @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
 
   @@index([marketStandId], map: "stand_metrics_stand_idx")
 }
@@ -219,7 +219,7 @@ model StandDailyMetrics {
   uniqueViews   Int          @default(0)
   orders        Int          @default(0)
   revenue       Int          @default(0)
-  standMetrics  StandMetrics @relation(fields: [standMetricId], references: [id])
+  standMetrics  StandMetrics @relation(fields: [standMetricId], references: [id], onDelete: Cascade)
 
   @@index([standMetricId, date])
 }
@@ -297,7 +297,7 @@ model LocalMetrics {
   contactFormSubmissions Int    @default(0)
   productViews           Int    @default(0)
   eventSignups           Int    @default(0)
-  local                  Local  @relation(fields: [localId], references: [id])
+  local                  Local  @relation(fields: [localId], references: [id], onDelete: Cascade)
 
   @@index([localId], map: "local_metrics_local_idx")
 }

@@ -25,7 +25,11 @@ async function getUserMarketStands(userId: string) {
   return marketStands;
 }
 
-export default async function NewProductPage() {
+export default async function NewProductPage({
+  searchParams,
+}: {
+  searchParams: { marketStandId?: string };
+}) {
   noStore();
   const user = await getUser();
 
@@ -39,8 +43,10 @@ export default async function NewProductPage() {
     return redirect("/dashboard/market-stand/setup/new");
   }
 
-  // Use the first market stand as default
-  const defaultMarketStand = marketStands[0];
+  // Use the market stand from query param if provided, otherwise use the first one
+  const defaultMarketStand = searchParams.marketStandId
+    ? marketStands.find(stand => stand.id === searchParams.marketStandId) || marketStands[0]
+    : marketStands[0];
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
