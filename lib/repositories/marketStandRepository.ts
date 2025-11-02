@@ -47,6 +47,7 @@ export class MarketStandRepository {
         cursor: cursor ? { id: cursor } : undefined,
         where: {
           isActive,
+          status: 'APPROVED', // Only show approved stands publicly
           ...(userId && { userId }),
         },
         orderBy: {
@@ -93,6 +94,7 @@ export class MarketStandRepository {
         take: limit,
         where: {
           isActive,
+          status: 'APPROVED', // Only show approved stands publicly
           latitude: {
             gte: latitude - latDelta,
             lte: latitude + latDelta,

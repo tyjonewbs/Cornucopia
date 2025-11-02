@@ -106,9 +106,9 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           className="cursor-pointer"
-          onClick={() => navigate('/sell')}
+          onClick={() => navigate('/dashboard/my-local-haul')}
         >
-          Sell My Products
+          My Local Haul
         </DropdownMenuItem>
         <DropdownMenuItem 
           className="cursor-pointer"
@@ -124,7 +124,7 @@ export function UserNav() {
         </DropdownMenuItem>
         <DropdownMenuItem 
           className="cursor-pointer"
-          onClick={() => navigate('/settings')}
+          onClick={() => navigate('/account')}
         >
           Settings
         </DropdownMenuItem>

@@ -163,19 +163,19 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
           <h2 className="text-2xl font-bold mb-6">Local Products</h2>
           {products.local.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 gap-10 mb-12">
-              {products.local.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  images={product.images}
-                  locationName={product.marketStand.locationName}
-                  updatedAt={product.updatedAt}
-                  price={product.price}
-                  tags={product.tags}
-                  distance={product.distance}
-                />
-              ))}
+            {products.local.map((product) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                images={product.images}
+                locationName={product.marketStand?.locationName || 'Delivery Only'}
+                updatedAt={product.updatedAt}
+                price={product.price}
+                tags={product.tags}
+                distance={product.distance}
+              />
+            ))}
             </div>
           ) : (
             <div className="text-center py-12 bg-gray-50 rounded-lg mb-12">
@@ -203,7 +203,7 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
                 id={product.id}
                 name={product.name}
                 images={product.images}
-                locationName={product.marketStand.locationName}
+                locationName={product.marketStand?.locationName || 'Delivery Only'}
                 updatedAt={product.updatedAt}
                 price={product.price}
                 tags={product.tags}

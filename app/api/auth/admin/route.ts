@@ -45,6 +45,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
     }
 
+    // Sync role to Supabase user metadata if needed
+    const currentRole = session.user.user_metadata?.role;
+    if (currentRole !== user.role) {
+      const { createClient } = await import('@supabase/supabase-js');
+      const adminClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      );
+
+      await adminClient.auth.admin.updateUserById(
+        session.user.id,
+        {
+          user_metadata: {
+            ...session.user.user_metadata,
+            role: user.role
+          }
+        }
+      );
+    }
+
     // Set auth cookie
     const response = NextResponse.json({ 
       success: true,

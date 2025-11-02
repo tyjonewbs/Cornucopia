@@ -26,7 +26,11 @@ export async function GET() {
       totalUsers,
       pendingStands,
       pendingProducts,
-      reportedReviews
+      reportedReviews,
+      totalOrders,
+      activeDeliveries,
+      pendingIssues,
+      totalRevenue
     ] = await Promise.all([
       // Total users
       prisma.user.count(),
@@ -61,14 +65,50 @@ export async function GET() {
             isVisible: true
           }
         })
-      ]).then(([productReviews, standReviews]) => productReviews + standReviews)
+      ]).then(([productReviews, standReviews]) => productReviews + standReviews),
+
+      // Total orders
+      prisma.order.count(),
+
+      // Active deliveries (orders in progress)
+      prisma.order.count({
+        where: {
+          type: 'DELIVERY',
+          status: {
+            in: ['PENDING', 'CONFIRMED', 'READY']
+          }
+        }
+      }),
+
+      // Pending issues (those needing resolution)
+      prisma.orderIssue.count({
+        where: {
+          status: 'PENDING'
+        }
+      }),
+
+      // Total revenue from completed orders
+      prisma.order.aggregate({
+        where: {
+          status: {
+            in: ['DELIVERED', 'COMPLETED']
+          }
+        },
+        _sum: {
+          totalAmount: true
+        }
+      }).then(result => result._sum.totalAmount || 0)
     ])
 
     return NextResponse.json({
       totalUsers,
       pendingStands,
       pendingProducts,
-      reportedReviews
+      reportedReviews,
+      totalOrders,
+      activeDeliveries,
+      pendingIssues,
+      totalRevenue
     })
   } catch (error) {
     console.error('Error fetching admin stats:', error)

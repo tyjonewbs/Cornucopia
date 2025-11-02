@@ -68,6 +68,32 @@ export class ProductRepository {
                 longitude: true,
               },
             },
+            standListings: {
+              where: { isActive: true },
+              include: {
+                marketStand: {
+                  select: {
+                    id: true,
+                    name: true,
+                    locationName: true,
+                    latitude: true,
+                    longitude: true,
+                  },
+                },
+              },
+            },
+            deliveryZone: {
+              select: {
+                id: true,
+                name: true,
+                deliveryFee: true,
+                minimumOrder: true,
+                freeDeliveryThreshold: true,
+                zipCodes: true,
+                cities: true,
+                states: true,
+              },
+            },
           },
         })
       );
@@ -95,6 +121,32 @@ export class ProductRepository {
                 locationName: true,
                 latitude: true,
                 longitude: true,
+              },
+            },
+            standListings: {
+              where: { isActive: true },
+              include: {
+                marketStand: {
+                  select: {
+                    id: true,
+                    name: true,
+                    locationName: true,
+                    latitude: true,
+                    longitude: true,
+                  },
+                },
+              },
+            },
+            deliveryZone: {
+              select: {
+                id: true,
+                name: true,
+                deliveryFee: true,
+                minimumOrder: true,
+                freeDeliveryThreshold: true,
+                zipCodes: true,
+                cities: true,
+                states: true,
               },
             },
           },

@@ -2,6 +2,7 @@
 
 import { getProducts, type ProductResponse } from "./products";
 import { handleDatabaseError } from "@/lib/error-handler";
+import { getProductAvailability } from "@/types/product";
 
 export interface LocationType {
   coords: {
@@ -26,6 +27,20 @@ export interface SerializedProduct extends ProductResponse {
       profileImage: string;
     };
   };
+  availableAt: Array<{
+    id: string;
+    name: string;
+    distance: number | null;
+    locationName: string;
+  }>;
+  deliveryInfo: {
+    isAvailable: boolean;
+    deliveryFee: number | null;
+    zoneName: string | null;
+    zoneId: string | null;
+    minimumOrder: number | null;
+    freeDeliveryThreshold: number | null;
+  } | null;
 }
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -53,11 +68,90 @@ export const getHomeProducts = async (userLocation: LocationType | null, cursor?
     console.log('Raw products:', products.length);
 
     const productsWithDistance = products.map((product: ProductResponse) => {
-      if (!product.marketStand?.latitude || !product.marketStand?.longitude) {
-        return { ...product, distance: null };
+      // Collect all market stands where this product is available
+      const allMarketStands: Array<{
+        id: string;
+        name: string;
+        latitude: number;
+        longitude: number;
+        locationName: string;
+        isPrimary: boolean;
+      }> = [];
+
+      // Add primary market stand if it exists
+      if (product.marketStand?.latitude && product.marketStand?.longitude) {
+        allMarketStands.push({
+          id: product.marketStand.id,
+          name: product.marketStand.name,
+          latitude: product.marketStand.latitude,
+          longitude: product.marketStand.longitude,
+          locationName: product.marketStand.locationName,
+          isPrimary: true,
+        });
       }
-      
-      const distance = userLocation
+
+      // Add stand listings (cross-listings) if they exist
+      if ((product as any).standListings) {
+        const listings = (product as any).standListings as Array<{
+          isActive: boolean;
+          marketStand?: {
+            id: string;
+            name: string;
+            latitude: number;
+            longitude: number;
+            locationName: string;
+          };
+        }>;
+
+        listings.forEach((listing) => {
+          if (listing.isActive && listing.marketStand) {
+            const stand = listing.marketStand;
+            // Avoid duplicates (if stand is both primary and listed)
+            const exists = allMarketStands.some(s => s.id === stand.id);
+            if (!exists) {
+              allMarketStands.push({
+                id: stand.id,
+                name: stand.name,
+                latitude: stand.latitude,
+                longitude: stand.longitude,
+                locationName: stand.locationName,
+                isPrimary: false,
+              });
+            }
+          }
+        });
+      }
+
+      // Calculate distance for each market stand
+      const availableAt = allMarketStands.map(stand => {
+        const distance = userLocation
+          ? calculateDistance(
+              userLocation.coords.lat,
+              userLocation.coords.lng,
+              stand.latitude,
+              stand.longitude
+            )
+          : null;
+
+        return {
+          id: stand.id,
+          name: stand.name,
+          distance,
+          locationName: stand.locationName,
+        };
+      });
+
+      // Sort by distance (closest first) if location is available
+      if (userLocation) {
+        availableAt.sort((a, b) => {
+          if (a.distance === null) return 1;
+          if (b.distance === null) return -1;
+          return a.distance - b.distance;
+        });
+      }
+
+      // Calculate primary stand distance for backward compatibility
+      const primaryDistance = product.marketStand?.latitude && product.marketStand?.longitude && userLocation
         ? calculateDistance(
             userLocation.coords.lat,
             userLocation.coords.lng,
@@ -66,14 +160,61 @@ export const getHomeProducts = async (userLocation: LocationType | null, cursor?
           )
         : null;
 
+      // Check delivery availability to user's location
+      let deliveryInfo: SerializedProduct['deliveryInfo'] = null;
+      if (product.deliveryAvailable && (product as any).deliveryZone && userLocation) {
+        const zone = (product as any).deliveryZone;
+        
+        // For now, we'll mark as available since we don't have zip code from coordinates
+        // In a real implementation, we'd geocode the coordinates to get zip/city
+        // or require zip code input from user
+        deliveryInfo = {
+          isAvailable: true, // Simplified - would need proper zip/city matching
+          deliveryFee: zone.deliveryFee || null,
+          zoneName: zone.name || null,
+          zoneId: zone.id || null,
+          minimumOrder: zone.minimumOrder || null,
+          freeDeliveryThreshold: zone.freeDeliveryThreshold || null,
+        };
+      }
+
       return {
         ...product,
-        distance
+        distance: primaryDistance,
+        availableAt,
+        deliveryInfo,
       };
     });
 
-    // Sort by distance if location available, otherwise by newest
+    // Sort by availability first, then by distance or date
     const sortedProducts = [...productsWithDistance].sort((a, b) => {
+      // Helper to calculate availability priority for a product
+      const getAvailabilityPriority = (product: typeof a) => {
+        const now = new Date();
+        const availableDate = product.availableDate ? new Date(product.availableDate) : null;
+        const availableUntil = product.availableUntil ? new Date(product.availableUntil) : null;
+        
+        const isAvailableNow = 
+          (!availableDate || availableDate <= now) && 
+          (!availableUntil || availableUntil >= now);
+        
+        const isPreOrder = availableDate ? availableDate > now : false;
+        
+        // Priority order: Available Now (1) > Pre-Order (2) > Other (3)
+        if (isAvailableNow) return 1;
+        if (isPreOrder) return 2;
+        return 3;
+      };
+      
+      const priorityA = getAvailabilityPriority(a);
+      const priorityB = getAvailabilityPriority(b);
+      
+      // First sort by availability priority
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      
+      // Within same priority, sort by distance (if location available) or by date
       if (!userLocation) {
         // Sort by newest if no location
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();

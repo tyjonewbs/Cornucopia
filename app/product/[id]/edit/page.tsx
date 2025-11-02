@@ -1,82 +1,68 @@
 import { redirect } from "next/navigation";
-import { unstable_noStore as noStore } from "next/cache";
-import prisma from "@/lib/db";
-import { Card } from "@/components/ui/card";
-import { SellForm } from "@/components/form/Sellform";
 import { getUser } from "@/lib/auth";
-
-async function getProduct(id: string, userId: string) {
-  const product = await prisma.product.findUnique({
-    where: {
-      id: id,
-      userId: userId // Ensure user owns the product
-    },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      price: true,
-      images: true,
-      marketStandId: true,
-      inventory: true,
-      inventoryUpdatedAt: true,
-      tags: true,
-      marketStand: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          images: true,
-          latitude: true,
-          longitude: true,
-          createdAt: true,
-          userId: true
-        }
-      }
-    }
-  });
-  return product;
-}
+import { getProduct } from "@/app/actions/products";
+import { getUserDeliveryZones } from "@/app/actions/delivery-zones";
+import { marketStandService } from "@/lib/services/marketStandService";
+import { SellForm } from "@/components/form/Sellform";
 
 export default async function EditProductPage({
   params,
 }: {
   params: { id: string };
 }) {
-  noStore();
   const user = await getUser();
 
   if (!user) {
-    throw new Error("Authentication required");
+    redirect("/");
   }
 
-  const product = await getProduct(params.id, user.id);
+  // Fetch the product
+  const product = await getProduct(params.id);
 
   if (!product) {
-    return redirect("/dashboard");
+    redirect("/dashboard/products");
   }
 
-  // Format product data for the form
-  const initialData = {
-    name: product.name,
-    price: product.price / 100, // Convert back to dollars from cents
-    description: product.description,
-    images: product.images,
-    marketStandId: product.marketStandId,
-    inventory: product.inventory,
-    inventoryUpdatedAt: product.inventoryUpdatedAt,
-    tags: product.tags || []
-  };
+  // Verify ownership
+  if (product.userId !== user.id) {
+    redirect("/dashboard/products");
+  }
+
+  // Fetch market stands and delivery zones for the form
+  const marketStands = await marketStandService.getMarketStandsByUserId(user.id);
+  const deliveryZonesResult = await getUserDeliveryZones();
+  const deliveryZones = deliveryZonesResult.success ? deliveryZonesResult.zones : [];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12">
-      <Card>
-        <SellForm 
-          marketStand={product.marketStand}
-          initialData={initialData}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Edit Product</h1>
+          <p className="text-gray-600 mt-2">
+            Update your product details, pricing, and availability
+          </p>
+        </div>
+
+        <SellForm
           productId={product.id}
+          marketStands={marketStands as any}
+          deliveryZones={deliveryZones}
+          initialData={{
+            name: product.name,
+            price: product.price,
+            description: product.description,
+            images: product.images,
+            tags: product.tags,
+            marketStandId: product.marketStandId,
+            deliveryAvailable: !!product.deliveryZoneId,
+            deliveryZoneId: product.deliveryZoneId,
+            availableDate: product.availableDate ? new Date(product.availableDate) : null,
+            availableUntil: product.availableUntil ? new Date(product.availableUntil) : null,
+            inventory: product.inventory,
+            inventoryUpdatedAt: product.inventoryUpdatedAt ? new Date(product.inventoryUpdatedAt) : null,
+          }}
         />
-      </Card>
+      </div>
     </div>
   );
 }

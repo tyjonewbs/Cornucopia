@@ -70,14 +70,6 @@ const productSchema = z.object({
     .min(10, { message: "Please describe your product in detail" }),
   images: z.array(z.string(), { message: "Images are required" }),
   tags: z.array(z.string()).default([]),
-  marketStandId: z.string({ required_error: "Market stand is required" }),
-  inventory: z.string()
-    .transform((val) => {
-      const num = parseInt(val || "0", 10);
-      if (isNaN(num)) throw new Error("Inventory must be a valid number");
-      if (num < 0) throw new Error("Inventory cannot be negative");
-      return num;
-    })
 });
 
 export type State = {
@@ -128,24 +120,21 @@ export async function SellProduct(
       });
     }
 
-    const rawMarketStandId = formData.get("marketStandId");
-    const marketStandId = rawMarketStandId ? rawMarketStandId.toString() : undefined;
-    if (!marketStandId) {
-      return {
-        status: "error",
-        errors: { marketStandId: ["Market stand is required"] },
-        message: "Market stand is required"
-      };
-    }
+    // Parse listings data
+    const standListingsRaw = formData.get("standListings")?.toString();
+    const deliveryListingsRaw = formData.get("deliveryListings")?.toString();
+    
+    const standListings: Array<{marketStandId: string, inventory: number}> = 
+      standListingsRaw ? JSON.parse(standListingsRaw) : [];
+    const deliveryListings: Array<{deliveryZoneId: string, dayOfWeek: string, inventory: number}> = 
+      deliveryListingsRaw ? JSON.parse(deliveryListingsRaw) : [];
 
     const validateFields = productSchema.safeParse({
       name: formData.get("name")?.toString() ?? "",
       price: formData.get("price")?.toString() ?? "0",
       description: formData.get("description")?.toString() ?? "",
       images: JSON.parse(formData.get("images") as string),
-      tags: formData.get("tags") ? JSON.parse(formData.get("tags")?.toString() ?? "[]").map((tag: string) => tag.charAt(0).toUpperCase() + tag.slice(1).toLowerCase()) : [],
-      marketStandId: marketStandId,
-      inventory: formData.get("inventory")?.toString() ?? "0"
+      tags: formData.get("tags") ? JSON.parse(formData.get("tags")?.toString() ?? "[]").map((tag: string) => tag.charAt(0).toUpperCase() + tag.slice(1).toLowerCase()) : []
     });
 
     if (!validateFields.success) {
@@ -156,12 +145,12 @@ export async function SellProduct(
       };
     }
 
-    // If productId exists, update the product instead of creating a new one
+    // If productId exists, update the product
     if (productId) {
       const product = await prisma.product.update({
         where: {
           id: productId,
-          userId: user.id, // Ensure user owns the product
+          userId: user.id,
         },
         data: {
           name: validateFields.data.name,
@@ -169,9 +158,6 @@ export async function SellProduct(
           price: validateFields.data.price,
           images: validateFields.data.images,
           tags: validateFields.data.tags,
-          marketStandId: validateFields.data.marketStandId,
-          inventory: validateFields.data.inventory,
-          inventoryUpdatedAt: new Date()
         }
       });
 
@@ -180,6 +166,45 @@ export async function SellProduct(
           status: "error",
           message: "Failed to update product"
         };
+      }
+
+      // Update stand listings
+      // Delete all existing listings
+      await prisma.productStandListing.deleteMany({
+        where: { productId }
+      });
+
+      // Create new listings with inventory > 0
+      if (standListings.length > 0) {
+        await prisma.productStandListing.createMany({
+          data: standListings
+            .filter(l => l.inventory > 0)
+            .map(l => ({
+              productId,
+              marketStandId: l.marketStandId,
+              customInventory: l.inventory,
+              isActive: true,
+              isPrimary: false
+            }))
+        });
+      }
+
+      // Update delivery listings
+      await prisma.productDeliveryListing.deleteMany({
+        where: { productId }
+      });
+
+      if (deliveryListings.length > 0) {
+        await prisma.productDeliveryListing.createMany({
+          data: deliveryListings
+            .filter(l => l.inventory > 0)
+            .map(l => ({
+              productId,
+              deliveryZoneId: l.deliveryZoneId,
+              dayOfWeek: l.dayOfWeek,
+              inventory: l.inventory
+            }))
+        });
       }
     } else {
       // Create new product
@@ -191,9 +216,6 @@ export async function SellProduct(
           images: validateFields.data.images,
           tags: validateFields.data.tags,
           userId: user.id,
-          marketStandId: validateFields.data.marketStandId,
-          inventory: validateFields.data.inventory,
-          inventoryUpdatedAt: new Date()
         }
       });
 
@@ -202,6 +224,35 @@ export async function SellProduct(
           status: "error",
           message: "Failed to create product"
         };
+      }
+
+      // Create stand listings
+      if (standListings.length > 0) {
+        await prisma.productStandListing.createMany({
+          data: standListings
+            .filter(l => l.inventory > 0)
+            .map(l => ({
+              productId: product.id,
+              marketStandId: l.marketStandId,
+              customInventory: l.inventory,
+              isActive: true,
+              isPrimary: false
+            }))
+        });
+      }
+
+      // Create delivery listings
+      if (deliveryListings.length > 0) {
+        await prisma.productDeliveryListing.createMany({
+          data: deliveryListings
+            .filter(l => l.inventory > 0)
+            .map(l => ({
+              productId: product.id,
+              deliveryZoneId: l.deliveryZoneId,
+              dayOfWeek: l.dayOfWeek,
+              inventory: l.inventory
+            }))
+        });
       }
     }
 

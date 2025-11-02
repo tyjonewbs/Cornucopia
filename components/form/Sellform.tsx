@@ -11,7 +11,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
@@ -21,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/ImageUpload";
 import { Submitbutton } from "@/components/SubmitButtons";
 import Image from "next/image";
+import { ProductAvailabilityManager } from "@/components/form/ProductAvailabilityManager";
 
 interface MarketStand {
   id: string;
@@ -33,17 +33,35 @@ interface MarketStand {
   userId: string | null;
 }
 
+interface DeliveryZone {
+  id: string;
+  name: string;
+  deliveryDays: string[];
+}
+
+interface StandListing {
+  marketStandId: string;
+  inventory: number;
+}
+
+interface DeliveryListing {
+  deliveryZoneId: string;
+  dayOfWeek: string;
+  inventory: number;
+}
+
 interface SellFormProps {
   marketStand?: MarketStand;
+  marketStands?: MarketStand[];
+  deliveryZones?: DeliveryZone[];
   initialData?: {
     name: string;
     price: number;
     description: string;
     images: string[];
     tags: string[];
-    marketStandId: string;
-    inventory?: number;
-    inventoryUpdatedAt?: Date | null;
+    standListings?: StandListing[];
+    deliveryListings?: DeliveryListing[];
   };
   productId?: string;
 }
@@ -57,12 +75,14 @@ const sellProductAction = async (state: State | Response, formData: FormData) =>
   return result;
 };
 
-export function SellForm({ marketStand, initialData, productId }: SellFormProps) {
+export function SellForm({ marketStand, marketStands = [], deliveryZones = [], initialData, productId }: SellFormProps) {
   const initialState: State = { message: null, status: undefined };
   const [state, formAction] = useFormState(sellProductAction, initialState);
   const [images, setImages] = useState<string[]>(initialData?.images || []);
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
   const [currentTag, setCurrentTag] = useState('');
+  const [standListings, setStandListings] = useState<StandListing[]>(initialData?.standListings || []);
+  const [deliveryListings, setDeliveryListings] = useState<DeliveryListing[]>(initialData?.deliveryListings || []);
 
   const handleAddTag = () => {
     const tag = currentTag.trim();
@@ -91,20 +111,9 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
   useEffect(() => {
     if (isState(state) && state.status === "success" && state.message) {
       toast.success(state.message);
-      router.push('/dashboard/sell');
+      router.push('/dashboard/products');
     } else if (isState(state) && state.status === "error" && state.message) {
-      if (state.message.includes("Stripe account")) {
-        toast.error(
-          <div className="flex flex-col gap-2">
-            <p>{state.message}</p>
-            <Link href="/billing" className="text-sm text-blue-500 hover:underline">
-              Go to billing settings
-            </Link>
-          </div>
-        );
-      } else {
-        toast.error(state.message);
-      }
+      toast.error(state.message);
     }
   }, [state, router]);
 
@@ -135,23 +144,6 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
         </div>
 
         {productId && <input type="hidden" name="productId" value={productId} />}
-        <input 
-          type="hidden" 
-          name="marketStandId" 
-          value={initialData?.marketStandId || marketStand?.id} 
-        />
-
-        {marketStand && (
-          <div className="flex flex-col gap-y-4">
-            <Label>Market Stand</Label>
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-medium">{marketStand.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                {marketStand.description || 'No description'}
-              </p>
-            </div>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div className="flex flex-col gap-y-2">
@@ -170,19 +162,6 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
             {isState(state) && state.errors?.price?.[0] && (
               <p className="text-sm font-medium text-destructive mt-1.5">{state.errors.price[0]}</p>
             )}
-          </div>
-
-          <div className="flex flex-col gap-y-2">
-            <Label htmlFor="inventory">Initial Inventory</Label>
-            <Input
-              id="inventory"
-              placeholder="0"
-              type="number"
-              name="inventory"
-              min={0}
-              defaultValue={initialData?.inventory ?? 0}
-              aria-label="Initial inventory amount"
-            />
           </div>
         </div>
 
@@ -282,6 +261,21 @@ export function SellForm({ marketStand, initialData, productId }: SellFormProps)
           {isState(state) && state.errors?.images?.[0] && (
             <p className="text-sm font-medium text-destructive mt-1.5">{state.errors.images[0]}</p>
           )}
+        </div>
+
+        {/* New Availability Manager */}
+        <div className="border-t pt-6">
+          <ProductAvailabilityManager
+            marketStands={marketStands}
+            deliveryZones={deliveryZones}
+            standListings={standListings}
+            deliveryListings={deliveryListings}
+            onStandListingsChange={setStandListings}
+            onDeliveryListingsChange={setDeliveryListings}
+          />
+          {/* Hidden fields to pass listings data to form */}
+          <input type="hidden" name="standListings" value={JSON.stringify(standListings)} />
+          <input type="hidden" name="deliveryListings" value={JSON.stringify(deliveryListings)} />
         </div>
       </CardContent>
       <CardFooter className="mt-5">

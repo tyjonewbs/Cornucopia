@@ -11,6 +11,10 @@ interface DashboardStats {
   pendingStands: number
   pendingProducts: number
   reportedReviews: number
+  totalOrders: number
+  activeDeliveries: number
+  pendingIssues: number
+  totalRevenue: number
 }
 
 interface Activity {
@@ -28,7 +32,11 @@ export default function AdminDashboard() {
     totalUsers: 0,
     pendingStands: 0,
     pendingProducts: 0,
-    reportedReviews: 0
+    reportedReviews: 0,
+    totalOrders: 0,
+    activeDeliveries: 0,
+    pendingIssues: 0,
+    totalRevenue: 0
   })
   const [activities, setActivities] = useState<Activity[]>([])
   const router = useRouter()
@@ -58,30 +66,74 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6 bg-blue-50">
-          <h3 className="text-lg font-medium text-gray-900">Total Users</h3>
-          <p className="mt-2 text-3xl font-bold text-blue-600">{stats.totalUsers}</p>
-          <p className="mt-1 text-sm text-gray-500">Platform users</p>
-        </Card>
+      {/* Platform Stats */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Platform Overview</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="p-6 bg-blue-50">
+            <h3 className="text-lg font-medium text-gray-900">Total Users</h3>
+            <p className="mt-2 text-3xl font-bold text-blue-600">{stats.totalUsers}</p>
+            <p className="mt-1 text-sm text-gray-500">Platform users</p>
+          </Card>
 
-        <Card className="p-6 bg-yellow-50">
-          <h3 className="text-lg font-medium text-gray-900">Pending Stands</h3>
-          <p className="mt-2 text-3xl font-bold text-yellow-600">{stats.pendingStands}</p>
-          <p className="mt-1 text-sm text-gray-500">Awaiting approval</p>
-        </Card>
+          <Card className="p-6 bg-yellow-50">
+            <h3 className="text-lg font-medium text-gray-900">Pending Stands</h3>
+            <p className="mt-2 text-3xl font-bold text-yellow-600">{stats.pendingStands}</p>
+            <p className="mt-1 text-sm text-gray-500">Awaiting approval</p>
+          </Card>
 
-        <Card className="p-6 bg-purple-50">
-          <h3 className="text-lg font-medium text-gray-900">Pending Products</h3>
-          <p className="mt-2 text-3xl font-bold text-purple-600">{stats.pendingProducts}</p>
-          <p className="mt-1 text-sm text-gray-500">Awaiting review</p>
-        </Card>
+          <Card className="p-6 bg-purple-50">
+            <h3 className="text-lg font-medium text-gray-900">Pending Products</h3>
+            <p className="mt-2 text-3xl font-bold text-purple-600">{stats.pendingProducts}</p>
+            <p className="mt-1 text-sm text-gray-500">Awaiting review</p>
+          </Card>
 
-        <Card className="p-6 bg-red-50">
-          <h3 className="text-lg font-medium text-gray-900">Reported Reviews</h3>
-          <p className="mt-2 text-3xl font-bold text-red-600">{stats.reportedReviews}</p>
-          <p className="mt-1 text-sm text-gray-500">Need attention</p>
-        </Card>
+          <Card className="p-6 bg-red-50">
+            <h3 className="text-lg font-medium text-gray-900">Reported Reviews</h3>
+            <p className="mt-2 text-3xl font-bold text-red-600">{stats.reportedReviews}</p>
+            <p className="mt-1 text-sm text-gray-500">Need attention</p>
+          </Card>
+        </div>
+      </div>
+
+      {/* Delivery Oversight Stats */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Delivery Oversight</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card 
+            className="p-6 bg-indigo-50 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => router.push('/admin/orders')}
+          >
+            <h3 className="text-lg font-medium text-gray-900">Total Orders</h3>
+            <p className="mt-2 text-3xl font-bold text-indigo-600">{stats.totalOrders}</p>
+            <p className="mt-1 text-sm text-gray-500">All marketplace orders</p>
+          </Card>
+
+          <Card 
+            className="p-6 bg-blue-50 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => router.push('/admin/orders')}
+          >
+            <h3 className="text-lg font-medium text-gray-900">Active Deliveries</h3>
+            <p className="mt-2 text-3xl font-bold text-blue-600">{stats.activeDeliveries}</p>
+            <p className="mt-1 text-sm text-gray-500">Orders in progress</p>
+          </Card>
+
+          <Card 
+            className="p-6 bg-orange-50 cursor-pointer hover:shadow-md transition-shadow"
+          >
+            <h3 className="text-lg font-medium text-gray-900">Pending Issues</h3>
+            <p className="mt-2 text-3xl font-bold text-orange-600">{stats.pendingIssues}</p>
+            <p className="mt-1 text-sm text-gray-500">Customer reports</p>
+          </Card>
+
+          <Card className="p-6 bg-green-50">
+            <h3 className="text-lg font-medium text-gray-900">Total Revenue</h3>
+            <p className="mt-2 text-3xl font-bold text-green-600">
+              ${(stats.totalRevenue / 100).toFixed(2)}
+            </p>
+            <p className="mt-1 text-sm text-gray-500">From completed orders</p>
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

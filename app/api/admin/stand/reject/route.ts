@@ -43,12 +43,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Stand not found' }, { status: 404 })
     }
 
-    // Update stand status to REJECTED
+    // Update stand status to REJECTED and set isActive to false
     await prisma.$transaction([
       // Update the stand
       prisma.marketStand.update({
         where: { id },
-        data: { status: 'REJECTED' }
+        data: { 
+          status: 'REJECTED',
+          isActive: false
+        }
       }),
       // Record the status change
       prisma.standStatusHistory.create({
@@ -62,9 +65,12 @@ export async function POST(request: NextRequest) {
       })
     ])
 
-    // Revalidate the pending stands page
+    // Revalidate relevant pages
     revalidatePath('/admin/market-stand/pending')
     revalidatePath('/admin')
+    revalidatePath('/') // Home page
+    revalidatePath('/market-stand/grid') // Market stand grid
+    revalidatePath(`/market-stand/${id}`) // Individual market stand page
 
     return NextResponse.json({ 
       success: true,
