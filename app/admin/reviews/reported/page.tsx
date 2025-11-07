@@ -15,8 +15,8 @@ type ReportedReview = {
   createdAt: Date
   type: 'product' | 'stand'
   user: {
-    firstName: string
-    lastName: string
+    firstName: string | null
+    lastName: string | null
     email: string
   }
   itemName: string

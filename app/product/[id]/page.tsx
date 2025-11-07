@@ -137,7 +137,7 @@ export default async function ProductPage({
   }
 
   // Fetch nearby products if we have market stand location
-  let nearbyProducts = [];
+  let nearbyProducts: Awaited<ReturnType<typeof getNearbyProducts>> = [];
   if (data.marketStand?.latitude && data.marketStand?.longitude) {
     nearbyProducts = await getNearbyProducts(
       data.id,

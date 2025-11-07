@@ -85,7 +85,7 @@ export const getHomeProducts = async (userLocation: LocationType | null, cursor?
           name: product.marketStand.name,
           latitude: product.marketStand.latitude,
           longitude: product.marketStand.longitude,
-          locationName: product.marketStand.locationName,
+          locationName: product.marketStand.locationName || product.marketStand.name,
           isPrimary: true,
         });
       }
@@ -114,7 +114,7 @@ export const getHomeProducts = async (userLocation: LocationType | null, cursor?
                 name: stand.name,
                 latitude: stand.latitude,
                 longitude: stand.longitude,
-                locationName: stand.locationName,
+                locationName: stand.locationName || stand.name,
                 isPrimary: false,
               });
             }

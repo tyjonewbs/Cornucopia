@@ -1,5 +1,4 @@
-import { getUserDeliveryZones } from "@/app/actions/delivery-zones";
-import { getDeliveryOrders } from "@/app/actions/orders";
+import { getUserDeliveryZones, getDeliveryZoneProducts } from "@/app/actions/delivery-zones";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import DeliveryClient from "./delivery-client";
@@ -25,7 +24,17 @@ export default async function DeliveryZonesPage() {
   }
 
   const zones = result.zones || [];
-  const ordersByDay = await getDeliveryOrders();
 
-  return <DeliveryClient zones={zones as any} ordersByDay={ordersByDay} />;
+  // Fetch products for ALL zones
+  const zonesWithProducts = await Promise.all(
+    zones.map(async (zone) => {
+      const productsResult = await getDeliveryZoneProducts(zone.id);
+      return {
+        zone,
+        productsByDay: productsResult.success ? productsResult.productsByDay : {}
+      };
+    })
+  );
+
+  return <DeliveryClient zonesWithProducts={zonesWithProducts as any} />;
 }

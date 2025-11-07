@@ -14,6 +14,9 @@ export interface MarketStandDTO {
   latitude: number;
   longitude: number;
   locationName: string;
+  streetAddress: string | null;
+  city: string | null;
+  zipCode: string | null;
   locationGuide: string;
   website: string | null;
   socialMedia: string[];
@@ -33,6 +36,9 @@ export interface CreateMarketStandDTO {
   name: string;
   description: string;
   locationName: string;
+  streetAddress?: string | null;
+  city?: string | null;
+  zipCode?: string | null;
   locationGuide: string;
   latitude: number;
   longitude: number;
@@ -50,6 +56,9 @@ export interface UpdateMarketStandDTO {
   name?: string;
   description?: string;
   locationName?: string;
+  streetAddress?: string | null;
+  city?: string | null;
+  zipCode?: string | null;
   locationGuide?: string;
   latitude?: number;
   longitude?: number;

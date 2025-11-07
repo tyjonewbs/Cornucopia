@@ -77,7 +77,7 @@ export function ProductCatalogList({ products }: ProductCatalogListProps) {
                     <span className="font-medium">{product.name}</span>
                   </div>
                 </TableCell>
-                <TableCell>{formatPrice(product.price)}</TableCell>
+                <TableCell>{formatPrice(product.price / 100)}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-2">
                     {product.isOnline && (

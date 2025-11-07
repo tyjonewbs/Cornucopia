@@ -33,8 +33,8 @@ type StatusHistoryItem = {
   note: string
   createdAt: Date
   changedBy: {
-    firstName: string
-    lastName: string
+    firstName: string | null
+    lastName: string | null
     email: string
   }
 }
@@ -50,8 +50,8 @@ type MarketStandWithRelations = {
   totalReviews: number
   user: {
     id: string
-    firstName: string
-    lastName: string
+    firstName: string | null
+    lastName: string | null
     email: string
   }
   products: Array<{
@@ -223,7 +223,9 @@ function StatusHistoryRow({ stand }: { stand: MarketStandWithRelations }) {
               </div>
               <div className="text-gray-600">
                 <span className="font-medium">
-                  {history.changedBy.firstName} {history.changedBy.lastName}
+                  {history.changedBy.firstName && history.changedBy.lastName 
+                    ? `${history.changedBy.firstName} ${history.changedBy.lastName}`
+                    : history.changedBy.firstName || history.changedBy.lastName || 'Unknown'}
                 </span>
               </div>
               <div className="text-gray-700 bg-gray-50 p-2 rounded">
@@ -261,9 +263,12 @@ export const columns: ColumnDef<MarketStandWithRelations>[] = [
     header: "Owner",
     cell: ({ row }) => {
       const user = row.original.user
+      const displayName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}`
+        : user.firstName || user.lastName || 'Unknown'
       return (
         <div className="flex flex-col">
-          <span className="font-medium">{`${user.firstName} ${user.lastName}`}</span>
+          <span className="font-medium">{displayName}</span>
           <span className="text-sm text-gray-500">{user.email}</span>
         </div>
       )

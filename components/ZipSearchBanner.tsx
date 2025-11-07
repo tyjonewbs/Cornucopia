@@ -7,6 +7,7 @@ import { geocodeZipCode } from "@/app/actions/geocode";
 import { type LocationType } from "@/app/actions/home-products";
 import { MapPin } from 'lucide-react';
 import useUserLocation from '@/app/hooks/useUserLocation';
+import { setCachedZipCode } from '@/lib/utils/location-cache';
 
 interface ZipSearchBannerProps {
   onLocationUpdate: (location: LocationType | null) => void;
@@ -57,7 +58,13 @@ export function ZipSearchBanner({ onLocationUpdate }: ZipSearchBannerProps) {
         source: 'zipcode'
       };
 
-      console.log('Zip code location found:', zipLocation);
+      // Cache the zip code for use on product pages
+      setCachedZipCode(zipCode, {
+        lat: location.lat,
+        lng: location.lng
+      });
+
+      console.log('Zip code location found and cached:', zipLocation);
       onLocationUpdate(zipLocation);
     } catch (err) {
       console.error('Geocoding error:', err);

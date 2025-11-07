@@ -11,6 +11,7 @@ import {
 import { WeeklyHours } from "@/lib/dto/marketStand.dto";
 import { DEFAULT_WEEKLY_HOURS } from "@/types/hours";
 import { HoursInput } from "./HoursInput";
+import { DeleteMarketStandButton } from "./DeleteMarketStandButton";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +39,9 @@ interface MarketStandFormProps {
     tags: string[];
     latitude: number;
     longitude: number;
-    locationName: string;
+    streetAddress?: string | null;
+    city?: string | null;
+    zipCode?: string | null;
     locationGuide: string;
     website?: string;
     socialMedia?: string[];
@@ -51,7 +54,9 @@ interface FormState {
   values: {
     name: string;
     description: string;
-    locationName: string;
+    streetAddress: string;
+    city: string;
+    zipCode: string;
     locationGuide: string;
     latitude: string;
     longitude: string;
@@ -65,7 +70,9 @@ interface FormState {
   errors: {
     name?: string;
     description?: string;
-    locationName?: string;
+    streetAddress?: string;
+    city?: string;
+    zipCode?: string;
     locationGuide?: string;
     latitude?: string;
     longitude?: string;
@@ -81,8 +88,8 @@ const validateField = (name: string, value: string | string[] | WeeklyHours): st
   if (Array.isArray(value) || typeof value === 'object') return undefined;
   
   if (!value || value.trim() === '') {
-    // Website is optional, so don't require it
-    if (name === 'website') return undefined;
+    // Optional fields
+    if (name === 'website' || name === 'streetAddress' || name === 'city' || name === 'zipCode') return undefined;
     return "This field is required";
   }
   
@@ -91,8 +98,12 @@ const validateField = (name: string, value: string | string[] | WeeklyHours): st
       return value.length < 3 ? "Name must be at least 3 characters long" : undefined;
     case "description":
       return value.length < 10 ? "Must be at least 10 characters long" : undefined;
-    case "locationName":
-      return value.length < 3 ? "Location name must be at least 3 characters long" : undefined;
+    case "streetAddress":
+      return value.length > 255 ? "Street address is too long" : undefined;
+    case "city":
+      return value.length > 100 ? "City name is too long" : undefined;
+    case "zipCode":
+      return value.length > 10 ? "Zip code is too long" : undefined;
     case "locationGuide":
       return value.length < 10 ? "Must provide detailed directions" : undefined;
     case "latitude":
@@ -124,7 +135,9 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
     values: {
       name: marketStand?.name || '',
       description: marketStand?.description || '',
-      locationName: marketStand?.locationName || '',
+      streetAddress: marketStand?.streetAddress || '',
+      city: marketStand?.city || '',
+      zipCode: marketStand?.zipCode || '',
       locationGuide: marketStand?.locationGuide || '',
       latitude: marketStand?.latitude?.toString() || '',
       longitude: marketStand?.longitude?.toString() || '',
@@ -165,9 +178,9 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
     const newErrors: FormState['errors'] = {};
     let isValid = true;
 
-    // Validate required fields only
-    const fieldsToValidate = ['name', 'description', 'locationName', 'locationGuide', 'latitude', 'longitude', 'website'];
-    fieldsToValidate.forEach(name => {
+    // Validate required fields
+    const requiredFields = ['name', 'description', 'locationGuide', 'website'];
+    requiredFields.forEach(name => {
       const value = formState.values[name as keyof typeof formState.values];
       const error = validateField(name, value);
       if (error) {
@@ -175,6 +188,56 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
         isValid = false;
       }
     });
+
+    // Validate location: Either complete address OR lat/long is required
+    const hasStreetAddress = formState.values.streetAddress.trim() !== '';
+    const hasCity = formState.values.city.trim() !== '';
+    const hasZipCode = formState.values.zipCode.trim() !== '';
+    const hasLatitude = formState.values.latitude.trim() !== '';
+    const hasLongitude = formState.values.longitude.trim() !== '';
+
+    const hasCompleteAddress = hasStreetAddress && hasCity && hasZipCode;
+    const hasCoordinates = hasLatitude && hasLongitude;
+
+    // Check if we have either complete address or coordinates
+    if (!hasCompleteAddress && !hasCoordinates) {
+      newErrors.streetAddress = "Either provide a complete address (street, city, zip) OR GPS coordinates";
+      newErrors.latitude = "Either provide GPS coordinates (lat & long) OR a complete address";
+      isValid = false;
+    } else {
+      // If partial address provided, validate completeness
+      const hasPartialAddress = hasStreetAddress || hasCity || hasZipCode;
+      if (hasPartialAddress && !hasCompleteAddress) {
+        if (!hasStreetAddress) newErrors.streetAddress = "Street address is required when providing an address";
+        if (!hasCity) newErrors.city = "City is required when providing an address";
+        if (!hasZipCode) newErrors.zipCode = "Zip code is required when providing an address";
+        isValid = false;
+      }
+
+      // Validate lat/long values if provided
+      if (hasLatitude || hasLongitude) {
+        if (hasLatitude) {
+          const latError = validateField('latitude', formState.values.latitude);
+          if (latError) {
+            newErrors.latitude = latError;
+            isValid = false;
+          }
+        }
+        if (hasLongitude) {
+          const lngError = validateField('longitude', formState.values.longitude);
+          if (lngError) {
+            newErrors.longitude = lngError;
+            isValid = false;
+          }
+        }
+        // Both must be provided together
+        if ((hasLatitude && !hasLongitude) || (!hasLatitude && hasLongitude)) {
+          newErrors.latitude = "Both latitude and longitude are required";
+          newErrors.longitude = "Both latitude and longitude are required";
+          isValid = false;
+        }
+      }
+    }
 
     // Validate images
     if (images.length === 0) {
@@ -289,7 +352,10 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
     // Add all form values manually instead of relying on the form element
     formData.append('name', formState.values.name);
     formData.append('description', formState.values.description);
-    formData.append('locationName', formState.values.locationName);
+    formData.append('locationName', formState.values.name); // Auto-populate with name
+    formData.append('streetAddress', formState.values.streetAddress);
+    formData.append('city', formState.values.city);
+    formData.append('zipCode', formState.values.zipCode);
     formData.append('locationGuide', formState.values.locationGuide);
     formData.append('latitude', formState.values.latitude);
     formData.append('longitude', formState.values.longitude);
@@ -436,28 +502,111 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
           )}
         </div>
 
-        <div className="flex flex-col gap-y-2">
-          <Label>Location Name</Label>
-          <Input
-            name="locationName"
-            type="text"
-            placeholder="e.g., Central Park, Downtown Market"
-            required
-            minLength={3}
-            value={formState.values.locationName}
-            onChange={(e) => handleFieldChange('locationName', e.target.value)}
-            className={formState.errors.locationName ? 'border-destructive' : ''}
-          />
-          {formState.errors.locationName && (
-            <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.locationName}</p>
-          )}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-2">Location Information</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Provide either a complete address (street, city, zip) OR GPS coordinates. You can provide both for maximum accuracy.
+          </p>
+          
+          <div className="flex flex-col gap-y-4">
+            <div className="flex flex-col gap-y-2">
+              <Label>Street Address (Optional)</Label>
+              <Input
+                name="streetAddress"
+                type="text"
+                placeholder="e.g., 123 Main Street"
+                value={formState.values.streetAddress}
+                onChange={(e) => handleFieldChange('streetAddress', e.target.value)}
+                className={formState.errors.streetAddress ? 'border-destructive' : ''}
+              />
+              {formState.errors.streetAddress && (
+                <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.streetAddress}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              <div className="flex flex-col gap-y-2">
+                <Label>City (Optional)</Label>
+                <Input
+                  name="city"
+                  type="text"
+                  placeholder="e.g., San Francisco"
+                  value={formState.values.city}
+                  onChange={(e) => handleFieldChange('city', e.target.value)}
+                  className={formState.errors.city ? 'border-destructive' : ''}
+                />
+                {formState.errors.city && (
+                  <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.city}</p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-y-2">
+                <Label>Zip Code (Optional)</Label>
+                <Input
+                  name="zipCode"
+                  type="text"
+                  placeholder="e.g., 94102"
+                  value={formState.values.zipCode}
+                  onChange={(e) => handleFieldChange('zipCode', e.target.value)}
+                  className={formState.errors.zipCode ? 'border-destructive' : ''}
+                />
+                {formState.errors.zipCode && (
+                  <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.zipCode}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-2">
+              <Label className="text-base">GPS Coordinates (Optional)</Label>
+              <p className="text-sm text-muted-foreground mt-1 mb-3">
+                If an address doesn't accurately show where the market stand is (often in the countryside), please find the latitude/longitude and add it here.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <div className="flex flex-col gap-y-2">
+                  <Label>Latitude</Label>
+                  <Input
+                    name="latitude"
+                    type="number"
+                    step="any"
+                    placeholder="e.g., 40.7128"
+                    value={formState.values.latitude}
+                    onChange={(e) => handleFieldChange('latitude', e.target.value)}
+                    className={formState.errors.latitude ? 'border-destructive' : ''}
+                  />
+                  {formState.errors.latitude && (
+                    <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.latitude}</p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-y-2">
+                  <Label>Longitude</Label>
+                  <Input
+                    name="longitude"
+                    type="number"
+                    step="any"
+                    placeholder="e.g., -74.0060"
+                    value={formState.values.longitude}
+                    onChange={(e) => handleFieldChange('longitude', e.target.value)}
+                    className={formState.errors.longitude ? 'border-destructive' : ''}
+                  />
+                  {formState.errors.longitude && (
+                    <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.longitude}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col gap-y-2">
-          <Label>Location Guide</Label>
+          <Label>Location Guide & Directions</Label>
+          <p className="text-sm text-muted-foreground mb-2">
+            Provide detailed directions to help people find your stand (e.g., "Come up the driveway, the dogs don't bite they just bark")
+          </p>
           <Textarea
             name="locationGuide"
-            placeholder="Please provide detailed directions to find your stand..."
+            placeholder="e.g., Turn left at the red barn, follow the gravel path for 100 yards..."
             required
             minLength={10}
             value={formState.values.locationGuide}
@@ -587,42 +736,6 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <div className="flex flex-col gap-y-2">
-            <Label>Latitude</Label>
-            <Input
-              name="latitude"
-              type="number"
-              step="any"
-              placeholder="e.g., 40.7128"
-              required
-              value={formState.values.latitude}
-              onChange={(e) => handleFieldChange('latitude', e.target.value)}
-              className={formState.errors.latitude ? 'border-destructive' : ''}
-            />
-            {formState.errors.latitude && (
-              <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.latitude}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-y-2">
-            <Label>Longitude</Label>
-            <Input
-              name="longitude"
-              type="number"
-              step="any"
-              placeholder="e.g., -74.0060"
-              required
-              value={formState.values.longitude}
-              onChange={(e) => handleFieldChange('longitude', e.target.value)}
-              className={formState.errors.longitude ? 'border-destructive' : ''}
-            />
-            {formState.errors.longitude && (
-              <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.longitude}</p>
-            )}
-          </div>
-        </div>
-
         <div className="flex flex-col gap-y-2">
           <Label>Market Stand Images</Label>
           {formState.errors.images && (
@@ -631,13 +744,13 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
           {images.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               {images.map((url, index) => (
-                <div key={index} className="relative aspect-square group">
+                <div key={index} className="relative w-full h-48 group">
                   <Image
                     src={url}
                     alt={`Market stand image ${index + 1}`}
-                    className="object-cover rounded-lg"
                     fill
                     sizes="(max-width: 768px) 50vw, 33vw"
+                    className="rounded-lg object-cover"
                       onError={(e) => {
                         // Replace with placeholder
                         e.currentTarget.style.display = 'none';
@@ -672,10 +785,8 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
           )}
           <ImageUpload
             onUploadComplete={(urls) => {
-              if (urls && urls.length > 0) {
-                setImages(prev => [...prev, ...urls]);
-                toast.success("Images uploaded successfully");
-              }
+              setImages(prev => [...prev, ...urls]);
+              toast.success("Images uploaded successfully");
             }}
             maxFiles={5}
             bucket="market-stand-images"
@@ -683,11 +794,20 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
         </div>
       </CardContent>
       <CardFooter className="mt-5">
-        <div className="flex-1 flex justify-end">
-          <SubmitStandButton 
-            title={marketStand ? "Save Changes" : "Create Market Stand"}
-            isFormValid={isFormValid}
-          />
+        <div className="flex-1 flex justify-between items-center">
+          {marketStand && (
+            <DeleteMarketStandButton
+              marketStandId={marketStand.id}
+              marketStandName={marketStand.name}
+              userId={userId}
+            />
+          )}
+          <div className={marketStand ? '' : 'ml-auto'}>
+            <SubmitStandButton 
+              title={marketStand ? "Save Changes" : "Create Market Stand"}
+              isFormValid={isFormValid}
+            />
+          </div>
         </div>
       </CardFooter>
     </form>

@@ -45,6 +45,8 @@ export default async function EditProductPage({
 
         <SellForm
           productId={product.id}
+          userId={user.id}
+          productName={product.name}
           marketStands={marketStands as any}
           deliveryZones={deliveryZones}
           initialData={{
@@ -53,13 +55,6 @@ export default async function EditProductPage({
             description: product.description,
             images: product.images,
             tags: product.tags,
-            marketStandId: product.marketStandId,
-            deliveryAvailable: !!product.deliveryZoneId,
-            deliveryZoneId: product.deliveryZoneId,
-            availableDate: product.availableDate ? new Date(product.availableDate) : null,
-            availableUntil: product.availableUntil ? new Date(product.availableUntil) : null,
-            inventory: product.inventory,
-            inventoryUpdatedAt: product.inventoryUpdatedAt ? new Date(product.inventoryUpdatedAt) : null,
           }}
         />
       </div>

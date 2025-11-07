@@ -7,8 +7,8 @@ import { UserRole } from '@prisma/client'
 type UserWithRelations = {
   id: string
   email: string
-  firstName: string
-  lastName: string
+  firstName: string | null
+  lastName: string | null
   role: UserRole
   createdAt: Date
   marketStands: Array<{
@@ -27,9 +27,12 @@ export const columns: ColumnDef<UserWithRelations>[] = [
     header: "Name",
     cell: ({ row }) => {
       const user = row.original
+      const displayName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}`
+        : user.firstName || user.lastName || 'Unknown'
       return (
         <div className="flex flex-col">
-          <span className="font-medium">{`${user.firstName} ${user.lastName}`}</span>
+          <span className="font-medium">{displayName}</span>
           <span className="text-sm text-gray-500">{user.email}</span>
         </div>
       )

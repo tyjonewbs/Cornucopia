@@ -1,5 +1,5 @@
 import prisma, { executeWithRetry } from "@/lib/db";
-import { Prisma, Status } from "@prisma/client";
+import { Prisma, Status, DeliveryType } from "@prisma/client";
 import { serializeProduct, serializeProducts } from "@/lib/serializers";
 import { ProductWithMarketStandDTO, ProductQueryFilters } from "@/lib/dto/product.dto";
 import {
@@ -200,11 +200,22 @@ export class ProductRepository {
     status: Status;
     isActive: boolean;
     userId: string;
-    marketStandId: string;
+    marketStandId?: string | null;
+    deliveryAvailable?: boolean;
+    deliveryZoneId?: string | null;
+    deliveryType?: DeliveryType | null;
     tags: string[];
   }): Promise<ProductWithMarketStandDTO> {
+    // Automatically set deliveryType to RECURRING if delivery is enabled
+    const productData = {
+      ...data,
+      deliveryType: data.deliveryAvailable 
+        ? (data.deliveryType || DeliveryType.RECURRING) 
+        : data.deliveryType,
+    };
+
     const product = await prisma.product.create({
-      data,
+      data: productData,
       include: {
         marketStand: {
           select: {
@@ -213,6 +224,18 @@ export class ProductRepository {
             locationName: true,
             latitude: true,
             longitude: true,
+          },
+        },
+        deliveryZone: {
+          select: {
+            id: true,
+            name: true,
+            deliveryFee: true,
+            minimumOrder: true,
+            freeDeliveryThreshold: true,
+            zipCodes: true,
+            cities: true,
+            states: true,
           },
         },
       },
@@ -241,12 +264,21 @@ export class ProductRepository {
       inventoryUpdatedAt: Date | null;
       status: Status;
       isActive: boolean;
+      deliveryAvailable: boolean;
+      deliveryZoneId: string | null;
+      deliveryType: DeliveryType | null;
       tags: string[];
     }>
   ): Promise<ProductWithMarketStandDTO> {
+    // Automatically set deliveryType to RECURRING if delivery is being enabled
+    const updateData: any = { ...data };
+    if (data.deliveryAvailable && !data.deliveryType) {
+      updateData.deliveryType = DeliveryType.RECURRING;
+    }
+
     const product = await prisma.product.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
         marketStand: {
           select: {
@@ -255,6 +287,18 @@ export class ProductRepository {
             locationName: true,
             latitude: true,
             longitude: true,
+          },
+        },
+        deliveryZone: {
+          select: {
+            id: true,
+            name: true,
+            deliveryFee: true,
+            minimumOrder: true,
+            freeDeliveryThreshold: true,
+            zipCodes: true,
+            cities: true,
+            states: true,
           },
         },
       },

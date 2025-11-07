@@ -90,8 +90,39 @@ export async function updateProduct(
  * Delete a product
  * Uses the product service layer for business logic
  */
-export async function deleteProduct(id: string): Promise<void> {
-  return await productService.deleteProduct(id);
+export async function deleteProduct(id: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Verify ownership before deleting
+    const product = await prisma.product.findUnique({
+      where: { id }
+    });
+
+    if (!product) {
+      return {
+        success: false,
+        error: "Product not found"
+      };
+    }
+
+    if (product.userId !== userId) {
+      return {
+        success: false,
+        error: "Unauthorized: You don't own this product"
+      };
+    }
+
+    // Delete the product (cascading deletes will handle related records)
+    await prisma.product.delete({
+      where: { id }
+    });
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Error deleting product"
+    };
+  }
 }
 
 /**

@@ -18,9 +18,7 @@ import { DeliveryOrdersByDay, DeliveryOrder, updateOrderStatus } from "@/app/act
 import { formatPrice } from "@/lib/utils/format";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-
-// Order status type
-type OrderStatus = 'PENDING' | 'CONFIRMED' | 'READY' | 'DELIVERED';
+import { OrderStatus } from "@prisma/client";
 
 interface OrdersClientProps {
   ordersByDay: DeliveryOrdersByDay;
@@ -81,6 +79,12 @@ export default function OrdersClient({ ordersByDay }: OrdersClientProps) {
         return 'default';
       case 'READY':
         return 'outline';
+      case 'DELIVERED':
+        return 'default';
+      case 'COMPLETED':
+        return 'secondary';
+      case 'CANCELLED':
+        return 'destructive';
       default:
         return 'secondary';
     }
@@ -94,6 +98,12 @@ export default function OrdersClient({ ordersByDay }: OrdersClientProps) {
         return 'Confirmed';
       case 'READY':
         return 'Ready for Delivery';
+      case 'DELIVERED':
+        return 'Delivered';
+      case 'COMPLETED':
+        return 'Completed';
+      case 'CANCELLED':
+        return 'Cancelled';
       default:
         return status;
     }

@@ -51,7 +51,7 @@ export default async function CompleteProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ProfileCompletionForm currentUser={userData} />
+            <ProfileCompletionForm currentUser={userData ?? undefined} />
           </CardContent>
         </Card>
 

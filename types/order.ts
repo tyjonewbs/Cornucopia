@@ -83,6 +83,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: 'Pending',
   CONFIRMED: 'Confirmed',
   READY: 'Ready for Pickup',
+  DELIVERED: 'Delivered',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 };
@@ -97,6 +98,7 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   PENDING: 'yellow',
   CONFIRMED: 'blue',
   READY: 'green',
+  DELIVERED: 'green',
   COMPLETED: 'gray',
   CANCELLED: 'red',
 };

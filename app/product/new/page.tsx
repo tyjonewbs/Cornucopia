@@ -38,6 +38,7 @@ async function getUserDeliveryZones(userId: string) {
       zipCodes: true,
       cities: true,
       states: true,
+      deliveryDays: true,
     },
   });
   return deliveryZones;

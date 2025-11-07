@@ -13,13 +13,13 @@ type PendingProduct = {
   status: Status
   createdAt: Date
   user: {
-    firstName: string
-    lastName: string
+    firstName: string | null
+    lastName: string | null
     email: string
   }
   marketStand: {
     name: string
-  }
+  } | null
 }
 
 export const columns: ColumnDef<PendingProduct>[] = [
@@ -39,9 +39,9 @@ export const columns: ColumnDef<PendingProduct>[] = [
   {
     id: "marketStand",
     header: "Market Stand",
-    accessorFn: row => row.marketStand.name,
+    accessorFn: row => row.marketStand?.name,
     cell: ({ row }) => {
-      return <span className="text-sm">{row.getValue("marketStand")}</span>
+      return <span className="text-sm">{row.getValue("marketStand") || 'N/A'}</span>
     }
   },
   {
@@ -49,9 +49,12 @@ export const columns: ColumnDef<PendingProduct>[] = [
     header: "Owner",
     cell: ({ row }) => {
       const { user } = row.original
+      const displayName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}`
+        : user.firstName || user.lastName || 'Unknown'
       return (
         <div className="flex flex-col">
-          <span className="font-medium text-sm">{`${user.firstName} ${user.lastName}`}</span>
+          <span className="font-medium text-sm">{displayName}</span>
           <span className="text-xs text-gray-500">{user.email}</span>
         </div>
       )

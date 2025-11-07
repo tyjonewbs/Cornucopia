@@ -27,7 +27,10 @@ export const createMarketStandSchema = z.object({
   userId: z.string().uuid("Invalid user ID"),
   name: z.string().min(1, "Market stand name is required").max(255),
   description: z.string().min(1, "Description is required"),
-  locationName: z.string().min(1, "Location name is required").max(255),
+  locationName: z.string().min(1, "Location name is required").max(255), // Auto-populated with name
+  streetAddress: z.string().max(255).nullable().optional(),
+  city: z.string().max(100).nullable().optional(),
+  zipCode: z.string().max(10).nullable().optional(),
   locationGuide: z.string().min(1, "Location guide is required"),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -44,7 +47,10 @@ export const createMarketStandSchema = z.object({
 export const updateMarketStandSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   description: z.string().min(1).optional(),
-  locationName: z.string().min(1).max(255).optional(),
+  locationName: z.string().min(1).max(255).optional(), // Auto-populated with name
+  streetAddress: z.string().max(255).nullable().optional(),
+  city: z.string().max(100).nullable().optional(),
+  zipCode: z.string().max(10).nullable().optional(),
   locationGuide: z.string().min(1).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),

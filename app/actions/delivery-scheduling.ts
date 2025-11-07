@@ -1,5 +1,6 @@
 'use server';
 
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/db';
 import { getUser } from '@/lib/auth';
 import { DeliverySchedule } from '@/types/delivery';
@@ -65,7 +66,7 @@ export async function updateOneTimeDates(
       data: {
         deliveryType: 'ONE_TIME',
         deliveryDates: dates,
-        deliverySchedule: null, // Clear recurring schedule
+        deliverySchedule: Prisma.JsonNull, // Clear recurring schedule
       }
     });
 
@@ -144,7 +145,7 @@ export async function clearDeliverySchedule(productId: string) {
       where: { id: productId },
       data: {
         deliveryType: null,
-        deliverySchedule: null,
+        deliverySchedule: Prisma.JsonNull,
         deliveryDates: [],
       }
     });

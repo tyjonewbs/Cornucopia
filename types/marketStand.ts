@@ -14,6 +14,9 @@ export interface MarketStand {
   latitude: number;
   longitude: number;
   locationName: string;
+  streetAddress: string | null;
+  city: string | null;
+  zipCode: string | null;
   locationGuide: string;
   website: string | null;
   socialMedia: string[];
@@ -45,7 +48,10 @@ export interface MarketStandWithProducts extends MarketStand {
 export interface CreateMarketStandInput {
   name: string;
   description: string;
-  locationName: string;
+  locationName: string; // Auto-populated with name
+  streetAddress?: string | null;
+  city?: string | null;
+  zipCode?: string | null;
   locationGuide: string;
   latitude: number;
   longitude: number;
@@ -59,7 +65,10 @@ export interface CreateMarketStandInput {
 export interface UpdateMarketStandInput {
   name?: string;
   description?: string;
-  locationName?: string;
+  locationName?: string; // Auto-populated with name
+  streetAddress?: string | null;
+  city?: string | null;
+  zipCode?: string | null;
   locationGuide?: string;
   latitude?: number;
   longitude?: number;

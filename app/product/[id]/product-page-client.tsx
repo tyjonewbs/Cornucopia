@@ -156,9 +156,6 @@ export function ProductPageClient({ data, nearbyProducts }: ProductPageClientPro
             <DeliveryOptionsCard
               productId={data.id}
               productName={data.name}
-              userZipCode={data.user?.zipCode}
-              userCity={data.user?.city}
-              userState={data.user?.state}
             />
           )}
         </div>

@@ -68,7 +68,7 @@ export default async function EditMarketStandPage({ params }: EditMarketStandPag
           </p>
         </div>
 
-        <Card className="mb-8">
+        <Card>
           <MarketStandForm
             userId={user.id.toString()}
             userEmail={user.email || ''}

@@ -2,7 +2,7 @@
  * Data Transfer Objects for Delivery System
  */
 
-import type { DeliveryZone, ProductStandListing } from "@/types/delivery";
+import type { DeliveryZone } from "@/types/delivery";
 import type { Prisma } from "@prisma/client";
 
 /**
@@ -18,7 +18,6 @@ export function toDeliveryZoneDTO(
 ): DeliveryZone {
   return {
     id: zone.id,
-    userId: zone.userId,
     name: zone.name,
     description: zone.description,
     zipCodes: zone.zipCodes,
@@ -30,8 +29,6 @@ export function toDeliveryZoneDTO(
     deliveryDays: zone.deliveryDays,
     deliveryTimeWindows: zone.deliveryTimeWindows ? JSON.parse(JSON.stringify(zone.deliveryTimeWindows)) : null,
     isActive: zone.isActive,
-    createdAt: zone.createdAt,
-    updatedAt: zone.updatedAt,
   };
 }
 
@@ -47,44 +44,6 @@ export function toDeliveryZoneDTOs(
   }>[]
 ): DeliveryZone[] {
   return zones.map(toDeliveryZoneDTO);
-}
-
-/**
- * Transform Prisma ProductStandListing to client-safe type
- */
-export function toProductStandListingDTO(
-  listing: Prisma.ProductStandListingGetPayload<{
-    include?: {
-      product?: boolean;
-      marketStand?: boolean;
-    };
-  }>
-): ProductStandListing {
-  return {
-    id: listing.id,
-    productId: listing.productId,
-    marketStandId: listing.marketStandId,
-    isActive: listing.isActive,
-    isPrimary: listing.isPrimary,
-    customPrice: listing.customPrice,
-    customInventory: listing.customInventory,
-    createdAt: listing.createdAt,
-    updatedAt: listing.updatedAt,
-  };
-}
-
-/**
- * Transform array of Prisma ProductStandListings
- */
-export function toProductStandListingDTOs(
-  listings: Prisma.ProductStandListingGetPayload<{
-    include?: {
-      product?: boolean;
-      marketStand?: boolean;
-    };
-  }>[]
-): ProductStandListing[] {
-  return listings.map(toProductStandListingDTO);
 }
 
 /**

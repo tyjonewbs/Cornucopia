@@ -117,6 +117,7 @@ export async function checkDeliveryEligibility({
           minimumOrder: zone.minimumOrder || undefined,
           inventory: product.inventory,
           isRecurring: false,
+          deliveryZoneId: zone.id,
         });
       }
     } else if (product.deliveryType === 'RECURRING') {
@@ -152,6 +153,7 @@ export async function checkDeliveryEligibility({
               minimumOrder: zone.minimumOrder || undefined,
               inventory: listing.inventory,
               isRecurring: true,
+              deliveryZoneId: zone.id,
             });
           }
         }
@@ -173,6 +175,7 @@ export async function checkDeliveryEligibility({
               minimumOrder: zone.minimumOrder || undefined,
               inventory: product.inventory,
               isRecurring: true,
+              deliveryZoneId: zone.id,
             });
           }
         }

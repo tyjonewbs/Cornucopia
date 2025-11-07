@@ -48,6 +48,7 @@ model User {
   deliveryZones         DeliveryZone[]
   reportedIssues        OrderIssue[]           @relation("ReportedIssues")
   resolvedIssues        OrderIssue[]           @relation("ResolvedIssues")
+  cart                  Cart?
 
   @@index([email], map: "user_email_idx")
   @@index([username], map: "user_username_idx")
@@ -86,6 +87,7 @@ model MarketStand {
   statusHistory StandStatusHistory[]
   orders        Order[]
   subscriptions MarketStandSubscription[]
+  cartItems     CartItem[]
 
   @@index([latitude, longitude], map: "market_stand_location_idx")
   @@index([isActive], map: "market_stand_active_idx")
@@ -117,6 +119,8 @@ model Product {
   availableUntil     DateTime?
   averageRating      Float?
   totalReviews       Int                    @default(0)
+  taxCode            TaxCode                @default(RAW_FOOD)
+  taxable            Boolean                @default(false)
   local              Local?                 @relation("ProductToLocal", fields: [localId], references: [id], onDelete: SetNull)
   marketStand        MarketStand?           @relation("ProductToMarketStand", fields: [marketStandId], references: [id], onDelete: SetNull)
   deliveryZone       DeliveryZone?          @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
@@ -128,6 +132,7 @@ model Product {
   savedBy            SavedProduct[]
   standListings      ProductStandListing[]
   deliveryListings   ProductDeliveryListing[]
+  cartItems          CartItem[]
 
   @@index([isActive, inventory], map: "product_active_inventory_idx")
   @@index([updatedAt(sort: Desc)], map: "product_updated_at_idx")
@@ -473,6 +478,7 @@ model DeliveryZone {
   products              Product[]
   productListings       ProductDeliveryListing[]
   orders                Order[]
+  cartItems             CartItem[]
 
   @@index([userId], map: "DeliveryZone_userId_idx")
   @@index([isActive], map: "DeliveryZone_isActive_idx")
@@ -571,4 +577,43 @@ enum IssueStatus {
   RESOLVED
   REFUNDED
   ESCALATED
+}
+
+enum TaxCode {
+  RAW_FOOD
+  PREPARED_FOOD
+  NON_FOOD
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@index([userId], map: "Cart_userId_idx")
+}
+
+model CartItem {
+  id              String        @id @default(uuid())
+  cartId          String
+  productId       String
+  quantity        Int           @default(1)
+  fulfillmentType String
+  deliveryDate    DateTime?
+  deliveryZoneId  String?
+  marketStandId   String?
+  pickupTime      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  cart            Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  deliveryZone    DeliveryZone? @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
+  marketStand     MarketStand?  @relation(fields: [marketStandId], references: [id], onDelete: SetNull)
+
+  @@unique([cartId, productId, deliveryDate, pickupTime], map: "CartItem_unique")
+  @@index([cartId], map: "CartItem_cartId_idx")
+  @@index([productId], map: "CartItem_productId_idx")
 }

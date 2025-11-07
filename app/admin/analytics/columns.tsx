@@ -9,14 +9,14 @@ type RecentActivity = {
   status: string
   createdAt: Date
   user: {
-    firstName: string
-    lastName: string
+    firstName: string | null
+    lastName: string | null
     role: string
   }
   marketStand: {
     name: string
     status: string
-  }
+  } | null
 }
 
 export const columns: ColumnDef<RecentActivity>[] = [
@@ -27,7 +27,9 @@ export const columns: ColumnDef<RecentActivity>[] = [
       return (
         <div className="flex flex-col">
           <span className="font-medium">{row.getValue("name")}</span>
-          <span className="text-sm text-gray-500">{row.original.marketStand.name}</span>
+          <span className="text-sm text-gray-500">
+            {row.original.marketStand?.name || 'N/A'}
+          </span>
         </div>
       )
     }
@@ -37,9 +39,12 @@ export const columns: ColumnDef<RecentActivity>[] = [
     header: "Vendor",
     cell: ({ row }) => {
       const user = row.original.user
+      const displayName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}`
+        : user.firstName || user.lastName || 'Unknown'
       return (
         <div className="flex flex-col">
-          <span>{`${user.firstName} ${user.lastName}`}</span>
+          <span>{displayName}</span>
           <Badge variant="outline" className="w-fit">{user.role}</Badge>
         </div>
       )

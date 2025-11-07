@@ -43,6 +43,9 @@ export async function CreateMarketStand(
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     const locationName = formData.get("locationName") as string;
+    const streetAddress = formData.get("streetAddress") as string;
+    const city = formData.get("city") as string;
+    const zipCode = formData.get("zipCode") as string;
     const locationGuide = formData.get("locationGuide") as string;
     const latitude = parseFloat(formData.get("latitude") as string);
     const longitude = parseFloat(formData.get("longitude") as string);
@@ -57,6 +60,9 @@ export async function CreateMarketStand(
       name,
       description,
       locationName,
+      streetAddress: streetAddress || null,
+      city: city || null,
+      zipCode: zipCode || null,
       locationGuide,
       latitude,
       longitude,
@@ -91,6 +97,9 @@ export async function UpdateMarketStand(
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     const locationName = formData.get("locationName") as string;
+    const streetAddress = formData.get("streetAddress") as string;
+    const city = formData.get("city") as string;
+    const zipCode = formData.get("zipCode") as string;
     const locationGuide = formData.get("locationGuide") as string;
     const latitude = parseFloat(formData.get("latitude") as string);
     const longitude = parseFloat(formData.get("longitude") as string);
@@ -104,6 +113,9 @@ export async function UpdateMarketStand(
       name,
       description,
       locationName,
+      streetAddress: streetAddress || null,
+      city: city || null,
+      zipCode: zipCode || null,
       locationGuide,
       latitude,
       longitude,
@@ -119,6 +131,45 @@ export async function UpdateMarketStand(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Error updating market stand"
+    };
+  }
+}
+
+/**
+ * Delete a market stand
+ * Uses the market stand service layer for business logic and validation
+ */
+export async function DeleteMarketStand(id: string, userId: string) {
+  try {
+    // Verify ownership before deleting
+    const marketStand = await prisma.marketStand.findUnique({
+      where: { id }
+    });
+
+    if (!marketStand) {
+      return {
+        success: false,
+        error: "Market stand not found"
+      };
+    }
+
+    if (marketStand.userId !== userId) {
+      return {
+        success: false,
+        error: "Unauthorized: You don't own this market stand"
+      };
+    }
+
+    // Delete the market stand (cascading deletes will handle related records)
+    await prisma.marketStand.delete({
+      where: { id }
+    });
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Error deleting market stand"
     };
   }
 }

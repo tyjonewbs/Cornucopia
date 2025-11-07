@@ -33,13 +33,14 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
   
   const [formData, setFormData] = useState({
     name: deliveryZone?.name || "",
-    description: deliveryZone?.description || "",
     deliveryFee: deliveryZone?.deliveryFee ? (deliveryZone.deliveryFee / 100).toFixed(2) : "",
     freeDeliveryThreshold: deliveryZone?.freeDeliveryThreshold ? (deliveryZone.freeDeliveryThreshold / 100).toFixed(2) : "",
     minimumOrder: deliveryZone?.minimumOrder ? (deliveryZone.minimumOrder / 100).toFixed(2) : "",
     deliveryDays: deliveryZone?.deliveryDays || [],
-    isActive: deliveryZone?.isActive ?? true,
   });
+
+  const [isActive, setIsActive] = useState(deliveryZone?.isActive ?? true);
+  const [description, setDescription] = useState(deliveryZone?.description || "");
 
   const [zipCodes, setZipCodes] = useState<string[]>(deliveryZone?.zipCodes || []);
   const [currentZipCode, setCurrentZipCode] = useState("");
@@ -129,7 +130,7 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
     try {
       const submitData = new FormData();
       submitData.append("name", formData.name);
-      submitData.append("description", formData.description);
+      submitData.append("description", description);
       submitData.append("zipCodes", JSON.stringify(zipCodes));
       submitData.append("cities", JSON.stringify(cities));
       submitData.append("states", JSON.stringify(states));
@@ -144,7 +145,7 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
       }
       
       submitData.append("deliveryDays", JSON.stringify(formData.deliveryDays));
-      submitData.append("isActive", formData.isActive.toString());
+      submitData.append("isActive", isActive.toString());
 
       let result;
       if (deliveryZone) {
@@ -211,8 +212,8 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
             <Textarea
               id="description"
               placeholder="Brief description of this delivery zone..."
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
           </div>
@@ -408,8 +409,8 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
             <input
               type="checkbox"
               id="isActive"
-              checked={formData.isActive}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
             />
             <label

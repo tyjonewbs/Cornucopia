@@ -2,90 +2,59 @@
 
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Package, MapPin, Clock, Truck, AlertCircle, Calendar, CheckCircle2 } from 'lucide-react';
+import { Package, MapPin, Truck, AlertCircle, Calendar, CheckCircle2, X, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
 import { checkDeliveryEligibility } from '@/app/actions/check-delivery-eligibility';
+import { addToCart } from '@/app/actions/cart';
 import type { SerializedDeliveryOption } from '@/types/delivery';
-import useUserLocation from '@/hooks/useUserLocation';
+import { getCachedLocation, setCachedZipCode, clearCachedLocation } from '@/lib/utils/location-cache';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface DeliveryOptionsCardProps {
   productId: string;
   productName: string;
-  userZipCode?: string;
-  userCity?: string;
-  userState?: string;
 }
 
 export function DeliveryOptionsCard({
   productId,
   productName,
-  userZipCode: initialZipCode,
-  userCity: initialCity,
-  userState: initialState,
 }: DeliveryOptionsCardProps) {
-  const [zipCode, setZipCode] = useState(initialZipCode || '');
+  const router = useRouter();
+  const [zipCode, setZipCode] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const [deliveryOptions, setDeliveryOptions] = useState<SerializedDeliveryOption[]>([]);
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
   const [eligibilityReason, setEligibilityReason] = useState<string>('');
   const [matchedLocation, setMatchedLocation] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedOption, setSelectedOption] = useState<SerializedDeliveryOption | null>(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-  const { userLocation } = useUserLocation({
-    cacheKey: 'product_delivery_location',
-  });
-
-  // Check eligibility when component mounts or when user location/zipcode changes
+  // Load cached zip code on mount but DON'T auto-check
   useEffect(() => {
-    const checkEligibility = async () => {
-      if (!zipCode && !initialCity && !userLocation) {
-        return;
-      }
-
-      setIsChecking(true);
-      try {
-        const result = await checkDeliveryEligibility({
-          productId,
-          userZipCode: zipCode || initialZipCode,
-          userCity: initialCity,
-          userState: initialState,
-        });
-
-        setIsEligible(result.isEligible);
-        setEligibilityReason(result.reason || '');
-        setDeliveryOptions(result.deliveryOptions);
-        
-        if (result.matchedZipCode) {
-          setMatchedLocation(`ZIP Code ${result.matchedZipCode}`);
-        } else if (result.matchedCity) {
-          setMatchedLocation(result.matchedCity);
-        }
-      } catch (error) {
-        console.error('Error checking delivery eligibility:', error);
-        setIsEligible(false);
-        setEligibilityReason('Error checking delivery availability');
-      } finally {
-        setIsChecking(false);
-      }
-    };
-
-    if (zipCode || initialZipCode || initialCity) {
-      checkEligibility();
+    const cached = getCachedLocation();
+    if (cached?.zipCode) {
+      setZipCode(cached.zipCode);
     }
-  }, [productId, zipCode, initialZipCode, initialCity, initialState, userLocation]);
+  }, []);
 
-  const handleCheckZipCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!zipCode.trim()) return;
+  const checkDelivery = async (zip: string) => {
+    if (!zip || !zip.match(/^\d{5}$/)) {
+      toast.error('Please enter a valid 5-digit ZIP code');
+      return;
+    }
 
     setIsChecking(true);
+    setIsEligible(null);
+    setDeliveryOptions([]);
+    setSelectedOption(null);
+    
     try {
       const result = await checkDeliveryEligibility({
         productId,
-        userZipCode: zipCode,
+        userZipCode: zip,
       });
 
       setIsEligible(result.isEligible);
@@ -94,9 +63,17 @@ export function DeliveryOptionsCard({
       
       if (result.matchedZipCode) {
         setMatchedLocation(`ZIP Code ${result.matchedZipCode}`);
+      } else if (result.matchedCity) {
+        setMatchedLocation(result.matchedCity);
+      }
+
+      // Cache successful zip code lookup
+      if (result.isEligible) {
+        setCachedZipCode(zip);
       }
     } catch (error) {
       console.error('Error checking delivery eligibility:', error);
+      toast.error('Error checking delivery availability');
       setIsEligible(false);
       setEligibilityReason('Error checking delivery availability');
     } finally {
@@ -104,22 +81,57 @@ export function DeliveryOptionsCard({
     }
   };
 
-  const handleSelectDate = (date: string) => {
-    setSelectedDate(date);
+  const handleCheckZipCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await checkDelivery(zipCode);
   };
 
-  const handleOrderClick = () => {
-    if (selectedDate) {
-      // Navigate to checkout with selected date
-      window.location.href = `/checkout?product=${productId}&deliveryDate=${selectedDate}`;
+  const handleClearLocation = () => {
+    clearCachedLocation();
+    setZipCode('');
+    setIsEligible(null);
+    setDeliveryOptions([]);
+    setMatchedLocation('');
+    setSelectedOption(null);
+  };
+
+  const handleAddToCart = async () => {
+    if (!selectedOption) return;
+
+    setIsAddingToCart(true);
+    try {
+      const result = await addToCart({
+        userId: '', // Will be set by server action
+        productId,
+        quantity: 1,
+        fulfillmentType: 'DELIVERY',
+        deliveryDate: parseISO(selectedOption.date),
+        deliveryZoneId: selectedOption.deliveryZoneId,
+      });
+
+      if (result.success) {
+        toast.success(`${productName} added to cart!`, {
+          description: `Delivery on ${format(parseISO(selectedOption.date), 'EEEE, MMM d')}`,
+          action: {
+            label: "View Cart",
+            onClick: () => router.push('/cart'),
+          },
+        });
+        setSelectedOption(null);
+      } else {
+        toast.error(result.error || 'Failed to add to cart');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add to cart');
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
   // Group delivery options by type
   const oneTimeOptions = deliveryOptions.filter(opt => !opt.isRecurring);
   const recurringOptions = deliveryOptions.filter(opt => opt.isRecurring);
-
-  // Limit recurring options display to first 12
   const displayedRecurringOptions = recurringOptions.slice(0, 12);
 
   return (
@@ -129,40 +141,52 @@ export function DeliveryOptionsCard({
         <Package className="h-6 w-6 text-green-700 flex-shrink-0 mt-1" />
         <div className="flex-1">
           <h3 className="text-lg font-bold text-green-900 mb-1">
-            Delivery Options Available
+            Delivery Available
           </h3>
           <p className="text-sm text-green-700">
-            This product can be delivered to select areas
+            Check delivery options for your area
           </p>
         </div>
       </div>
 
-      {/* Location Input Section */}
-      {!initialZipCode && isEligible === null && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm text-green-800">
-            <MapPin className="h-4 w-4" />
-            <span className="font-medium">Enter your ZIP code to check availability</span>
-          </div>
-          <form onSubmit={handleCheckZipCode} className="flex gap-2">
+      {/* ZIP Code Input - Always visible */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm text-green-800">
+          <MapPin className="h-4 w-4" />
+          <span className="font-medium">
+            Enter your ZIP code to see delivery options
+          </span>
+        </div>
+        <form onSubmit={handleCheckZipCode} className="flex gap-2">
+          <div className="flex-1 relative">
             <Input
               type="text"
               placeholder="Enter ZIP code"
               value={zipCode}
               onChange={(e) => setZipCode(e.target.value)}
-              className="flex-1 bg-white"
-              maxLength={10}
+              className="bg-white pr-8"
+              maxLength={5}
+              pattern="\d{5}"
             />
-            <Button 
-              type="submit" 
-              disabled={isChecking || !zipCode.trim()}
-              className="bg-green-700 hover:bg-green-800"
-            >
-              {isChecking ? 'Checking...' : 'Check'}
-            </Button>
-          </form>
-        </div>
-      )}
+            {zipCode && (
+              <button
+                type="button"
+                onClick={() => setZipCode('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button 
+            type="submit" 
+            disabled={isChecking || !zipCode.trim() || !zipCode.match(/^\d{5}$/)}
+            className="bg-green-700 hover:bg-green-800"
+          >
+            {isChecking ? 'Checking...' : 'Check'}
+          </Button>
+        </form>
+      </div>
 
       {/* Loading State */}
       {isChecking && (
@@ -173,30 +197,16 @@ export function DeliveryOptionsCard({
 
       {/* Not Eligible State */}
       {!isChecking && isEligible === false && (
-        <div className="space-y-3">
-          <div className="flex items-start gap-2 p-4 bg-amber-50 border border-amber-200 rounded-md">
-            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-amber-900">
-                {eligibilityReason}
-              </p>
-              <p className="text-xs text-amber-700 mt-1">
-                You can still pick up this item at the market stand location
-              </p>
-            </div>
+        <div className="flex items-start gap-2 p-4 bg-amber-50 border border-amber-200 rounded-md">
+          <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-amber-900">
+              {eligibilityReason}
+            </p>
+            <p className="text-xs text-amber-700 mt-1">
+              You can still pick up this item at the market stand location
+            </p>
           </div>
-          {zipCode && (
-            <Button
-              onClick={() => {
-                setZipCode('');
-                setIsEligible(null);
-              }}
-              variant="outline"
-              className="w-full"
-            >
-              Try a different ZIP code
-            </Button>
-          )}
         </div>
       )}
 
@@ -204,11 +214,19 @@ export function DeliveryOptionsCard({
       {!isChecking && isEligible === true && deliveryOptions.length > 0 && (
         <div className="space-y-4">
           {/* Matched Location */}
-          <div className="flex items-center gap-2 p-3 bg-green-100 border border-green-300 rounded-md">
-            <CheckCircle2 className="h-5 w-5 text-green-700" />
-            <p className="text-sm font-medium text-green-900">
-              Delivery available to {matchedLocation}
-            </p>
+          <div className="flex items-center justify-between p-3 bg-green-100 border border-green-300 rounded-md">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-700" />
+              <p className="text-sm font-medium text-green-900">
+                Delivery available to {matchedLocation}
+              </p>
+            </div>
+            <button
+              onClick={handleClearLocation}
+              className="text-green-700 hover:text-green-900 text-sm underline"
+            >
+              Change
+            </button>
           </div>
 
           {/* One-Time Delivery Options */}
@@ -222,11 +240,11 @@ export function DeliveryOptionsCard({
                 {oneTimeOptions.map((option, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handleSelectDate(option.date)}
+                    onClick={() => setSelectedOption(option)}
                     className={`w-full text-left p-3 rounded-md border-2 transition-all ${
-                      selectedDate === option.date
-                        ? 'border-green-600 bg-green-100'
-                        : 'border-green-200 bg-white hover:border-green-400'
+                      selectedOption?.date === option.date
+                        ? 'border-green-600 bg-green-100 ring-2 ring-green-600 ring-offset-2'
+                        : 'border-green-200 bg-white hover:border-green-400 hover:bg-green-50'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -236,20 +254,16 @@ export function DeliveryOptionsCard({
                         </p>
                         <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
                           <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {option.timeWindow}
-                          </span>
-                          <span className="flex items-center gap-1">
                             <Truck className="h-3 w-3" />
                             {option.deliveryFee === 0
-                              ? 'FREE'
-                              : `$${(option.deliveryFee / 100).toFixed(2)}`}
-                            {option.freeDeliveryThreshold && option.deliveryFee > 0 && (
-                              <span className="text-green-600">
-                                (FREE over ${(option.freeDeliveryThreshold / 100).toFixed(0)})
-                              </span>
-                            )}
+                              ? 'FREE delivery'
+                              : `$${(option.deliveryFee / 100).toFixed(2)} delivery`}
                           </span>
+                          {option.freeDeliveryThreshold && option.deliveryFee > 0 && (
+                            <span className="text-green-600">
+                              (FREE over ${(option.freeDeliveryThreshold / 100).toFixed(0)})
+                            </span>
+                          )}
                         </div>
                         {option.inventory !== undefined && (
                           <p className="text-xs text-gray-500 mt-1">
@@ -257,7 +271,7 @@ export function DeliveryOptionsCard({
                           </p>
                         )}
                       </div>
-                      {selectedDate === option.date && (
+                      {selectedOption?.date === option.date && (
                         <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
                       )}
                     </div>
@@ -278,17 +292,17 @@ export function DeliveryOptionsCard({
                 </Badge>
               </div>
               <p className="text-xs text-gray-600">
-                Select any date to start. You can set up a subscription during checkout.
+                Choose any date to add to cart. Set up recurring delivery during checkout.
               </p>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {displayedRecurringOptions.map((option, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handleSelectDate(option.date)}
+                    onClick={() => setSelectedOption(option)}
                     className={`w-full text-left p-3 rounded-md border-2 transition-all ${
-                      selectedDate === option.date
-                        ? 'border-green-600 bg-green-100'
-                        : 'border-green-200 bg-white hover:border-green-400'
+                      selectedOption?.date === option.date
+                        ? 'border-green-600 bg-green-100 ring-2 ring-green-600 ring-offset-2'
+                        : 'border-green-200 bg-white hover:border-green-400 hover:bg-green-50'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -298,18 +312,14 @@ export function DeliveryOptionsCard({
                         </p>
                         <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
                           <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {option.timeWindow}
-                          </span>
-                          <span className="flex items-center gap-1">
                             <Truck className="h-3 w-3" />
                             {option.deliveryFee === 0
-                              ? 'FREE'
-                              : `$${(option.deliveryFee / 100).toFixed(2)}`}
+                              ? 'FREE delivery'
+                              : `$${(option.deliveryFee / 100).toFixed(2)} delivery`}
                           </span>
                         </div>
                       </div>
-                      {selectedDate === option.date && (
+                      {selectedOption?.date === option.date && (
                         <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
                       )}
                     </div>
@@ -318,26 +328,30 @@ export function DeliveryOptionsCard({
               </div>
               {recurringOptions.length > 12 && (
                 <p className="text-xs text-center text-gray-500 italic">
-                  Showing first 12 dates. More dates available at checkout.
+                  Showing first 12 dates. More dates available in cart.
                 </p>
               )}
             </div>
           )}
 
-          {/* Order Button */}
+          {/* Add to Cart Button */}
           <Button
-            onClick={handleOrderClick}
-            disabled={!selectedDate}
-            className="w-full bg-green-700 hover:bg-green-800 text-white px-4 py-3 rounded-md text-center font-medium transition-colors"
+            onClick={handleAddToCart}
+            disabled={!selectedOption || isAddingToCart}
+            className="w-full bg-green-700 hover:bg-green-800 text-white px-4 py-3 rounded-md font-medium transition-colors flex items-center justify-center gap-2"
+            size="lg"
           >
-            {selectedDate
-              ? `Order for ${format(parseISO(selectedDate), 'MMM d')}`
+            <ShoppingCart className="h-5 w-5" />
+            {isAddingToCart
+              ? 'Adding...'
+              : selectedOption
+              ? `Add to Cart for ${format(parseISO(selectedOption.date), 'MMM d')}`
               : 'Select a delivery date above'}
           </Button>
 
-          {recurringOptions.length > 0 && (
-            <p className="text-xs text-center text-green-700 italic">
-              Set up recurring deliveries during checkout for automatic weekly orders
+          {selectedOption && (
+            <p className="text-xs text-center text-green-700">
+              You can adjust quantity and add more items in your cart
             </p>
           )}
         </div>

@@ -13,8 +13,8 @@ type PendingStand = {
   status: Status
   createdAt: Date
   user: {
-    firstName: string
-    lastName: string
+    firstName: string | null
+    lastName: string | null
     email: string
   }
   _count: {
@@ -41,9 +41,12 @@ export const columns: ColumnDef<PendingStand>[] = [
     header: "Owner",
     cell: ({ row }) => {
       const { user } = row.original
+      const displayName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}`
+        : user.firstName || user.lastName || 'Unknown'
       return (
         <div className="flex flex-col">
-          <span className="font-medium">{`${user.firstName} ${user.lastName}`}</span>
+          <span className="font-medium">{displayName}</span>
           <span className="text-sm text-gray-500">{user.email}</span>
         </div>
       )

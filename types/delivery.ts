@@ -20,6 +20,7 @@ export interface DeliveryEligibilityResult {
 export interface DeliveryZoneInfo {
   id: string;
   name: string;
+  description?: string | null;
   zipCodes: string[];
   cities: string[];
   states: string[];
@@ -28,6 +29,7 @@ export interface DeliveryZoneInfo {
   minimumOrder?: number | null;
   deliveryDays: string[];
   deliveryTimeWindows?: any;
+  isActive?: boolean;
 }
 
 export interface SerializedDeliveryOption {
@@ -39,6 +41,7 @@ export interface SerializedDeliveryOption {
   minimumOrder?: number;
   inventory?: number;
   isRecurring: boolean;
+  deliveryZoneId: string;
 }
 
 export interface SerializedDeliveryEligibilityResult {
@@ -48,3 +51,14 @@ export interface SerializedDeliveryEligibilityResult {
   matchedCity?: string;
   deliveryOptions: SerializedDeliveryOption[];
 }
+
+// Recurring delivery schedule (day -> enabled/inventory mapping)
+export type DeliverySchedule = {
+  [day: string]: {
+    enabled: boolean;
+    inventory: number;
+  };
+};
+
+// Alias for DeliveryZone (matches DeliveryZoneInfo structure)
+export type DeliveryZone = DeliveryZoneInfo;

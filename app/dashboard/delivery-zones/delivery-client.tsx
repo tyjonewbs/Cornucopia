@@ -6,16 +6,14 @@ import Image from "next/image";
 import { 
   Calendar,
   Truck,
-  MapPin,
-  User,
-  Package,
-  Check,
-  RefreshCw,
   Plus,
   Edit,
   Trash2,
   ChevronDown,
-  Printer,
+  Minus,
+  RefreshCw,
+  PackagePlus,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,26 +23,71 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { DeliveryZone } from "@/types/delivery";
-import { DeliveryOrdersByDay } from "@/app/actions/orders";
-import { deleteDeliveryZone } from "@/app/actions/delivery-zones";
-import { updateOrderStatus } from "@/app/actions/orders";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  deleteDeliveryZone,
+  addProductToDeliveryZone,
+  updateDeliveryListingInventory,
+  removeProductFromDeliveryZone,
+  getAvailableProductsForZone,
+} from "@/app/actions/delivery-zones";
 import { formatPrice } from "@/lib/utils/format";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { OrderStatus } from "@prisma/client";
 
-interface DeliveryClientProps {
-  zones: DeliveryZone[];
-  ordersByDay: DeliveryOrdersByDay;
+interface ProductListing {
+  id: string;
+  productId: string;
+  deliveryZoneId: string;
+  dayOfWeek: string;
+  inventory: number;
+  reserved: number;
+  remaining: number;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    images: string[];
+    isActive: boolean;
+  };
 }
 
-export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientProps) {
+interface ZoneWithProducts {
+  zone: any;
+  productsByDay: Record<string, ProductListing[]>;
+}
+
+interface DeliveryClientProps {
+  zonesWithProducts: ZoneWithProducts[];
+}
+
+interface AvailableProduct {
+  id: string;
+  name: string;
+  price: number;
+  images: string[];
+}
+
+export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [expandedZones, setExpandedZones] = useState<Set<string>>(new Set());
-  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const [addingToZone, setAddingToZone] = useState<{ zoneId: string; day: string } | null>(null);
+  const [availableProducts, setAvailableProducts] = useState<AvailableProduct[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [initialInventory, setInitialInventory] = useState("10");
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -53,7 +96,7 @@ export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientPro
     router.refresh();
     setTimeout(() => {
       setIsRefreshing(false);
-      toast.success("Deliveries refreshed");
+      toast.success("Inventory refreshed");
     }, 500);
   };
 
@@ -78,78 +121,120 @@ export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientPro
     });
   };
 
-  const handleOrderStatusUpdate = async (orderId: string, orderNumber: string, newStatus: OrderStatus) => {
-    const statusLabel = newStatus === 'READY' ? 'packed' : 'delivered';
-    if (!confirm(`Mark order ${orderNumber} as ${statusLabel}?`)) return;
+  const toggleDay = (day: string) => {
+    setExpandedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(day)) {
+        next.delete(day);
+      } else {
+        next.add(day);
+      }
+      return next;
+    });
+  };
+
+  const handleOpenAddProducts = async (zoneId: string, day: string) => {
+    setAddingToZone({ zoneId, day });
+    setLoadingProducts(true);
+    
+    const result = await getAvailableProductsForZone(zoneId, day);
+    if (result.success) {
+      setAvailableProducts(result.products || []);
+    } else {
+      toast.error("Failed to load available products");
+    }
+    setLoadingProducts(false);
+  };
+
+  const handleCloseAddProducts = () => {
+    setAddingToZone(null);
+    setSelectedProduct(null);
+    setIsRecurring(false);
+    setInitialInventory("10");
+    setAvailableProducts([]);
+  };
+
+  const handleAddProduct = async (productId: string) => {
+    if (!addingToZone) return;
+
+    const inventory = parseInt(initialInventory);
+    if (isNaN(inventory) || inventory < 0) {
+      toast.error("Please enter a valid inventory amount");
+      return;
+    }
 
     startTransition(async () => {
       try {
-        await updateOrderStatus(orderId, newStatus);
-        toast.success(`Order ${orderNumber} marked as ${statusLabel}`);
-        router.refresh();
+        const result = await addProductToDeliveryZone({
+          productId,
+          deliveryZoneId: addingToZone.zoneId,
+          dayOfWeek: addingToZone.day,
+          isRecurring,
+          initialInventory: inventory,
+        });
+
+        if (result.success) {
+          toast.success(result.message || "Product added successfully");
+          handleCloseAddProducts();
+          router.refresh();
+        } else {
+          toast.error(result.error || "Failed to add product");
+        }
       } catch (error) {
-        console.error("Failed to update order status:", error);
-        toast.error("Failed to update order status");
+        console.error("Failed to add product:", error);
+        toast.error("Failed to add product");
       }
     });
   };
 
-  const toggleZone = (zoneId: string) => {
-    setExpandedZones(prev => {
-      const next = new Set(prev);
-      if (next.has(zoneId)) {
-        next.delete(zoneId);
-      } else {
-        next.add(zoneId);
+  const handleUpdateInventory = async (listingId: string, newValue: number) => {
+    if (newValue < 0) return;
+
+    startTransition(async () => {
+      try {
+        const result = await updateDeliveryListingInventory(listingId, newValue);
+        if (result.success) {
+          router.refresh();
+        } else {
+          toast.error(result.error || "Failed to update inventory");
+        }
+      } catch (error) {
+        console.error("Failed to update inventory:", error);
+        toast.error("Failed to update inventory");
       }
-      return next;
     });
   };
 
-  const toggleOrder = (orderId: string) => {
-    setExpandedOrders(prev => {
-      const next = new Set(prev);
-      if (next.has(orderId)) {
-        next.delete(orderId);
-      } else {
-        next.add(orderId);
+  const handleRemoveProduct = async (listingId: string, productName: string) => {
+    if (!confirm(`Remove "${productName}" from this delivery day?`)) {
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await removeProductFromDeliveryZone(listingId);
+        if (result.success) {
+          toast.success("Product removed successfully");
+          router.refresh();
+        } else {
+          toast.error(result.error || "Failed to remove product");
+        }
+      } catch (error) {
+        console.error("Failed to remove product:", error);
+        toast.error("Failed to remove product");
       }
-      return next;
     });
   };
 
-  const getStatusBadgeVariant = (status: OrderStatus) => {
-    switch (status) {
-      case 'PENDING':
-        return 'secondary';
-      case 'CONFIRMED':
-        return 'default';
-      case 'READY':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
-  };
-
-  const getStatusLabel = (status: OrderStatus) => {
-    switch (status) {
-      case 'PENDING':
-        return 'Pending';
-      case 'CONFIRMED':
-        return 'Confirmed';
-      case 'READY':
-        return 'Ready for Delivery';
-      default:
-        return status;
-    }
-  };
-
-  const formatDeliveryWindow = (zone: DeliveryZone) => {
-    if (zone.deliveryTimeWindows && Array.isArray(zone.deliveryTimeWindows) && zone.deliveryTimeWindows.length > 0) {
-      const window = zone.deliveryTimeWindows[0] as any;
-      return `${window.startTime} - ${window.endTime}`;
-    }
-    return 'All day';
+  // Check if a product is recurring (appears on multiple days in the same zone)
+  const isProductRecurring = (zoneWithProducts: ZoneWithProducts, productId: string): boolean => {
+    let daysCount = 0;
+    Object.values(zoneWithProducts.productsByDay).forEach(listings => {
+      if (listings.some(l => l.productId === productId)) {
+        daysCount++;
+      }
+    });
+    return daysCount > 1;
   };
 
   return (
@@ -158,9 +243,9 @@ export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientPro
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Delivery Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Delivery Zone Inventory</h1>
             <p className="text-gray-600 mt-1">
-              Manage your delivery runs organized by day and delivery zone
+              Manage product availability and inventory for each delivery zone
             </p>
           </div>
           <div className="flex gap-3">
@@ -182,39 +267,33 @@ export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientPro
           </div>
         </div>
 
-        {/* Days with Deliveries */}
+        {/* Days with Zones */}
         {DAYS.map(day => {
-          const dayZones = zones.filter(z => z.isActive && z.deliveryDays.includes(day));
-          const dayOrders = ordersByDay[day] || [];
+          const dayZones = zonesWithProducts.filter(
+            zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(day)
+          );
           
           if (dayZones.length === 0) return null;
 
-          const totalOrders = dayOrders.reduce((sum, zoneData) => sum + zoneData.orders.length, 0);
-          
           return (
             <Card key={day} className="overflow-hidden">
               <CardHeader className="bg-blue-50">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-blue-600" />
                   {day} Deliveries
-                  <span className="text-sm font-normal text-gray-500 ml-auto">
-                    {totalOrders} {totalOrders === 1 ? 'order' : 'orders'} total
-                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
-                {dayZones.map(zone => {
-                  const zoneOrdersData = dayOrders.find(d => d.zoneId === zone.id);
-                  const zoneOrders = zoneOrdersData?.orders || [];
-                  const productTypes = [...new Set(
-                    zoneOrders.flatMap(o => o.items.map(i => i.productName))
-                  )];
+                {dayZones.map(({ zone, productsByDay }) => {
+                  const dayProducts = productsByDay[day] || [];
+                  const totalInventory = dayProducts.reduce((sum, p) => sum + p.inventory, 0);
+                  const isExpanded = expandedDays.has(`${zone.id}-${day}`);
 
                   return (
                     <Collapsible
-                      key={zone.id}
-                      open={expandedZones.has(zone.id)}
-                      onOpenChange={() => toggleZone(zone.id)}
+                      key={`${zone.id}-${day}`}
+                      open={isExpanded}
+                      onOpenChange={() => toggleDay(`${zone.id}-${day}`)}
                     >
                       <div className="border rounded-lg">
                         {/* Zone Header */}
@@ -224,11 +303,10 @@ export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientPro
                               <Button variant="ghost" className="flex-1 justify-start hover:bg-gray-100">
                                 <Truck className="h-4 w-4 mr-2 text-blue-600" />
                                 <span className="font-semibold">{zone.name}</span>
-                                <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${expandedZones.has(zone.id) ? 'rotate-180' : ''}`} />
+                                <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                               </Button>
                             </CollapsibleTrigger>
                             
-                            {/* Zone Actions */}
                             <div className="flex items-center gap-2">
                               <Button variant="outline" size="sm" asChild>
                                 <Link href={`/dashboard/delivery-zones/${zone.id}/edit`}>
@@ -248,161 +326,146 @@ export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientPro
                           </div>
                           
                           {/* Zone Summary */}
-                          <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Orders:</span>
-                              <span className="font-semibold ml-2">{zoneOrders.length}</span>
-                            </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="text-gray-600">Products:</span>
-                              <span className="font-semibold ml-2">
-                                {productTypes.length > 0 ? (
-                                  <>
-                                    {productTypes.slice(0, 2).join(', ')}
-                                    {productTypes.length > 2 && ` +${productTypes.length - 2} more`}
-                                  </>
-                                ) : (
-                                  'None'
-                                )}
-                              </span>
+                              <span className="font-semibold ml-2">{dayProducts.length}</span>
                             </div>
                             <div>
-                              <span className="text-gray-600">Window:</span>
-                              <span className="font-semibold ml-2">{formatDeliveryWindow(zone)}</span>
+                              <span className="text-gray-600">Total Inventory:</span>
+                              <span className="font-semibold ml-2">{totalInventory}</span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Collapsible Orders */}
+                        {/* Collapsible Products */}
                         <CollapsibleContent>
                           <div className="p-4 border-t bg-white space-y-3">
-                            {zoneOrders.length > 0 ? (
-                              zoneOrders.map(order => {
-                                const isExpanded = expandedOrders.has(order.id);
-                                const visibleItems = isExpanded ? order.items : order.items.slice(0, 3);
-                                
-                                return (
-                                  <div key={order.id} className="border rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors">
-                                    {/* Order Header */}
-                                    <div className="flex items-start justify-between mb-3">
-                                      <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <span className="font-semibold text-gray-900">
-                                            Order #{order.orderNumber}
-                                          </span>
-                                          <Badge variant={getStatusBadgeVariant(order.status)}>
-                                            {getStatusLabel(order.status)}
-                                          </Badge>
-                                        </div>
-                                        <div className="flex items-center gap-1 text-sm text-gray-600">
-                                          <User className="h-3 w-3" />
-                                          <span>{order.customerName}</span>
-                                        </div>
-                                      </div>
-                                      <div className="text-lg font-bold text-[#8B4513]">
-                                        {formatPrice(order.totalAmount)}
-                                      </div>
-                                    </div>
-
-                                    {/* Delivery Address */}
-                                    <div className="flex items-start gap-2 text-sm text-gray-700 mb-3 bg-gray-50 p-2 rounded">
-                                      <MapPin className="h-4 w-4 mt-0.5 text-gray-500 flex-shrink-0" />
-                                      <span>{order.deliveryAddress}</span>
-                                    </div>
-
-                                    {/* Products */}
-                                    <div className="space-y-2 mb-3">
-                                      <div className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                                        <Package className="h-4 w-4" />
-                                        Products:
-                                      </div>
-                                      {visibleItems.map((item, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 pl-5">
-                                          {item.productImage && (
-                                            <div className="relative w-10 h-10 flex-shrink-0">
-                                              <Image
-                                                src={item.productImage}
-                                                alt={item.productName}
-                                                fill
-                                                className="object-cover rounded"
-                                                sizes="40px"
-                                              />
-                                            </div>
-                                          )}
-                                          <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium text-gray-900 truncate">
-                                              {item.quantity}x {item.productName}
-                                            </div>
-                                            <div className="text-xs text-gray-600">
-                                              {formatPrice(item.priceAtTime)} each
-                                            </div>
-                                          </div>
-                                          <div className="text-sm font-semibold text-gray-900">
-                                            {formatPrice(item.priceAtTime * item.quantity)}
-                                          </div>
-                                        </div>
-                                      ))}
-                                      {order.items.length > 3 && (
-                                        <Button
-                                          variant="link"
-                                          size="sm"
-                                          onClick={() => toggleOrder(order.id)}
-                                          className="pl-5 h-auto p-0 text-blue-600"
-                                        >
-                                          {isExpanded 
-                                            ? 'Show less' 
-                                            : `+ ${order.items.length - 3} more items`
-                                          }
-                                        </Button>
-                                      )}
-                                    </div>
-
-                                    {/* Notes */}
-                                    {order.notes && (
-                                      <div className="text-sm text-gray-700 bg-yellow-50 border border-yellow-200 rounded p-2 mb-3">
-                                        <span className="font-medium">Note:</span> {order.notes}
+                            {/* Product List */}
+                            {dayProducts.map(listing => {
+                              const isSoldOut = listing.remaining === 0;
+                              const recurring = isProductRecurring({ zone, productsByDay }, listing.productId);
+                              
+                              return (
+                                <div 
+                                  key={listing.id} 
+                                  className="border rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors"
+                                >
+                                  <div className="flex items-start gap-4">
+                                    {/* Product Image */}
+                                    {listing.product.images && listing.product.images.length > 0 && (
+                                      <div className="relative w-16 h-16 flex-shrink-0">
+                                        <Image
+                                          src={listing.product.images[0]}
+                                          alt={listing.product.name}
+                                          fill
+                                          className="object-cover rounded"
+                                          sizes="64px"
+                                        />
                                       </div>
                                     )}
 
-                                    {/* Actions */}
-                                    <div className="flex items-center gap-2 pt-3 border-t">
-                                      <Button size="sm" variant="outline">
-                                        <Printer className="h-4 w-4 mr-1" />
-                                        Print Slip
-                                      </Button>
-                                      {order.status === 'PENDING' && (
-                                        <Button 
-                                          size="sm" 
-                                          variant="outline"
-                                          onClick={() => handleOrderStatusUpdate(order.id, order.orderNumber, 'READY')}
-                                          disabled={isPending}
-                                        >
-                                          <Check className="h-4 w-4 mr-1" />
-                                          Mark Packed
-                                        </Button>
-                                      )}
-                                      {(order.status === 'CONFIRMED' || order.status === 'READY') && (
-                                        <Button 
+                                    {/* Product Info & Controls */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-start justify-between mb-2">
+                                        <div>
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <h4 className="font-semibold text-gray-900">
+                                              {listing.product.name}
+                                            </h4>
+                                            {recurring && (
+                                              <Badge variant="secondary" className="text-xs">
+                                                Recurring
+                                              </Badge>
+                                            )}
+                                            {isSoldOut && (
+                                              <Badge variant="destructive" className="text-xs">
+                                                SOLD OUT
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <p className="text-sm text-gray-600">
+                                            {formatPrice(listing.product.price)}
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* Inventory Stats */}
+                                      <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
+                                        <div>
+                                          <span className="text-gray-600">Available:</span>
+                                          <span className="font-semibold ml-1">{listing.inventory}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-600">Reserved:</span>
+                                          <span className="font-semibold ml-1">{listing.reserved}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-600">Remaining:</span>
+                                          <span className="font-semibold ml-1">{listing.remaining}</span>
+                                        </div>
+                                      </div>
+
+                                      {/* Inventory Controls */}
+                                      <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleUpdateInventory(listing.id, listing.inventory - 1)}
+                                            disabled={isPending || listing.inventory <= 0}
+                                          >
+                                            <Minus className="h-3 w-3" />
+                                          </Button>
+                                          <Input
+                                            type="number"
+                                            value={listing.inventory}
+                                            onChange={(e) => {
+                                              const val = parseInt(e.target.value);
+                                              if (!isNaN(val)) {
+                                                handleUpdateInventory(listing.id, val);
+                                              }
+                                            }}
+                                            className="w-20 text-center"
+                                            min="0"
+                                            disabled={isPending}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => handleUpdateInventory(listing.id, listing.inventory + 1)}
+                                            disabled={isPending}
+                                          >
+                                            <Plus className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                        <Button
                                           size="sm"
-                                          onClick={() => handleOrderStatusUpdate(order.id, order.orderNumber, 'DELIVERED')}
+                                          variant="outline"
+                                          onClick={() => handleRemoveProduct(listing.id, listing.product.name)}
                                           disabled={isPending}
+                                          className="ml-auto text-red-600 hover:text-red-700 hover:bg-red-50"
                                         >
-                                          <Check className="h-4 w-4 mr-1" />
-                                          Mark Delivered
+                                          <X className="h-4 w-4 mr-1" />
+                                          Remove
                                         </Button>
-                                      )}
-                                      <span className="text-xs text-gray-500 ml-auto">
-                                        {new Date(order.deliveryDate).toLocaleDateString()}
-                                      </span>
+                                      </div>
                                     </div>
                                   </div>
-                                );
-                              })
-                            ) : (
-                              <div className="text-center py-8 text-gray-500 border border-dashed rounded-lg">
-                                <p>No orders for {zone.name} on {day}</p>
-                              </div>
-                            )}
+                                </div>
+                              );
+                            })}
+
+                            {/* Add Products Button */}
+                            <Button
+                              variant="outline"
+                              className="w-full border-dashed"
+                              onClick={() => handleOpenAddProducts(zone.id, day)}
+                              disabled={isPending}
+                            >
+                              <PackagePlus className="h-4 w-4 mr-2" />
+                              Add Products to {day} Delivery
+                            </Button>
                           </div>
                         </CollapsibleContent>
                       </div>
@@ -415,7 +478,7 @@ export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientPro
         })}
 
         {/* Empty State */}
-        {zones.length === 0 && (
+        {zonesWithProducts.length === 0 && (
           <Card>
             <CardContent className="pt-12 pb-12 text-center">
               <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -423,7 +486,7 @@ export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientPro
                 No delivery zones yet
               </h3>
               <p className="text-gray-600 mb-6">
-                Create your first delivery zone to start managing deliveries
+                Create your first delivery zone to start managing inventory
               </p>
               <Button asChild>
                 <Link href="/dashboard/delivery-zones/new">
@@ -435,6 +498,95 @@ export default function DeliveryClient({ zones, ordersByDay }: DeliveryClientPro
           </Card>
         )}
       </div>
+
+      {/* Add Products Dialog */}
+      <Dialog open={addingToZone !== null} onOpenChange={(open) => !open && handleCloseAddProducts()}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Products to Delivery Zone</DialogTitle>
+            <DialogDescription>
+              Select products to add to this delivery day. Use recurring to add to all delivery days in this zone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingProducts ? (
+            <div className="py-8 text-center text-gray-500">Loading available products...</div>
+          ) : availableProducts.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">
+              No more products available to add
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {availableProducts.map(product => (
+                <div key={product.id} className="border rounded-lg p-4">
+                  <div className="flex items-start gap-4">
+                    {product.images && product.images.length > 0 && (
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <Image
+                          src={product.images[0]}
+                          alt={product.name}
+                          fill
+                          className="object-cover rounded"
+                          sizes="64px"
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{product.name}</h4>
+                      <p className="text-sm text-gray-600">{formatPrice(product.price)}</p>
+                      
+                      <div className="mt-3 space-y-3">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`recurring-${product.id}`}
+                              checked={selectedProduct === product.id && isRecurring}
+                              onCheckedChange={(checked) => {
+                                setSelectedProduct(product.id);
+                                setIsRecurring(checked as boolean);
+                              }}
+                            />
+                            <Label htmlFor={`recurring-${product.id}`} className="text-sm">
+                              Add as recurring (all delivery days)
+                            </Label>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <Label htmlFor={`inventory-${product.id}`} className="text-sm">
+                              Initial Inventory
+                            </Label>
+                            <Input
+                              id={`inventory-${product.id}`}
+                              type="number"
+                              min="0"
+                              value={selectedProduct === product.id ? initialInventory : "10"}
+                              onChange={(e) => {
+                                setSelectedProduct(product.id);
+                                setInitialInventory(e.target.value);
+                              }}
+                              className="mt-1"
+                            />
+                          </div>
+                          <Button
+                            onClick={() => handleAddProduct(product.id)}
+                            disabled={isPending}
+                            className="mt-6"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

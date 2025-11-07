@@ -49,8 +49,8 @@ export interface DetailedProduct extends MarketStandProduct {
  * User properties for market stand responses
  */
 export interface MarketStandUser {
-  firstName: string;
-  profileImage: string;
+  firstName: string | null;
+  profileImage: string | null;
 }
 
 /**
@@ -58,7 +58,7 @@ export interface MarketStandUser {
  */
 export interface DetailedUser extends MarketStandUser {
   id: string;
-  lastName: string;
+  lastName: string | null;
 }
 
 /**

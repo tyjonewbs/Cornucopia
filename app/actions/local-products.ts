@@ -18,6 +18,20 @@ export interface SerializedProduct extends ProductResponse {
       profileImage: string;
     };
   };
+  availableAt: Array<{
+    id: string;
+    name: string;
+    distance: number | null;
+    locationName: string;
+  }>;
+  deliveryInfo: {
+    isAvailable: boolean;
+    deliveryFee: number | null;
+    zoneName: string | null;
+    zoneId: string | null;
+    minimumOrder: number | null;
+    freeDeliveryThreshold: number | null;
+  } | null;
 }
 
 export async function getLocalProducts(localId: string): Promise<SerializedProduct[]> {
@@ -56,10 +70,17 @@ export async function getLocalProducts(localId: string): Promise<SerializedProdu
     // Use the serializer to convert Prisma models to plain objects
     const serializedProducts = serializeProducts(products);
     
-    // Add distance property (null for local products)
+    // Add distance and other required properties
     return serializedProducts.map(product => ({
       ...product,
-      distance: null // Local products don't need distance calculation
+      distance: null, // Local products don't need distance calculation
+      availableAt: [{
+        id: product.marketStand.id,
+        name: product.marketStand.name,
+        distance: null,
+        locationName: product.marketStand.locationName
+      }],
+      deliveryInfo: null // No delivery info for local products for now
     })) as SerializedProduct[];
   } catch (error) {
     // Use the error handler utility to handle the error consistently

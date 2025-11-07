@@ -71,7 +71,7 @@ export function ProductList({ products, onQuantityChange }: ProductListProps) {
                   <span className="font-medium">{product.name}</span>
                 </div>
               </TableCell>
-              <TableCell>{formatPrice(product.price)}</TableCell>
+              <TableCell>{formatPrice(product.price / 100)}</TableCell>
               <TableCell>
                 <div className="flex items-center text-muted-foreground">
                   <Clock className="h-4 w-4 mr-2" />

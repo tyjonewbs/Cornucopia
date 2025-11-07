@@ -21,6 +21,7 @@ import { ImageUpload } from "@/components/ImageUpload";
 import { Submitbutton } from "@/components/SubmitButtons";
 import Image from "next/image";
 import { ProductAvailabilityManager } from "@/components/form/ProductAvailabilityManager";
+import { DeleteProductButton } from "@/components/form/DeleteProductButton";
 
 interface MarketStand {
   id: string;
@@ -64,6 +65,8 @@ interface SellFormProps {
     deliveryListings?: DeliveryListing[];
   };
   productId?: string;
+  userId?: string;
+  productName?: string;
 }
 
 function isState(state: State | Response): state is State {
@@ -75,7 +78,7 @@ const sellProductAction = async (state: State | Response, formData: FormData) =>
   return result;
 };
 
-export function SellForm({ marketStand, marketStands = [], deliveryZones = [], initialData, productId }: SellFormProps) {
+export function SellForm({ marketStand, marketStands = [], deliveryZones = [], initialData, productId, userId, productName }: SellFormProps) {
   const initialState: State = { message: null, status: undefined };
   const [state, formAction] = useFormState(sellProductAction, initialState);
   const [images, setImages] = useState<string[]>(initialData?.images || []);
@@ -279,7 +282,18 @@ export function SellForm({ marketStand, marketStands = [], deliveryZones = [], i
         </div>
       </CardContent>
       <CardFooter className="mt-5">
-        <Submitbutton title={productId ? "Save Changes" : "Create your Product"} />
+        <div className="flex-1 flex justify-between items-center">
+          {productId && userId && productName && (
+            <DeleteProductButton
+              productId={productId}
+              productName={productName}
+              userId={userId}
+            />
+          )}
+          <div className={productId ? '' : 'ml-auto'}>
+            <Submitbutton title={productId ? "Save Changes" : "Create your Product"} />
+          </div>
+        </div>
       </CardFooter>
     </form>
   );
