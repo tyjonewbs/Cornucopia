@@ -31,15 +31,21 @@ async function getData(encodedId: string) {
         website: true,
         socialMedia: true,
         hours: true,
-        products: {
+        productListings: {
+          where: { isActive: true },
           select: {
             id: true,
-            name: true,
-            images: true,
-            updatedAt: true,
-            price: true,
-            inventory: true,
-            tags: true,
+            customInventory: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                images: true,
+                updatedAt: true,
+                price: true,
+                tags: true,
+              }
+            }
           }
         },
         user: {
@@ -57,13 +63,33 @@ async function getData(encodedId: string) {
     // Serialize dates and validate hours format
     const hours = marketStand.hours as WeeklyHours | null;
     
+    // Map listings to products with listing-specific inventory
+    const products = marketStand.productListings.map(listing => ({
+      id: listing.product.id,
+      name: listing.product.name,
+      images: listing.product.images,
+      updatedAt: listing.product.updatedAt.toISOString(),
+      price: listing.product.price,
+      inventory: listing.customInventory || 0, // Use listing inventory
+      tags: listing.product.tags,
+    }));
+    
     return {
-      ...marketStand,
+      id: marketStand.id,
+      name: marketStand.name,
+      description: marketStand.description,
+      images: marketStand.images,
+      locationName: marketStand.locationName,
+      locationGuide: marketStand.locationGuide,
+      latitude: marketStand.latitude,
+      longitude: marketStand.longitude,
+      userId: marketStand.userId,
       createdAt: marketStand.createdAt.toISOString(),
-      products: marketStand.products.map(product => ({
-        ...product,
-        updatedAt: product.updatedAt.toISOString()
-      })),
+      tags: marketStand.tags,
+      website: marketStand.website,
+      socialMedia: marketStand.socialMedia,
+      user: marketStand.user,
+      products,
       hours: hours && DAYS_OF_WEEK.every(day => 
         hours[day] && 
         typeof hours[day].isOpen === 'boolean' && 
@@ -97,27 +123,34 @@ export default async function MarketStandPage({
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-8">
           {/* Image Carousel */}
-          <div className="relative">
-            <Carousel className="w-full">
-              <CarouselContent>
-                {marketStand.images.map((image, index) => (
-                  <CarouselItem key={index}>
-                    <div className="aspect-video relative rounded-lg overflow-hidden">
-                      <Image
-                        src={image}
-                        alt={`${marketStand.name} ${index + 1}`}
-                        fill
-                        className="object-cover"
-                        priority={index === 0}
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-4" />
-              <CarouselNext className="right-4" />
-            </Carousel>
-          </div>
+          {marketStand.images && marketStand.images.length > 0 && (
+            <div className="relative">
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {marketStand.images.map((image, index) => (
+                    <CarouselItem key={index}>
+                      <div className="relative w-full h-0 pb-[56.25%] rounded-lg overflow-hidden">
+                        <Image
+                          src={image}
+                          alt={`${marketStand.name} ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          priority={index === 0}
+                          sizes="(max-width: 1024px) 100vw, 66vw"
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                {marketStand.images.length > 1 && (
+                  <>
+                    <CarouselPrevious className="left-4" />
+                    <CarouselNext className="right-4" />
+                  </>
+                )}
+              </Carousel>
+            </div>
+          )}
 
           {/* Name and Tags */}
           <div className="space-y-4">

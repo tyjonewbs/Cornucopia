@@ -27,19 +27,32 @@ export async function GET(request: Request) {
       where: { id: session.user.id },
       update: {
         email: session.user.email || '',
-        firstName: session.user.user_metadata?.first_name || session.user.user_metadata?.firstName || 'User',
-        lastName: session.user.user_metadata?.last_name || session.user.user_metadata?.lastName || '',
-        profileImage: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
+        firstName: session.user.user_metadata?.first_name || session.user.user_metadata?.firstName || null,
+        lastName: session.user.user_metadata?.last_name || session.user.user_metadata?.lastName || null,
+        profileImage: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
       },
       create: {
         id: session.user.id,
         email: session.user.email || '',
-        firstName: session.user.user_metadata?.first_name || session.user.user_metadata?.firstName || 'User',
-        lastName: session.user.user_metadata?.last_name || session.user.user_metadata?.lastName || '',
-        profileImage: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || '',
+        firstName: session.user.user_metadata?.first_name || session.user.user_metadata?.firstName || null,
+        lastName: session.user.user_metadata?.last_name || session.user.user_metadata?.lastName || null,
+        profileImage: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
         role: 'USER',
+        profileComplete: false, // Default to false for new users
       },
-      select: { role: true }
+      select: { 
+        role: true, 
+        profileComplete: true,
+        username: true 
+      }
+    } as any)
+
+    // Log for debugging
+    console.log('Auth callback - User data:', { 
+      id: session.user.id, 
+      email: session.user.email,
+      profileComplete: user.profileComplete,
+      username: user.username 
     })
 
     // Update user metadata with role
@@ -70,7 +83,21 @@ export async function GET(request: Request) {
       session = updatedSession || session
     }
 
-    const response = NextResponse.redirect(new URL('/dashboard/analytics', requestUrl.origin))
+    // Check if profile needs to be completed
+    // User must have username AND profileComplete = true to skip onboarding
+    const needsProfileCompletion = !user.profileComplete || !user.username;
+    const redirectUrl = needsProfileCompletion
+      ? '/auth/complete-profile'
+      : '/dashboard/analytics';
+    
+    console.log('Auth callback - Redirect decision:', {
+      needsProfileCompletion,
+      redirectUrl,
+      profileComplete: user.profileComplete,
+      hasUsername: !!user.username
+    })
+    
+    const response = NextResponse.redirect(new URL(redirectUrl, requestUrl.origin))
 
     // Set auth cookies
     if (session) {

@@ -69,19 +69,23 @@ export default async function NavigatePage({
           {/* Header Section */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center gap-4 mb-6">
-              <div className="relative w-16 h-16">
-                <Image
-                  src={marketStand.user.profileImage}
-                  alt={marketStand.user.firstName}
-                  fill
-                  className="rounded-full border-2 border-primary object-cover"
-                />
-              </div>
+              {marketStand.user.profileImage && (
+                <div className="relative w-16 h-16">
+                  <Image
+                    src={marketStand.user.profileImage}
+                    alt={marketStand.user.firstName || 'User'}
+                    fill
+                    className="rounded-full border-2 border-primary object-cover"
+                  />
+                </div>
+              )}
               <div>
                 <h2 className="text-2xl font-bold">{marketStand.name}</h2>
-                <p className="text-muted-foreground">
-                  Managed by {marketStand.user.firstName} {marketStand.user.lastName}
-                </p>
+                {(marketStand.user.firstName || marketStand.user.lastName) && (
+                  <p className="text-muted-foreground">
+                    Managed by {marketStand.user.firstName || ''} {marketStand.user.lastName || ''}
+                  </p>
+                )}
               </div>
             </div>
 

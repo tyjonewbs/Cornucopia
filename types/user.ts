@@ -5,9 +5,22 @@
 export interface User {
   id: string;
   email: string;
+  
+  // Profile fields
+  username: string | null;
   firstName: string | null;
   lastName: string | null;
   profileImage: string | null;
+  
+  // Location data
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  
+  // Tracking
+  profileComplete: boolean;
+  usernameLastChanged: Date | null;
+  
   role: UserRole;
   isActive: boolean;
   createdAt: Date;
@@ -24,9 +37,6 @@ export interface UserProfile extends User {
   phone?: string | null;
   bio?: string | null;
   address?: string | null;
-  city?: string | null;
-  state?: string | null;
-  zipCode?: string | null;
   stripeAccountId?: string | null;
   stripeCustomerId?: string | null;
 }

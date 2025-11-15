@@ -22,8 +22,15 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
       
       // Initialize products state once during component mount
       if (userLocation) {
-        const local = initialProducts.filter(p => p.distance !== null && p.distance <= 160.934);
-        const explore = initialProducts.filter(p => p.distance === null || p.distance > 160.934);
+        // Filter local products: either within radius OR has available delivery
+        const local = initialProducts.filter(p => 
+          (p.distance !== null && p.distance <= 160.934) ||
+          (p.deliveryInfo && p.deliveryInfo.isAvailable)
+        );
+        const explore = initialProducts.filter(p => 
+          (p.distance === null || p.distance > 160.934) &&
+          !(p.deliveryInfo && p.deliveryInfo.isAvailable)
+        );
         console.log('Initial products split:', {
           localCount: local.length,
           exploreCount: explore.length
@@ -69,8 +76,15 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
       });
 
       if (userLocation) {
-        const local = initialProducts.filter(p => p.distance !== null && p.distance <= 160.934);
-        const explore = initialProducts.filter(p => p.distance === null || p.distance > 160.934);
+        // Filter local products: either within radius OR has available delivery
+        const local = initialProducts.filter(p => 
+          (p.distance !== null && p.distance <= 160.934) ||
+          (p.deliveryInfo && p.deliveryInfo.isAvailable)
+        );
+        const explore = initialProducts.filter(p => 
+          (p.distance === null || p.distance > 160.934) &&
+          !(p.deliveryInfo && p.deliveryInfo.isAvailable)
+        );
         console.log('Updated products split:', {
           localCount: local.length,
           exploreCount: explore.length
@@ -100,7 +114,15 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
       setIsLoading(true);
       setError(null);
       console.log('Loading more products with cursor:', products.lastId);
-      const newProducts = await getHomeProducts(userLocation, products.lastId);
+      const newProducts = await getHomeProducts(
+        userLocation?.coords.lat,
+        userLocation?.coords.lng,
+        userLocation?.source,
+        userLocation?.zipCode,
+        userLocation?.coords.accuracy,
+        userLocation?.coords.timestamp,
+        products.lastId
+      );
       console.log('Loaded additional products:', newProducts.length);
       
       if (newProducts.length > 0) {
@@ -163,19 +185,19 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
           <h2 className="text-2xl font-bold mb-6">Local Products</h2>
           {products.local.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 gap-10 mb-12">
-              {products.local.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  images={product.images}
-                  locationName={product.marketStand.locationName}
-                  updatedAt={product.updatedAt}
-                  price={product.price}
-                  tags={product.tags}
-                  distance={product.distance}
-                />
-              ))}
+            {products.local.map((product) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                images={product.images}
+                locationName={product.marketStand?.locationName || 'Delivery Only'}
+                updatedAt={product.updatedAt}
+                price={product.price}
+                tags={product.tags}
+                distance={product.distance}
+              />
+            ))}
             </div>
           ) : (
             <div className="text-center py-12 bg-gray-50 rounded-lg mb-12">
@@ -203,7 +225,7 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
                 id={product.id}
                 name={product.name}
                 images={product.images}
-                locationName={product.marketStand.locationName}
+                locationName={product.marketStand?.locationName || 'Delivery Only'}
                 updatedAt={product.updatedAt}
                 price={product.price}
                 tags={product.tags}

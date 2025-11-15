@@ -54,18 +54,24 @@ export function ProductList({ products, onQuantityChange }: ProductListProps) {
             <TableRow key={product.id}>
               <TableCell>
                 <div className="flex items-center space-x-4">
-                  <div className="relative w-12 h-12 rounded-md overflow-hidden">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                    />
+                  <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100">
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <span className="text-xs">No image</span>
+                      </div>
+                    )}
                   </div>
                   <span className="font-medium">{product.name}</span>
                 </div>
               </TableCell>
-              <TableCell>{formatPrice(product.price)}</TableCell>
+              <TableCell>{formatPrice(product.price / 100)}</TableCell>
               <TableCell>
                 <div className="flex items-center text-muted-foreground">
                   <Clock className="h-4 w-4 mr-2" />
@@ -76,7 +82,7 @@ export function ProductList({ products, onQuantityChange }: ProductListProps) {
                 <div className="flex justify-center">
                   <ProductQuantityControl
                     quantity={product.quantity}
-                    onChange={(newQuantity) => onQuantityChange(product.id, newQuantity)}
+                    onUpdate={(newQuantity: number) => onQuantityChange(product.id, newQuantity)}
                   />
                 </div>
               </TableCell>

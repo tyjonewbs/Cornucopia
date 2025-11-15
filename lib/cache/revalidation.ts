@@ -18,7 +18,7 @@ export const CacheTags = {
 export function revalidateProducts() {
   revalidateTag(CacheTags.PRODUCTS);
   revalidatePath('/', 'page');
-  revalidatePath('/dashboard/sell', 'page');
+  revalidatePath('/dashboard/market-stand', 'page');
 }
 
 /**
@@ -37,7 +37,7 @@ export function revalidateProduct(productId: string) {
 export function revalidateUserProducts(userId: string) {
   revalidateTag(CacheTags.USER_PRODUCTS(userId));
   revalidateTag(CacheTags.PRODUCTS);
-  revalidatePath('/dashboard/sell', 'page');
+  revalidatePath('/dashboard/market-stand', 'page');
 }
 
 /**

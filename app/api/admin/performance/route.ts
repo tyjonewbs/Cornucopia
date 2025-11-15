@@ -10,11 +10,24 @@ import { checkRedisHealth } from '@/lib/cache/redis';
 
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Add admin authentication check here
-    // const session = await getServerSession();
-    // if (!session || session.user.role !== 'ADMIN') {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    // Check authentication and admin role
+    const { createRouteHandlerClient } = await import('@/lib/supabase-route');
+    const supabase = createRouteHandlerClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { default: prisma } = await import('@/lib/db');
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
+    });
+
+    if (!user || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const [dbMetrics, redisHealthy] = await Promise.all([
       getConnectionMetrics(),

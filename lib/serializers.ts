@@ -62,6 +62,11 @@ export function serializeProduct(product: Product & any): any {
     totalReviews: product.totalReviews,
     averageRating: product.averageRating,
     tags: product.tags,
+    // Delivery fields
+    deliveryAvailable: product.deliveryAvailable,
+    deliveryZoneId: product.deliveryZoneId,
+    availableDate: product.availableDate?.toISOString() || null,
+    availableUntil: product.availableUntil?.toISOString() || null,
     // Include marketStand if it's loaded
     ...(product.marketStand ? {
       marketStand: {
@@ -78,6 +83,41 @@ export function serializeProduct(product: Product & any): any {
         } : {})
       },
       locationName: product.marketStand.locationName
+    } : {}),
+    // Include deliveryZone if it's loaded
+    ...(product.deliveryZone ? {
+      deliveryZone: {
+        id: product.deliveryZone.id,
+        name: product.deliveryZone.name,
+        deliveryFee: product.deliveryZone.deliveryFee,
+        minimumOrder: product.deliveryZone.minimumOrder,
+        freeDeliveryThreshold: product.deliveryZone.freeDeliveryThreshold,
+        zipCodes: product.deliveryZone.zipCodes,
+        cities: product.deliveryZone.cities,
+        states: product.deliveryZone.states,
+        deliveryDays: product.deliveryZone.deliveryDays,
+      }
+    } : {}),
+    // Include deliveryListings if they exist
+    ...(product.deliveryListings ? {
+      deliveryListings: product.deliveryListings.map((listing: any) => ({
+        id: listing.id,
+        productId: listing.productId,
+        deliveryZoneId: listing.deliveryZoneId,
+        dayOfWeek: listing.dayOfWeek,
+        inventory: listing.inventory,
+        deliveryZone: listing.deliveryZone ? {
+          id: listing.deliveryZone.id,
+          name: listing.deliveryZone.name,
+          deliveryFee: listing.deliveryZone.deliveryFee,
+          minimumOrder: listing.deliveryZone.minimumOrder,
+          freeDeliveryThreshold: listing.deliveryZone.freeDeliveryThreshold,
+          zipCodes: listing.deliveryZone.zipCodes,
+          cities: listing.deliveryZone.cities,
+          states: listing.deliveryZone.states,
+          deliveryDays: listing.deliveryZone.deliveryDays,
+        } : null
+      }))
     } : {})
   };
 }

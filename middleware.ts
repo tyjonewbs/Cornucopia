@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
     // Handle other protected routes
     if (
       pathname.startsWith('/dashboard') || 
-      pathname.startsWith('/settings') || 
+    pathname.startsWith('/account') ||
       pathname.startsWith('/market-stand/setup') ||
       pathname.startsWith('/local/setup')
     ) {
@@ -68,8 +68,13 @@ export async function middleware(request: NextRequest) {
         return response;
       }
 
-      // Redirect authenticated users
-      if (session) {
+      // Allow access to complete-profile page for authenticated users
+      if (pathname === '/auth/complete-profile') {
+        return response;
+      }
+
+      // Redirect authenticated users from login/callback pages
+      if (session && !pathname.startsWith('/auth/callback')) {
         const returnTo = request.nextUrl.searchParams.get('returnTo') || '/dashboard/market-stand';
         return NextResponse.redirect(new URL(returnTo, request.url));
       }
@@ -88,7 +93,7 @@ export const config = {
     '/admin/:path*',
     '/dashboard/:path*',
     '/auth/:path*',
-    '/settings/:path*',
+    '/account/:path*',
     '/market-stand/setup/:path*',
     '/local/setup/:path*'
   ]

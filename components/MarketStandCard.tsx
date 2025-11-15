@@ -1,7 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Package, Clock, Image as ImageIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MapPin, Package, Clock, Image as ImageIcon, Pencil } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -33,11 +34,11 @@ export function MarketStandCard({ stand }: MarketStandCardProps) {
   }
 
   return (
-    <Link href={`/market-stand/${stand.id}`} className="block">
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-        <div className="flex">
-          {/* Image Section - Fixed width and aspect ratio */}
-          <div className="relative w-72 h-48 bg-muted flex items-center justify-center">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+      <div className="flex">
+        {/* Image Section - Fixed width and aspect ratio */}
+        <Link href={`/market-stand/${stand.id}`} className="block">
+          <div className="relative w-72 h-48 bg-muted flex items-center justify-center cursor-pointer">
             {stand.images[0] && !imageError ? (
               <Image
                 src={stand.images[0]}
@@ -54,17 +55,28 @@ export function MarketStandCard({ stand }: MarketStandCardProps) {
               </div>
             )}
           </div>
+        </Link>
 
-          {/* Content Section */}
-          <div className="flex-1 flex flex-col">
-            <CardHeader className="pb-2">
-              <CardTitle>{stand.name}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {stand.description}
-              </p>
-            </CardHeader>
+        {/* Content Section */}
+        <div className="flex-1 flex flex-col">
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <CardTitle>{stand.name}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {stand.description}
+                </p>
+              </div>
+              <Link href={`/dashboard/market-stand/setup/edit/${stand.id}`}>
+                <Button variant="outline" size="sm" className="shrink-0">
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
 
-            <CardContent className="flex-1 flex flex-col justify-between">
+          <CardContent className="flex-1 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-1">
@@ -96,10 +108,9 @@ export function MarketStandCard({ stand }: MarketStandCardProps) {
                   </div>
                 )}
               </div>
-            </CardContent>
-          </div>
+          </CardContent>
         </div>
-      </Card>
-    </Link>
+      </div>
+    </Card>
   );
 }

@@ -14,6 +14,8 @@ export function AdminNav({ isSuperAdmin }: AdminNavProps) {
   return (
     <nav className="hidden sm:ml-6 sm:flex sm:space-x-8" aria-label="Global">
       <NavLink href="/admin">Dashboard</NavLink>
+      <NavLink href="/admin/orders">Orders</NavLink>
+      <NavLink href="/admin/delivery-zones">Delivery Zones</NavLink>
       <NavLink href="/admin/analytics">Analytics</NavLink>
       <NavLink href="/admin/users">Users</NavLink>
       {isSuperAdmin && (

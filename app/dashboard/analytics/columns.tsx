@@ -10,7 +10,7 @@ type Product = {
   createdAt: Date
   marketStand: {
     name: string
-  }
+  } | null
 }
 
 export const columns: ColumnDef<Product>[] = [
@@ -21,7 +21,7 @@ export const columns: ColumnDef<Product>[] = [
       return (
         <div className="flex flex-col">
           <span className="font-medium">{row.getValue("name")}</span>
-          <span className="text-sm text-gray-500">{row.original.marketStand.name}</span>
+          <span className="text-sm text-gray-500">{row.original.marketStand?.name || 'N/A'}</span>
         </div>
       )
     }
