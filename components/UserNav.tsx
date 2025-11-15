@@ -1,7 +1,7 @@
 "use client";
 
 import { useSupabase } from "./providers/SupabaseProvider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -14,13 +14,37 @@ import {
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { AuthDialog } from "./AuthDialog";
+import { ProducerOnboardingDialog } from "./ProducerOnboardingDialog";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { getAuthRedirectUrl } from "@/lib/supabase-config";
+import { checkIsProducer } from "@/app/actions/user";
 
 export function UserNav() {
   const { user, isLoading } = useSupabase();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isProducer, setIsProducer] = useState(false);
+  const [isCheckingProducer, setIsCheckingProducer] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    async function checkProducerStatus() {
+      if (user?.id) {
+        try {
+          const producerStatus = await checkIsProducer(user.id);
+          setIsProducer(producerStatus);
+        } catch (error) {
+          console.error("Failed to check producer status:", error);
+        } finally {
+          setIsCheckingProducer(false);
+        }
+      } else {
+        setIsCheckingProducer(false);
+      }
+    }
+    
+    checkProducerStatus();
+  }, [user?.id]);
 
   const handleLogout = async () => {
     try {
@@ -39,7 +63,7 @@ export function UserNav() {
     router.push(path);
   };
 
-  if (isLoading || isAuthenticating) {
+  if (isLoading || isAuthenticating || isCheckingProducer) {
     return (
       <Button variant="ghost" size="sm" className="relative h-8 w-8">
         <Avatar>
@@ -82,61 +106,90 @@ export function UserNav() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative h-8 w-8">
-          <Avatar>
-            <AvatarImage
-              src={user?.user_metadata?.avatar_url || ''}
-              alt={user?.user_metadata?.given_name || 'User'}
-            />
-            <AvatarFallback>{user?.user_metadata?.given_name?.[0] || 'U'}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.user_metadata?.given_name || 'User'}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user?.email || ''}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem 
-          className="cursor-pointer"
-          onClick={() => navigate('/dashboard/my-local-haul')}
-        >
-          My Local Haul
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          className="cursor-pointer"
-          onClick={() => navigate('/dashboard/market-stand')}
-        >
-          Market Stands
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          className="cursor-pointer"
-          onClick={() => navigate('/dashboard/local')}
-        >
-          Farm/Ranch Profiles
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          className="cursor-pointer"
-          onClick={() => navigate('/account')}
-        >
-          Settings
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem 
-          className="cursor-pointer text-destructive focus:text-destructive"
-          onClick={handleLogout}
-          disabled={isAuthenticating}
-        >
-          Logout
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="relative h-8 w-8">
+            <Avatar>
+              <AvatarImage
+                src={user?.user_metadata?.avatar_url || ''}
+                alt={user?.user_metadata?.given_name || 'User'}
+              />
+              <AvatarFallback>{user?.user_metadata?.given_name?.[0] || 'U'}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onClick={() => navigate('/account')}
+          >
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{user?.user_metadata?.given_name || 'User'}</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {user?.email || ''}
+              </p>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onClick={() => navigate('/dashboard/my-local-haul')}
+          >
+            My Local Haul
+          </DropdownMenuItem>
+          
+          {isProducer ? (
+            <>
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => navigate('/dashboard/products')}
+              >
+                My Products
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => navigate('/dashboard/market-stand')}
+              >
+                Market Stands
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => navigate('/dashboard/delivery-zones')}
+              >
+                Delivery Zones
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => navigate('/dashboard/local')}
+              >
+                Farm/Ranch Profile
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem 
+              className="cursor-pointer"
+              onClick={() => setDialogOpen(true)}
+            >
+              Become a Producer
+            </DropdownMenuItem>
+          )}
+          
+          <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            className="cursor-pointer text-destructive focus:text-destructive"
+            onClick={handleLogout}
+            disabled={isAuthenticating}
+          >
+            Logout
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ProducerOnboardingDialog 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
+    </>
   );
 }

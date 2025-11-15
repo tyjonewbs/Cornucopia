@@ -3,7 +3,7 @@
 import { Skeleton } from "./ui/skeleton";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { getDeliveryTiming } from "@/lib/utils/delivery-format";
 
 interface ProductCardProps {
   images: string[];
@@ -32,6 +32,13 @@ interface ProductCardProps {
     zoneId: string | null;
     minimumOrder: number | null;
     freeDeliveryThreshold: number | null;
+    deliveryDays?: string[];
+    nextDeliveryDate?: string | null;
+  } | null;
+  badge?: {
+    text: string;
+    color: string;
+    type: string;
   } | null;
 }
 
@@ -51,77 +58,8 @@ export function ProductCard({
   deliveryAvailable = false,
   availableAt = [],
   deliveryInfo = null,
+  badge = null,
 }: ProductCardProps) {
-  const [timeElapsed, setTimeElapsed] = useState('00:00');
-
-  // Calculate availability status
-  const getAvailabilityInfo = () => {
-    const now = new Date();
-    const startDate = availableDate ? new Date(availableDate) : null;
-    const endDate = availableUntil ? new Date(availableUntil) : null;
-
-    const isAvailableNow = 
-      (!startDate || startDate <= now) && 
-      (!endDate || endDate >= now);
-
-    const isPreOrder = startDate ? startDate > now : false;
-    const isSeasonal = !!(startDate && endDate);
-
-    let badge = null;
-    let badgeColor = '';
-
-    if (isPreOrder && startDate) {
-      badge = `Pre-Order • Available ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      badgeColor = 'bg-blue-500';
-    } else if (isSeasonal && endDate) {
-      badge = `Seasonal • Until ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      badgeColor = 'bg-amber-500';
-    } else if (!isAvailableNow) {
-      badge = 'Not Currently Available';
-      badgeColor = 'bg-gray-500';
-    }
-
-    return { badge, badgeColor };
-  };
-
-  const { badge, badgeColor } = getAvailabilityInfo();
-
-  useEffect(() => {
-    const calculateTime = () => {
-      const now = new Date();
-      const updated = new Date(updatedAt);
-      const diff = Math.floor((now.getTime() - updated.getTime()) / 1000); // difference in seconds
-      
-      const days = Math.floor(diff / 86400);
-      const hours = Math.floor((diff % 86400) / 3600);
-      const minutes = Math.floor((diff % 3600) / 60);
-      const seconds = diff % 60;
-
-      // First hour: show minutes:seconds
-      if (diff < 3600) {
-        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      }
-      // Next two days: show hours:minutes
-      else if (days < 2) {
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      }
-      // After two days: show days
-      else {
-        return `${days}d ago`;
-      }
-    };
-
-    // Initial calculation
-    setTimeElapsed(calculateTime());
-
-    // Update every second
-    const interval = setInterval(() => {
-      setTimeElapsed(calculateTime());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [updatedAt]);
-
   return (
     <Link 
       href={`/product/${encodeURIComponent(id)}${isQRAccess ? '?qr=true' : ''}`}
@@ -130,26 +68,19 @@ export function ProductCard({
       <div className="rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
         <div className="relative aspect-[4/3] w-full">
           <div className="absolute top-2 left-2 right-2 flex gap-2 z-10 flex-wrap">
+            {/* Smart Badge - calculated server-side */}
             {badge && (
-              <div className={`${badgeColor} text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-lg`}>
-                {badge}
+              <div className={`${badge.color} text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-lg`}>
+                {badge.text}
               </div>
             )}
-            {deliveryAvailable && (
-              <div className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-lg">
-                Delivery Available
+            
+            {/* Inventory badge */}
+            {typeof inventory === 'number' && inventory > 0 && (
+              <div className="ml-auto bg-black/50 backdrop-blur-sm text-white px-3 py-1.5 rounded-md text-sm">
+                {inventory} left
               </div>
             )}
-            <div className="ml-auto flex gap-2">
-              <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-1.5 rounded-md text-sm font-mono">
-                {timeElapsed}
-              </div>
-              {typeof inventory === 'number' && (
-                <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-1.5 rounded-md text-sm">
-                  {inventory} left
-                </div>
-              )}
-            </div>
           </div>
           <Image
             alt={name}
@@ -203,14 +134,45 @@ export function ProductCard({
           )}
           
           {/* Fallback for products without availableAt data */}
-          {availableAt.length === 0 && locationName && (
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-gray-600 text-sm">{locationName}</p>
-              {distance !== null && distance !== undefined && (
-                <p className="text-sm text-primary">
-                  {Math.round(distance * 0.621371)} miles away
-                </p>
-              )}
+          {availableAt.length === 0 && (
+            <div className="mt-1">
+              {locationName ? (
+                <div className="flex items-center justify-between">
+                  <p className="text-gray-600 text-sm">{locationName}</p>
+                  {distance !== null && distance !== undefined && (
+                    <p className="text-sm text-primary">
+                      {Math.round(distance * 0.621371)} miles away
+                    </p>
+                  )}
+                </div>
+              ) : deliveryAvailable ? (
+                (() => {
+                  const deliveryTimings = getDeliveryTiming({
+                    deliveryDays: deliveryInfo?.deliveryDays,
+                    availableDate,
+                    availableUntil,
+                  });
+                  
+                  return deliveryTimings.length > 0 ? (
+                    <div className="space-y-1">
+                      {deliveryTimings.map((timing, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500">🚚</span>
+                            <p className="text-gray-600 text-sm font-medium">Delivery Only</p>
+                          </div>
+                          <p className="text-sm text-primary font-medium">{timing}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-500">🚚</span>
+                      <p className="text-gray-600 text-sm font-medium">Delivery Only</p>
+                    </div>
+                  );
+                })()
+              ) : null}
             </div>
           )}
           
@@ -221,21 +183,23 @@ export function ProductCard({
                 <span className="text-green-600 mt-0.5">🚚</span>
                 <div className="flex-1">
                   <p className="font-medium text-green-900">
+                    {deliveryInfo.zoneName || 'Delivery Available'}
+                  </p>
+                  {deliveryInfo.deliveryDays && deliveryInfo.deliveryDays.length > 0 && (
+                    <p className="text-xs text-green-700">
+                      {deliveryInfo.deliveryDays.slice(0, 3).map(d => d.substring(0, 3)).join(', ')}
+                      {deliveryInfo.deliveryDays.length > 3 && ` +${deliveryInfo.deliveryDays.length - 3}`}
+                    </p>
+                  )}
+                  <p className="text-xs text-green-700 mt-0.5">
                     {deliveryInfo.deliveryFee === null || deliveryInfo.deliveryFee === 0 
                       ? 'Free Delivery'
-                      : `Delivery: ${(deliveryInfo.deliveryFee / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`
+                      : `Fee: ${(deliveryInfo.deliveryFee / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`
                     }
+                    {deliveryInfo.freeDeliveryThreshold && deliveryInfo.deliveryFee !== 0 && (
+                      ` • Free over $${(deliveryInfo.freeDeliveryThreshold / 100).toFixed(0)}`
+                    )}
                   </p>
-                  {deliveryInfo.freeDeliveryThreshold && deliveryInfo.deliveryFee !== 0 && (
-                    <p className="text-xs text-green-700">
-                      Free over ${(deliveryInfo.freeDeliveryThreshold / 100).toFixed(0)}
-                    </p>
-                  )}
-                  {deliveryInfo.minimumOrder && (
-                    <p className="text-xs text-green-700">
-                      Min order: ${(deliveryInfo.minimumOrder / 100).toFixed(0)}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>

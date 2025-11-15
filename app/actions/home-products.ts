@@ -3,6 +3,12 @@
 import { getProducts, type ProductResponse } from "./products";
 import { handleDatabaseError } from "@/lib/error-handler";
 import { getProductAvailability } from "@/types/product";
+import { 
+  calculateProductBadge, 
+  isMarketStandOpen, 
+  aggregateInventory,
+  type ProductBadge 
+} from "@/lib/utils/product-badges";
 
 export interface LocationType {
   coords: {
@@ -12,6 +18,7 @@ export interface LocationType {
     timestamp?: number;
   };
   source: 'browser' | 'zipcode';
+  zipCode?: string;
 }
 
 export interface SerializedProduct extends ProductResponse {
@@ -40,7 +47,9 @@ export interface SerializedProduct extends ProductResponse {
     zoneId: string | null;
     minimumOrder: number | null;
     freeDeliveryThreshold: number | null;
+    deliveryDays?: string[];
   } | null;
+  badge: ProductBadge | null;
 }
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -55,9 +64,34 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c; // Distance in km
 }
 
-export const getHomeProducts = async (userLocation: LocationType | null, cursor?: string): Promise<SerializedProduct[]> => {
+export const getHomeProducts = async (
+  lat?: number | null,
+  lng?: number | null,
+  source?: 'browser' | 'zipcode' | null,
+  zipCode?: string | null,
+  accuracy?: number | null,
+  timestamp?: number | null,
+  cursor?: string
+): Promise<SerializedProduct[]> => {
   try {
+    // Reconstruct LocationType from parameters
+    const userLocation: LocationType | null = 
+      lat !== null && lng !== null && lat !== undefined && lng !== undefined && source
+        ? {
+            coords: {
+              lat,
+              lng,
+              accuracy: accuracy || undefined,
+              timestamp: timestamp || undefined,
+            },
+            source,
+            zipCode: zipCode || undefined,
+          }
+        : null;
+
     console.log('Fetching products with location:', userLocation);
+    console.log('Received zipCode parameter:', zipCode);
+    
     const products = await getProducts({
       limit: cursor ? 12 : 50, // Fetch more initially for local filtering
       cursor,
@@ -162,27 +196,80 @@ export const getHomeProducts = async (userLocation: LocationType | null, cursor?
 
       // Check delivery availability to user's location
       let deliveryInfo: SerializedProduct['deliveryInfo'] = null;
-      if (product.deliveryAvailable && (product as any).deliveryZone && userLocation) {
-        const zone = (product as any).deliveryZone;
-        
-        // For now, we'll mark as available since we don't have zip code from coordinates
-        // In a real implementation, we'd geocode the coordinates to get zip/city
-        // or require zip code input from user
-        deliveryInfo = {
-          isAvailable: true, // Simplified - would need proper zip/city matching
-          deliveryFee: zone.deliveryFee || null,
-          zoneName: zone.name || null,
-          zoneId: zone.id || null,
-          minimumOrder: zone.minimumOrder || null,
-          freeDeliveryThreshold: zone.freeDeliveryThreshold || null,
-        };
+      
+      // Check both primary delivery zone AND delivery listings
+      const zonesToCheck: Array<{zone: any, source: 'primary' | 'listing'}> = [];
+      
+      // Add primary delivery zone if it exists
+      if (product.deliveryAvailable && (product as any).deliveryZone) {
+        zonesToCheck.push({
+          zone: (product as any).deliveryZone,
+          source: 'primary'
+        });
       }
+      
+      // Add delivery listings if they exist
+      if ((product as any).deliveryListings) {
+        const listings = (product as any).deliveryListings as Array<{
+          deliveryZone?: any;
+        }>;
+        
+        listings.forEach(listing => {
+          if (listing.deliveryZone) {
+            zonesToCheck.push({
+              zone: listing.deliveryZone,
+              source: 'listing'
+            });
+          }
+        });
+      }
+      
+      // Check each zone for zip code match
+      for (const {zone, source} of zonesToCheck) {
+        // Check if zipcode is covered (if we have it from user search)
+        if (userLocation && userLocation.zipCode && zone.zipCodes) {
+          if (zone.zipCodes.includes(userLocation.zipCode)) {
+            // Found a matching zone!
+            deliveryInfo = {
+              isAvailable: true,
+              deliveryFee: zone.deliveryFee || null,
+              zoneName: zone.name || null,
+              zoneId: zone.id || null,
+              minimumOrder: zone.minimumOrder || null,
+              freeDeliveryThreshold: zone.freeDeliveryThreshold || null,
+              deliveryDays: zone.deliveryDays || [],
+            };
+            break; // Stop checking once we find a match
+          }
+        }
+      }
+
+      // Calculate smart badge
+      const totalInventory = product.inventory || 0; // For now use product.inventory, will update when per-stand inventory is fully implemented
+      const hasMarketStand = allMarketStands.length > 0;
+      const marketStandHours = (product as any).marketStand?.hours;
+      const isOpen = hasMarketStand && marketStandHours
+        ? isMarketStandOpen(marketStandHours) 
+        : false;
+      
+      const badge = calculateProductBadge({
+        availableDate: product.availableDate,
+        availableUntil: product.availableUntil,
+        totalInventory,
+        inventoryUpdatedAt: (product as any).inventoryUpdatedAt || product.updatedAt,
+        updatedAt: product.updatedAt,
+        hasMarketStand,
+        hasDelivery: product.deliveryAvailable,
+        isMarketStandOpen: isOpen || undefined,
+        deliveryDays: deliveryInfo?.deliveryDays,
+      });
 
       return {
         ...product,
         distance: primaryDistance,
         availableAt,
         deliveryInfo,
+        badge,
       };
     });
 
@@ -255,8 +342,15 @@ export const getHomeProducts = async (userLocation: LocationType | null, cursor?
       // Use a larger radius for zip code locations since they're less precise
       const localRadius = userLocation.source === 'zipcode' ? 321.87 : 241.4; // 200 miles for zip, 150 miles for browser
       
-      const localProducts = sortedProducts.filter(p => p.distance !== null && p.distance <= localRadius);
-      const otherProducts = sortedProducts.filter(p => p.distance === null || p.distance > localRadius);
+      // Filter local products: either within radius OR has available delivery
+      const localProducts = sortedProducts.filter(p => 
+        (p.distance !== null && p.distance <= localRadius) || 
+        (p.deliveryInfo && p.deliveryInfo.isAvailable)
+      );
+      const otherProducts = sortedProducts.filter(p => 
+        (p.distance === null || p.distance > localRadius) && 
+        !(p.deliveryInfo && p.deliveryInfo.isAvailable)
+      );
       
       console.log('Filtered products:', {
         local: localProducts.length,
@@ -289,8 +383,8 @@ export const getHomeProducts = async (userLocation: LocationType | null, cursor?
   } catch (error) {
     // Use the error handler utility to handle the error consistently
     const errorData = handleDatabaseError(error, "Failed to fetch home products", {
-      hasLocation: !!userLocation,
-      locationSource: userLocation?.source,
+      hasLocation: !!(lat && lng),
+      locationSource: source || undefined,
       cursor
     });
     

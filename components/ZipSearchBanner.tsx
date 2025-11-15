@@ -55,7 +55,8 @@ export function ZipSearchBanner({ onLocationUpdate }: ZipSearchBannerProps) {
           lng: location.lng,
           timestamp: Date.now()
         },
-        source: 'zipcode'
+        source: 'zipcode',
+        zipCode: zipCode
       };
 
       // Cache the zip code for use on product pages

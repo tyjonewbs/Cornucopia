@@ -46,6 +46,7 @@ export interface ProductWithMarketStandDTO extends ProductDTO {
     deliveryFee: number;
     freeDeliveryThreshold: number | null;
     minimumOrder: number | null;
+    deliveryDays: string[];
   } | null;
   locationName?: string;
 }

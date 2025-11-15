@@ -97,6 +97,11 @@ async function getData(id: string) {
           states: true,
           deliveryDays: true,
         }
+      },
+      deliveryListings: {
+        select: {
+          inventory: true,
+        }
       }
     },
   });

@@ -2,6 +2,11 @@
 
 import { getProducts, type ProductResponse } from "./products";
 import { handleDatabaseError } from "@/lib/error-handler";
+import { 
+  calculateProductBadge, 
+  isMarketStandOpen,
+  type ProductBadge 
+} from "@/lib/utils/product-badges";
 
 export interface SerializedNearbyProduct extends ProductResponse {
   distance: number | null;
@@ -22,6 +27,16 @@ export interface SerializedNearbyProduct extends ProductResponse {
     distance: number | null;
     locationName: string;
   }>;
+  deliveryInfo: {
+    isAvailable: boolean;
+    deliveryFee: number | null;
+    zoneName: string | null;
+    zoneId: string | null;
+    minimumOrder: number | null;
+    freeDeliveryThreshold: number | null;
+    deliveryDays?: string[];
+  } | null;
+  badge: ProductBadge | null;
 }
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -140,10 +155,47 @@ export const getNearbyProducts = async (
             )
           : null;
 
+        // Check delivery availability
+        let deliveryInfo: SerializedNearbyProduct['deliveryInfo'] = null;
+        if (product.deliveryAvailable && (product as any).deliveryZone) {
+          const zone = (product as any).deliveryZone;
+          deliveryInfo = {
+            isAvailable: true,
+            deliveryFee: zone.deliveryFee || null,
+            zoneName: zone.name || null,
+            zoneId: zone.id || null,
+            minimumOrder: zone.minimumOrder || null,
+            freeDeliveryThreshold: zone.freeDeliveryThreshold || null,
+            deliveryDays: zone.deliveryDays || [],
+          };
+        }
+
+        // Calculate smart badge
+        const totalInventory = product.inventory || 0;
+        const hasMarketStand = allMarketStands.length > 0;
+        const marketStandHours = (product as any).marketStand?.hours;
+        const isOpen = hasMarketStand && marketStandHours
+          ? isMarketStandOpen(marketStandHours) 
+          : false;
+        
+        const badge = calculateProductBadge({
+          availableDate: product.availableDate,
+          availableUntil: product.availableUntil,
+          totalInventory,
+          inventoryUpdatedAt: (product as any).inventoryUpdatedAt || product.updatedAt,
+          updatedAt: product.updatedAt,
+          hasMarketStand,
+          hasDelivery: product.deliveryAvailable,
+          isMarketStandOpen: isOpen || undefined,
+          deliveryDays: deliveryInfo?.deliveryDays,
+        });
+
         return {
           ...product,
           distance: primaryDistance,
           availableAt,
+          deliveryInfo,
+          badge,
         };
       });
 

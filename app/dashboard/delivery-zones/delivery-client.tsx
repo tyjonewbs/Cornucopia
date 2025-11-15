@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { format, addDays, startOfDay, getDay, isBefore } from "date-fns";
 import { 
   Calendar,
   Truck,
@@ -89,7 +90,29 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
   const [isRecurring, setIsRecurring] = useState(false);
   const [initialInventory, setInitialInventory] = useState("10");
 
-  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // Generate upcoming delivery dates for next 4 weeks
+  const upcomingDeliveryDates = useMemo(() => {
+    const dates: Array<{ date: Date; dayName: string; dateKey: string }> = [];
+    const today = startOfDay(new Date());
+    
+    // Generate next 28 days (4 weeks)
+    for (let i = 0; i < 28; i++) {
+      const futureDate = addDays(today, i);
+      const dayIndex = getDay(futureDate);
+      const dayName = DAYS_OF_WEEK[dayIndex];
+      const dateKey = format(futureDate, 'yyyy-MM-dd');
+      
+      dates.push({
+        date: futureDate,
+        dayName,
+        dateKey,
+      });
+    }
+    
+    return dates;
+  }, []);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -267,33 +290,33 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
           </div>
         </div>
 
-        {/* Days with Zones */}
-        {DAYS.map(day => {
+        {/* Upcoming Delivery Dates */}
+        {upcomingDeliveryDates.map(({ date, dayName, dateKey }) => {
           const dayZones = zonesWithProducts.filter(
-            zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(day)
+            zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(dayName)
           );
           
           if (dayZones.length === 0) return null;
 
           return (
-            <Card key={day} className="overflow-hidden">
+            <Card key={dateKey} className="overflow-hidden">
               <CardHeader className="bg-blue-50">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-blue-600" />
-                  {day} Deliveries
+                  {format(date, 'EEEE, MMMM d, yyyy')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
                 {dayZones.map(({ zone, productsByDay }) => {
-                  const dayProducts = productsByDay[day] || [];
+                  const dayProducts = productsByDay[dayName] || [];
                   const totalInventory = dayProducts.reduce((sum, p) => sum + p.inventory, 0);
-                  const isExpanded = expandedDays.has(`${zone.id}-${day}`);
+                  const isExpanded = expandedDays.has(`${zone.id}-${dateKey}`);
 
                   return (
                     <Collapsible
-                      key={`${zone.id}-${day}`}
+                      key={`${zone.id}-${dateKey}`}
                       open={isExpanded}
-                      onOpenChange={() => toggleDay(`${zone.id}-${day}`)}
+                      onOpenChange={() => toggleDay(`${zone.id}-${dateKey}`)}
                     >
                       <div className="border rounded-lg">
                         {/* Zone Header */}
@@ -460,11 +483,11 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                             <Button
                               variant="outline"
                               className="w-full border-dashed"
-                              onClick={() => handleOpenAddProducts(zone.id, day)}
+                              onClick={() => handleOpenAddProducts(zone.id, dayName)}
                               disabled={isPending}
                             >
                               <PackagePlus className="h-4 w-4 mr-2" />
-                              Add Products to {day} Delivery
+                              Add Products to {format(date, 'MMMM d')} Delivery
                             </Button>
                           </div>
                         </CollapsibleContent>

@@ -31,12 +31,27 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
       setError(null);
       setLocationUpdatePending(true);
       console.log('Updating location:', location);
+      console.log('Location zipCode:', location?.zipCode);
+      console.log('Location source:', location?.source);
       
       // Set location first to trigger proper loading state
       setUserLocation(location);
       
       // Fetch new products sorted by the new location
-      const newProducts = await getHomeProducts(location);
+      console.log('Calling getHomeProducts with:', {
+        hasLocation: !!location,
+        zipCode: location?.zipCode,
+        source: location?.source,
+        coords: location?.coords
+      });
+      const newProducts = await getHomeProducts(
+        location?.coords.lat,
+        location?.coords.lng,
+        location?.source,
+        location?.zipCode,
+        location?.coords.accuracy,
+        location?.coords.timestamp
+      );
       console.log('New products fetched:', {
         count: newProducts?.length ?? 0,
         hasLocation: !!location,

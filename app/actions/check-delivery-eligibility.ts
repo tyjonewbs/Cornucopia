@@ -100,11 +100,18 @@ export async function checkDeliveryEligibility({
     const deliveryOptions: SerializedDeliveryOption[] = [];
 
     if (product.deliveryType === 'ONE_TIME' && product.deliveryDates) {
-      // One-time delivery: use specific dates
+      // One-time delivery: use specific dates (only future dates)
+      const now = new Date();
       const timeWindows = (zone.deliveryTimeWindows as Record<string, string>) || {};
       
       for (const date of product.deliveryDates) {
         const deliveryDate = new Date(date);
+        
+        // Skip past dates
+        if (deliveryDate < now) {
+          continue;
+        }
+        
         const dayName = DAYS_OF_WEEK[getDay(deliveryDate)];
         const timeWindow = timeWindows[dayName] || '9am - 5pm';
 
@@ -121,8 +128,9 @@ export async function checkDeliveryEligibility({
         });
       }
     } else if (product.deliveryType === 'RECURRING') {
-      // Recurring delivery: generate next 8 weeks of dates based on delivery listings
-      const today = startOfDay(new Date());
+      // Recurring delivery: generate next 8 weeks of dates (only future dates)
+      const now = new Date();
+      const today = startOfDay(now);
       const timeWindows = (zone.deliveryTimeWindows as Record<string, string>) || {};
 
       // Get delivery days from product delivery listings
@@ -130,8 +138,8 @@ export async function checkDeliveryEligibility({
         listing => listing.deliveryZoneId === zone.id
       );
 
-      if (deliveryDaysByZone.length > 0) {
-        // Generate dates for the next 8 weeks
+      if (deliveryDaysByZone.length > 0 && deliveryDaysByZone.some((l: any) => l.inventory > 0)) {
+        // Use delivery listings with specific inventory per day
         for (let i = 0; i < 56; i++) {
           const futureDate = addDays(today, i);
           const dayName = DAYS_OF_WEEK[getDay(futureDate)];
@@ -157,8 +165,9 @@ export async function checkDeliveryEligibility({
             });
           }
         }
-      } else if (zone.deliveryDays && zone.deliveryDays.length > 0) {
-        // Fallback: use zone's delivery days if no product listings
+      } else if (zone.deliveryDays && zone.deliveryDays.length > 0 && product.inventory > 0) {
+        // Fallback: use zone's delivery days with product's main inventory
+        // This handles delivery-only products without specific delivery listings
         for (let i = 0; i < 56; i++) {
           const futureDate = addDays(today, i);
           const dayName = DAYS_OF_WEEK[getDay(futureDate)];

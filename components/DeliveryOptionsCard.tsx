@@ -32,13 +32,15 @@ export function DeliveryOptionsCard({
   const [selectedOption, setSelectedOption] = useState<SerializedDeliveryOption | null>(null);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-  // Load cached zip code on mount but DON'T auto-check
+  // Load cached zip code on mount and auto-check
   useEffect(() => {
     const cached = getCachedLocation();
     if (cached?.zipCode) {
       setZipCode(cached.zipCode);
+      // Auto-check delivery for cached zip code
+      checkDelivery(cached.zipCode);
     }
-  }, []);
+  }, [productId]); // Only run on mount or when product changes
 
   const checkDelivery = async (zip: string) => {
     if (!zip || !zip.match(/^\d{5}$/)) {

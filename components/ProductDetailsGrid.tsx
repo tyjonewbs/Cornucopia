@@ -12,6 +12,8 @@ interface ProductDetailsGridProps {
   averageRating?: number | null;
   totalReviews: number;
   tags?: string[];
+  deliveryAvailable?: boolean;
+  hasDeliveryInventory?: boolean;
 }
 
 export function ProductDetailsGrid({
@@ -24,6 +26,8 @@ export function ProductDetailsGrid({
   averageRating,
   totalReviews,
   tags,
+  deliveryAvailable = false,
+  hasDeliveryInventory = false,
 }: ProductDetailsGridProps) {
   return (
     <div className="bg-muted rounded-lg p-6">
@@ -50,6 +54,8 @@ export function ProductDetailsGrid({
           <p className="font-medium">
             {inventory > 0 ? (
               <span className="text-green-600">{inventory} available</span>
+            ) : deliveryAvailable && hasDeliveryInventory ? (
+              <span className="text-green-600">Available for delivery</span>
             ) : (
               <span className="text-destructive">Out of stock</span>
             )}

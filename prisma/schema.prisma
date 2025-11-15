@@ -144,6 +144,7 @@ model Product {
   @@index([deliveryType], map: "Product_deliveryType_idx")
   @@index([availableDate], map: "Product_availableDate_idx")
   @@index([isActive, availableDate], map: "Product_isActive_availableDate_idx")
+  @@index([inventoryUpdatedAt], map: "Product_inventoryUpdatedAt_idx")
 }
 
 model ProductReview {

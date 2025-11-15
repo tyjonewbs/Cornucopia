@@ -102,7 +102,43 @@ export function ProductPageClient({ data, nearbyProducts }: ProductPageClientPro
             averageRating={data.averageRating}
             totalReviews={data.totalReviews}
             tags={data.tags}
+            deliveryAvailable={data.deliveryAvailable}
+            hasDeliveryInventory={data.deliveryListings?.some((listing: any) => listing.inventory > 0) || false}
           />
+
+          {/* Delivery Options Card - Show prominently for delivery-only products */}
+          {data.deliveryAvailable && !data.marketStandId && (
+            <section id="location-section" className="scroll-mt-20">
+              <h3 className="text-xl font-bold mb-4">Delivery Options</h3>
+              {data.deliveryZone ? (
+                <DeliveryOptionsCard
+                  productId={data.id}
+                  productName={data.name}
+                />
+              ) : (
+                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-semibold text-red-900 mb-2">
+                        Delivery Configuration Error
+                      </h4>
+                      <p className="text-sm text-red-800 mb-3">
+                        This product is marked as delivery-available but no delivery zone has been configured. Please contact the seller to resolve this issue.
+                      </p>
+                      <p className="text-xs text-red-700">
+                        Product ID: {data.id}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Map/Location Section (Scroll Anchor) */}
           {data.marketStand && (
@@ -151,12 +187,33 @@ export function ProductPageClient({ data, nearbyProducts }: ProductPageClientPro
             />
           )}
 
-          {/* Delivery Options Card */}
-          {data.deliveryAvailable && data.deliveryZone && (
-            <DeliveryOptionsCard
-              productId={data.id}
-              productName={data.name}
-            />
+          {/* Delivery Options Card for hybrid products (has both pickup and delivery) */}
+          {data.deliveryAvailable && data.marketStandId && (
+            <div>
+              <h3 className="text-xl font-bold mb-4">Delivery Options</h3>
+              {data.deliveryZone ? (
+                <DeliveryOptionsCard
+                  productId={data.id}
+                  productName={data.name}
+                />
+              ) : (
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <svg className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-amber-900">
+                        Delivery is marked as available but not properly configured.
+                      </p>
+                      <p className="text-xs text-amber-700 mt-1">
+                        Please use pickup option or contact the seller.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

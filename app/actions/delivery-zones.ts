@@ -244,15 +244,24 @@ export async function deleteDeliveryZone(id: string) {
       return { success: false, error: "Delivery zone not found" };
     }
 
-    // Check if zone is being used by any products
-    const productsCount = await prisma.product.count({
+    // Check if zone is being used by any products (deliveryZoneId field)
+    const productsWithZone = await prisma.product.count({
       where: { deliveryZoneId: id },
     });
 
-    if (productsCount > 0) {
+    // Check if zone has any delivery listings
+    const deliveryListings = await prisma.productDeliveryListing.count({
+      where: { deliveryZoneId: id },
+    });
+
+    if (productsWithZone > 0 || deliveryListings > 0) {
+      const productMsg = productsWithZone > 0 ? `${productsWithZone} product(s) are linked to this zone` : '';
+      const listingMsg = deliveryListings > 0 ? `${deliveryListings} delivery listing(s) exist` : '';
+      const separator = productsWithZone > 0 && deliveryListings > 0 ? ' and ' : '';
+      
       return { 
         success: false, 
-        error: `Cannot delete zone. It is being used by ${productsCount} product(s).` 
+        error: `Cannot delete zone. ${productMsg}${separator}${listingMsg}. Please remove all products from this zone first.` 
       };
     }
 
