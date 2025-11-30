@@ -9,6 +9,7 @@ import { ProductCacheProvider } from "@/components/providers/ProductCacheProvide
 import { EnvProvider } from "@/components/providers/EnvProvider";
 import { PHProvider } from "@/components/providers/PostHogProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { LocationProvider } from "@/components/providers/LocationProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -48,10 +49,12 @@ export default function RootLayout({
             <EnvProvider>
               <SupabaseProvider>
                 <ProductCacheProvider>
-                  <Navbar />
-                  {children}
-                  <Toaster />
-                  <ServiceWorkerRegistration />
+                  <LocationProvider>
+                    <Navbar />
+                    {children}
+                    <Toaster />
+                    <ServiceWorkerRegistration />
+                  </LocationProvider>
                 </ProductCacheProvider>
               </SupabaseProvider>
             </EnvProvider>

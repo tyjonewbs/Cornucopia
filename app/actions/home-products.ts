@@ -93,7 +93,7 @@ export const getHomeProducts = async (
     console.log('Received zipCode parameter:', zipCode);
     
     const products = await getProducts({
-      limit: cursor ? 12 : 50, // Fetch more initially for local filtering
+      limit: cursor ? 12 : 20, // Reduced from 50 - geo-filtering will happen at DB level
       cursor,
       isActive: true,
       marketStandId: undefined,

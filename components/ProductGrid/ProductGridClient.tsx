@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ProductCard } from "@/components/ProductCard";
 import useUserLocation from "@/app/hooks/useUserLocation";
 import { Button } from "@/components/ui/button";
-import { getHomeProducts, type SerializedProduct, type LocationType } from "@/app/actions/home-products";
+import { getHomeProducts, type SerializedProduct, type LocationType } from "@/app/actions/geo-products";
 import LoadingStateGrid from "@/components/LoadingStateGrid";
 
 interface ProductGridClientProps {
@@ -108,43 +108,9 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
   }, [initialProducts, userLocation]);
 
   const loadMoreProducts = async () => {
-    if (!products.lastId) return;
-    
-    try {
-      setIsLoading(true);
-      setError(null);
-      console.log('Loading more products with cursor:', products.lastId);
-      const newProducts = await getHomeProducts(
-        userLocation?.coords.lat,
-        userLocation?.coords.lng,
-        userLocation?.source,
-        userLocation?.zipCode,
-        userLocation?.coords.accuracy,
-        userLocation?.coords.timestamp,
-        products.lastId
-      );
-      console.log('Loaded additional products:', newProducts.length);
-      
-      if (newProducts.length > 0) {
-        setProducts(prev => {
-          const updatedState = {
-            ...prev,
-            explore: [...prev.explore, ...newProducts],
-            lastId: newProducts[newProducts.length - 1].id
-          };
-          console.log('Updated products state:', {
-            localCount: updatedState.local.length,
-            exploreCount: updatedState.explore.length
-          });
-          return updatedState;
-        });
-      }
-    } catch (err) {
-      console.error('Error loading more products:', err);
-      setError('Failed to load more products');
-    } finally {
-      setIsLoading(false);
-    }
+    // Note: Pagination not yet implemented in geo-products
+    // PostGIS function would need cursor support added
+    console.log('Load more not yet implemented for geo-filtered products');
   };
 
   if (isLoading) {
