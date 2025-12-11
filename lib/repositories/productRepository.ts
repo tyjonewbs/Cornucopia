@@ -89,9 +89,7 @@ export class ProductRepository {
                 deliveryFee: true,
                 minimumOrder: true,
                 freeDeliveryThreshold: true,
-                zipCodes: true,
-                cities: true,
-                states: true,
+                zipCodes: true, // Kept for delivery matching - will be optimized with PostGIS
                 deliveryDays: true,
               },
             },
@@ -104,9 +102,7 @@ export class ProductRepository {
                     deliveryFee: true,
                     minimumOrder: true,
                     freeDeliveryThreshold: true,
-                    zipCodes: true,
-                    cities: true,
-                    states: true,
+                    zipCodes: true, // Kept for delivery matching - will be optimized with PostGIS
                     deliveryDays: true,
                   },
                 },

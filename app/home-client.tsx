@@ -1,98 +1,89 @@
 'use client';
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ProductGridClient } from "@/components/ProductGrid/ProductGridClient";
 import LoadingStateGrid from "@/components/LoadingStateGrid";
 import { ErrorBoundary } from "react-error-boundary";
 import ProductError from "@/components/ProductGrid/error";
-import { type SerializedProduct, type LocationType, getHomeProducts } from "./actions/home-products";
-import { ZipSearchBanner } from "@/components/ZipSearchBanner";
+import { type SerializedProduct, getHomeProducts } from "./actions/geo-products";
+import { useLocation } from "@/components/providers/LocationProvider";
 
 interface HomeClientProps {
   initialProducts: SerializedProduct[];
 }
 
 export default function HomeClient({ initialProducts }: HomeClientProps) {
-  const [userLocation, setUserLocation] = useState<LocationType | null>(null);
+  const { userLocation } = useLocation();
   const [products, setProducts] = useState<SerializedProduct[]>(initialProducts);
   const [isLoading, setIsLoading] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [locationUpdatePending, setLocationUpdatePending] = useState(false);
 
-  // Handle hydration
+  // Track if location has actually changed from initial state
+  const previousLocationRef = useRef<typeof userLocation>(null);
+  const isInitialMount = useRef(true);
+
+  // Fetch products when location changes OR when we have a cached location on mount
   useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-  const handleLocationUpdate = useCallback(async (location: LocationType | null) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      setLocationUpdatePending(true);
-      console.log('Updating location:', location);
-      console.log('Location zipCode:', location?.zipCode);
-      console.log('Location source:', location?.source);
-      
-      // Set location first to trigger proper loading state
-      setUserLocation(location);
-      
-      // Fetch new products sorted by the new location
-      console.log('Calling getHomeProducts with:', {
-        hasLocation: !!location,
-        zipCode: location?.zipCode,
-        source: location?.source,
-        coords: location?.coords
-      });
-      const newProducts = await getHomeProducts(
-        location?.coords.lat,
-        location?.coords.lng,
-        location?.source,
-        location?.zipCode,
-        location?.coords.accuracy,
-        location?.coords.timestamp
-      );
-      console.log('New products fetched:', {
-        count: newProducts?.length ?? 0,
-        hasLocation: !!location,
-        isValidArray: Array.isArray(newProducts)
-      });
-      
-      // Validate the response is an array before updating
-      if (Array.isArray(newProducts)) {
-        setProducts(newProducts);
-      } else {
-        console.error('Invalid products response (not an array):', {
-          type: typeof newProducts,
-          value: newProducts
-        });
-        setError('Failed to load products. Please try again.');
-        // Keep current products and location rather than resetting
+        const newProducts = await getHomeProducts(
+          userLocation?.coords.lat,
+          userLocation?.coords.lng,
+          userLocation?.source,
+          userLocation?.zipCode,
+          userLocation?.coords.accuracy,
+          userLocation?.coords.timestamp
+        );
+
+        if (Array.isArray(newProducts)) {
+          setProducts(newProducts);
+        } else {
+          console.error('Invalid products response:', newProducts);
+          setError('Failed to load products. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setError('Failed to update products. Please try again.');
+        setProducts(initialProducts);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error updating products:', error);
-      setError('Failed to update products. Please try again.');
-      
-      // Reset location and restore initial products on error
-      setUserLocation(null);
-      // Validate initialProducts before setting
-      const safeInitialProducts = Array.isArray(initialProducts) ? initialProducts : [];
-      setProducts(safeInitialProducts);
-    } finally {
-      setIsLoading(false);
-      setLocationUpdatePending(false);
-    }
-  }, [initialProducts]);
+    };
 
-  if (!isHydrated) {
-    return <LoadingStateGrid />;
-  }
+    // On initial mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      previousLocationRef.current = userLocation;
+
+      // If we have a cached location on mount, fetch products for that location
+      // (the server-rendered initialProducts were fetched without location)
+      if (userLocation) {
+        fetchProducts();
+      }
+      return;
+    }
+
+    // Check if location actually changed
+    const locationChanged =
+      previousLocationRef.current?.coords.lat !== userLocation?.coords.lat ||
+      previousLocationRef.current?.coords.lng !== userLocation?.coords.lng ||
+      previousLocationRef.current?.zipCode !== userLocation?.zipCode;
+
+    if (!locationChanged) {
+      return;
+    }
+
+    previousLocationRef.current = userLocation;
+    fetchProducts();
+  }, [userLocation, initialProducts]);
 
   return (
-    <main>
-      <ZipSearchBanner onLocationUpdate={handleLocationUpdate} />
+    <main className="max-w-7xl mx-auto px-4 md:px-8 py-8">
       {error && (
-        <div className="max-w-7xl mx-auto px-4 md:px-8 mb-6">
+        <div className="mb-6">
           <div className="bg-red-50 border-l-4 border-red-400 p-4">
             <div className="flex">
               <div className="flex-shrink-0">

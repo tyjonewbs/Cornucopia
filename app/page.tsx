@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import HomeClient from "./home-client";
-import { getHomeProducts } from "./actions/home-products";
+import { getHomeProducts } from "./actions/geo-products";
 import { ProductGridSkeleton } from "@/components/skeletons/ProductCardSkeleton";
 
 // Enable ISR with 60 second revalidation
@@ -10,22 +10,11 @@ export const revalidate = 60;
 
 async function ProductsLoader() {
   try {
-    // Add 8-second timeout to prevent Vercel 10s timeout
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Products fetch timeout')), 8000)
-    );
-    
-    const productsPromise = getHomeProducts(null);
-    
-    const initialProducts = await Promise.race([
-      productsPromise,
-      timeoutPromise
-    ]);
-    
+    const initialProducts = await getHomeProducts();
     return <HomeClient initialProducts={initialProducts} />;
   } catch (error: unknown) {
     console.error('Failed to load products:', error);
-    // Return empty array on timeout or error - page will still render
+    // Return empty array on error - page will still render
     return <HomeClient initialProducts={[]} />;
   }
 }
