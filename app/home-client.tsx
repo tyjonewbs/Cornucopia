@@ -22,27 +22,8 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
   const previousLocationRef = useRef<typeof userLocation>(null);
   const isInitialMount = useRef(true);
 
-  // Only fetch products when location actually changes (not on initial mount)
+  // Fetch products when location changes OR when we have a cached location on mount
   useEffect(() => {
-    // Skip initial mount - we already have server-rendered products
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      previousLocationRef.current = userLocation;
-      return;
-    }
-
-    // Check if location actually changed
-    const locationChanged =
-      previousLocationRef.current?.coords.lat !== userLocation?.coords.lat ||
-      previousLocationRef.current?.coords.lng !== userLocation?.coords.lng ||
-      previousLocationRef.current?.zipCode !== userLocation?.zipCode;
-
-    if (!locationChanged) {
-      return;
-    }
-
-    previousLocationRef.current = userLocation;
-
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
@@ -72,6 +53,30 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
       }
     };
 
+    // On initial mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      previousLocationRef.current = userLocation;
+
+      // If we have a cached location on mount, fetch products for that location
+      // (the server-rendered initialProducts were fetched without location)
+      if (userLocation) {
+        fetchProducts();
+      }
+      return;
+    }
+
+    // Check if location actually changed
+    const locationChanged =
+      previousLocationRef.current?.coords.lat !== userLocation?.coords.lat ||
+      previousLocationRef.current?.coords.lng !== userLocation?.coords.lng ||
+      previousLocationRef.current?.zipCode !== userLocation?.zipCode;
+
+    if (!locationChanged) {
+      return;
+    }
+
+    previousLocationRef.current = userLocation;
     fetchProducts();
   }, [userLocation, initialProducts]);
 

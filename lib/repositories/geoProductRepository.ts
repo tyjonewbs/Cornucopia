@@ -166,7 +166,7 @@ export class GeoProductRepository {
               ${lng}::DOUBLE PRECISION,
               ${radiusKm}::DOUBLE PRECISION,
               ${limit}::INTEGER,
-              NULL::UUID
+              NULL::TEXT
             )
           `
         );
