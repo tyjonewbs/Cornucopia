@@ -51,12 +51,21 @@ export default async function Home({
   return (
     <Suspense
       fallback={
-        <main className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-          <div className="mb-8">
-            <div className="h-16 bg-gray-200 rounded-lg animate-pulse" />
-          </div>
-          <ProductGridSkeleton count={12} />
-        </main>
+        <div className="flex min-h-[calc(100vh-80px)]">
+          <aside className="fixed left-0 top-20 h-[calc(100vh-80px)] w-64 bg-white border-r border-gray-200">
+            <div className="p-4 space-y-4">
+              <div className="h-6 bg-gray-200 rounded animate-pulse w-24" />
+              <div className="space-y-2">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-5 bg-gray-200 rounded animate-pulse" />
+                ))}
+              </div>
+            </div>
+          </aside>
+          <main className="flex-1 ml-64 px-4 md:px-8 py-8">
+            <ProductGridSkeleton count={12} />
+          </main>
+        </div>
       }
     >
       <ProductsLoader key={session?.user?.id || 'anonymous'} />

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import {
   LayoutDashboard,
   Store,
@@ -16,6 +15,7 @@ import {
   Package,
   Truck,
 } from "lucide-react";
+import { AppSidebar } from "@/components/AppSidebar";
 
 interface MenuItem {
   name: string;
@@ -58,16 +58,7 @@ export function Sidebar({ isProducer }: SidebarProps) {
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col">
-      <div className="p-4 border-b border-gray-200">
-        <Image 
-          src="/logos/cornucopia-dark.svg" 
-          alt="Cornucopia"
-          width={120}
-          height={32}
-          priority
-        />
-      </div>
+    <AppSidebar headerHref="/dashboard">
       
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <div className="space-y-1">
@@ -150,6 +141,6 @@ export function Sidebar({ isProducer }: SidebarProps) {
           </Link>
         ))}
       </div>
-    </aside>
+    </AppSidebar>
   );
 }
