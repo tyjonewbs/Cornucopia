@@ -17,7 +17,7 @@ export default async function DashboardLayout({
   const isProducer = await isUserProducer(user.id);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-[calc(100vh-80px)] bg-gray-50">
       <Sidebar isProducer={isProducer} />
       <main className="flex-1 ml-64 p-6">
         {children}

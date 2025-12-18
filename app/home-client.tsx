@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { ProductGridClient } from "@/components/ProductGrid/ProductGridClient";
 import LoadingStateGrid from "@/components/LoadingStateGrid";
 import { ErrorBoundary } from "react-error-boundary";
 import ProductError from "@/components/ProductGrid/error";
 import { type SerializedProduct, getHomeProducts } from "./actions/geo-products";
 import { useLocation } from "@/components/providers/LocationProvider";
+import { AppSidebar } from "@/components/AppSidebar";
+import { ProductFilters, ProductFilterState, DEFAULT_FILTERS } from "@/components/ProductFilters";
 
 interface HomeClientProps {
   initialProducts: SerializedProduct[];
@@ -17,6 +19,7 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
   const [products, setProducts] = useState<SerializedProduct[]>(initialProducts);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ProductFilterState>(DEFAULT_FILTERS);
 
   // Track if location has actually changed from initial state
   const previousLocationRef = useRef<typeof userLocation>(null);
@@ -80,8 +83,65 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
     fetchProducts();
   }, [userLocation, initialProducts]);
 
+  // Apply client-side filters
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      // Category filter
+      if (filters.categories.length > 0) {
+        const productTags = product.tags.map((t) => t.toLowerCase());
+        const hasMatchingCategory = filters.categories.some((cat) =>
+          productTags.some((tag) => tag.includes(cat) || cat.includes(tag))
+        );
+        if (!hasMatchingCategory) return false;
+      }
+
+      // Distance filter
+      if (product.distance !== null && product.distance > filters.distance * 1.60934) {
+        // Convert miles to km (distance is stored in km)
+        return false;
+      }
+
+      // Price filter
+      if (filters.priceMin !== null && product.price < filters.priceMin * 100) {
+        return false;
+      }
+      if (filters.priceMax !== null && product.price > filters.priceMax * 100) {
+        return false;
+      }
+
+      // Fulfillment filter
+      if (filters.fulfillment.length > 0) {
+        const hasPickup = !!product.marketStand;
+        const hasDelivery = product.deliveryInfo?.isAvailable ?? false;
+
+        if (filters.fulfillment.includes("pickup") && !filters.fulfillment.includes("delivery")) {
+          if (!hasPickup) return false;
+        }
+        if (filters.fulfillment.includes("delivery") && !filters.fulfillment.includes("pickup")) {
+          if (!hasDelivery) return false;
+        }
+        if (filters.fulfillment.includes("pickup") && filters.fulfillment.includes("delivery")) {
+          if (!hasPickup && !hasDelivery) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [products, filters]);
+
+  const handleFiltersChange = useCallback((newFilters: ProductFilterState) => {
+    setFilters(newFilters);
+  }, []);
+
   return (
-    <main className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+    <div className="flex min-h-[calc(100vh-80px)]">
+      <AppSidebar showHeader={false}>
+        <ProductFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+        />
+      </AppSidebar>
+      <main className="flex-1 ml-64 px-4 md:px-8 py-8">
       {error && (
         <div className="mb-6">
           <div className="bg-red-50 border-l-4 border-red-400 p-4">
@@ -102,13 +162,14 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
         {isLoading ? (
           <LoadingStateGrid />
         ) : (
-          <ProductGridClient 
+          <ProductGridClient
             key={userLocation?.coords.lat || 'no-location'}
-            initialProducts={products} 
+            initialProducts={filteredProducts}
             userLocation={userLocation}
           />
         )}
       </ErrorBoundary>
-    </main>
+      </main>
+    </div>
   );
 }
