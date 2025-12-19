@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { User } from "@supabase/supabase-js";
+import { User, AuthChangeEvent } from "@supabase/supabase-js";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 interface SupabaseContextType {
@@ -14,6 +14,14 @@ const SupabaseContext = createContext<SupabaseContextType>({
   isLoading: true,
 });
 
+// Helper to check if error is a connection error (non-critical)
+const isConnectionError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('Connection closed') ||
+         message.includes('network') ||
+         message.includes('Failed to fetch');
+};
+
 export function SupabaseProvider({
   children,
 }: {
@@ -24,18 +32,18 @@ export function SupabaseProvider({
 
   useEffect(() => {
     let mounted = true;
-    
+
     const initAuth = async () => {
       try {
         const supabase = getSupabaseBrowser();
-        
+
         // Get initial session with error handling
         const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
+
+        if (error && !isConnectionError(error)) {
           console.warn('Error getting session:', error);
         }
-        
+
         if (mounted) {
           setUser(session?.user ?? null);
           setIsLoading(false);
@@ -44,7 +52,7 @@ export function SupabaseProvider({
         // Listen for auth changes - Supabase handles all session management
         const {
           data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session) => {
           if (mounted) {
             setUser(session?.user ?? null);
             setIsLoading(false);
@@ -55,7 +63,10 @@ export function SupabaseProvider({
           subscription.unsubscribe();
         };
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        // Silently handle connection errors (common during navigation/reload)
+        if (!isConnectionError(error)) {
+          console.error('Error initializing auth:', error);
+        }
         if (mounted) {
           setUser(null);
           setIsLoading(false);
@@ -64,7 +75,7 @@ export function SupabaseProvider({
     };
 
     const cleanup = initAuth();
-    
+
     return () => {
       mounted = false;
       cleanup?.then(fn => fn?.());
