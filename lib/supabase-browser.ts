@@ -14,7 +14,7 @@ export function getSupabaseBrowser() {
       throw new Error('Missing Supabase environment variables');
     }
 
-    // Create client with Realtime disabled to prevent WebSocket connection errors
+    // Create client with Realtime completely disabled to prevent WebSocket connection errors
     clientInstance = createBrowserClient(supabaseUrl, supabaseKey, {
       realtime: {
         params: {
@@ -25,8 +25,17 @@ export function getSupabaseBrowser() {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        flowType: 'pkce',
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'cornucopia-web',
+        },
       },
     });
+
+    // Disable realtime channels completely
+    clientInstance.realtime.disconnect();
   }
   return clientInstance;
 }
