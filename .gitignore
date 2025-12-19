@@ -62,3 +62,4 @@ ClineContext.txt
 *.swp
 *.swo
 *~
+.claude/
