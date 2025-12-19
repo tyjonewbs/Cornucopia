@@ -1,9 +1,9 @@
 // Service Worker for Cornucopia
 // Provides offline capability and improved caching
 
-const CACHE_NAME = 'cornucopia-v1';
-const STATIC_CACHE = 'cornucopia-static-v1';
-const DYNAMIC_CACHE = 'cornucopia-dynamic-v1';
+const CACHE_NAME = 'cornucopia-v2';
+const STATIC_CACHE = 'cornucopia-static-v2';
+const DYNAMIC_CACHE = 'cornucopia-dynamic-v2';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -61,6 +61,12 @@ self.addEventListener('fetch', (event) => {
 
   // API requests - network only
   if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // RSC (React Server Components) requests - network only, don't cache
+  if (url.searchParams.has('_rsc')) {
     event.respondWith(fetch(request));
     return;
   }
