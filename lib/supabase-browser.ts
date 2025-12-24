@@ -17,9 +17,12 @@ export function getSupabaseBrowser() {
     // Create client with Realtime completely disabled to prevent WebSocket connection errors
     clientInstance = createBrowserClient(supabaseUrl, supabaseKey, {
       realtime: {
+        // Disable automatic connection - prevents "Connection closed" errors
         params: {
           eventsPerSecond: 0,
         },
+        // Use a timeout of 0 to never reconnect
+        reconnectAfterMs: () => -1,
       },
       auth: {
         persistSession: true,
@@ -34,8 +37,13 @@ export function getSupabaseBrowser() {
       },
     });
 
-    // Disable realtime channels completely
-    clientInstance.realtime.disconnect();
+    // Remove all realtime channels and connections to prevent any WebSocket activity
+    try {
+      clientInstance.realtime.disconnect();
+      clientInstance.removeAllChannels();
+    } catch {
+      // Ignore errors during cleanup - connection might not exist yet
+    }
   }
   return clientInstance;
 }

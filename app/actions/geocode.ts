@@ -12,10 +12,7 @@ export async function geocodeZipCode(zipCode: string): Promise<GeocodingResponse
     // Using Zippopotam.us API - free, no auth required, and specifically for ZIP codes
     const response = await fetch(
       `https://api.zippopotam.us/us/${zipCode}`,
-      { 
-        cache: 'no-store', // Disable caching to ensure fresh results
-        next: { revalidate: 0 }
-      }
+      { cache: 'no-store' } // Disable caching to ensure fresh results
     );
 
     if (!response.ok) {
