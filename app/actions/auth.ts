@@ -51,8 +51,13 @@ export async function signOut() {
 
 export async function getUser() {
   const supabase = getSupabaseServer();
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.user ?? null;
+  // Use getUser() instead of getSession() for secure server-side auth
+  // getUser() validates the token with Supabase Auth server
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) {
+    return null;
+  }
+  return user;
 }
 
 export async function getSupabaseToken() {

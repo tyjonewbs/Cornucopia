@@ -26,11 +26,11 @@ export default async function Home({
 }) {
   const supabase = getSupabaseServer();
   
-  // Get session (this is fast, no need to defer)
-  const { data: { session } } = await supabase.auth.getSession();
+  // Use getUser() for secure server-side auth validation
+  const { data: { user } } = await supabase.auth.getUser();
 
   // Handle authenticated users with returnUrl
-  if (session && searchParams.returnUrl) {
+  if (user && searchParams.returnUrl) {
     const decodedUrl = decodeURIComponent(searchParams.returnUrl);
     const protectedRoutes = [
       '/sell',
@@ -68,7 +68,7 @@ export default async function Home({
         </div>
       }
     >
-      <ProductsLoader key={session?.user?.id || 'anonymous'} />
+      <ProductsLoader key={user?.id || 'anonymous'} />
     </Suspense>
   );
 }

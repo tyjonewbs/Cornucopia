@@ -16,10 +16,10 @@ export type State = {
 
 export async function UpdateUserSettings(prevState: State, formData: FormData): Promise<State> {
   const supabase = createServerSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
+  // Use getUser() for secure server-side auth validation
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (error || !user) {
     return {
       status: "error",
       message: "Not authenticated"

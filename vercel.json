@@ -1,13 +1,16 @@
 {
-    "buildCommand": "prisma generate && next build",
-    "framework": "nextjs",
-    "installCommand": "npm install",
-    "functions": {
-      "app/api/**/*": {
-        "maxDuration": 10
-      }
+  "buildCommand": "prisma generate && next build",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "functions": {
+    "app/**/*.ts": {
+      "maxDuration": 30
     },
+    "app/**/*.tsx": {
+      "maxDuration": 30
+    }
+  },
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://cornucopialocal.com"
   }
-  }
+}
