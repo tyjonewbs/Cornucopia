@@ -24,30 +24,32 @@ export default async function Home({
 }: {
   searchParams: { returnUrl?: string };
 }) {
-  const supabase = getSupabaseServer();
-  
-  // Use getUser() for secure server-side auth validation
-  const { data: { user } } = await supabase.auth.getUser();
+  // OPTIMIZATION: Only call getUser() if we actually need to check for redirect
+  // This prevents blocking the page render for anonymous users on cold starts
+  if (searchParams.returnUrl) {
+    const supabase = getSupabaseServer();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  // Handle authenticated users with returnUrl
-  if (user && searchParams.returnUrl) {
-    const decodedUrl = decodeURIComponent(searchParams.returnUrl);
-    const protectedRoutes = [
-      '/sell',
-      '/settings',
-      '/dashboard/market-stand/setup',
-      '/billing',
-      '/dashboard/market-stand',
-      '/dashboard/settings'
-    ];
+    // Handle authenticated users with returnUrl
+    if (user) {
+      const decodedUrl = decodeURIComponent(searchParams.returnUrl);
+      const protectedRoutes = [
+        '/sell',
+        '/settings',
+        '/dashboard/market-stand/setup',
+        '/billing',
+        '/dashboard/market-stand',
+        '/dashboard/settings'
+      ];
 
-    // Only redirect to protected routes
-    if (protectedRoutes.some(route => decodedUrl.startsWith(route))) {
-      redirect(decodedUrl);
+      // Only redirect to protected routes
+      if (protectedRoutes.some(route => decodedUrl.startsWith(route))) {
+        redirect(decodedUrl);
+      }
     }
   }
 
-  // Stream products with Suspense
+  // Stream products with Suspense - most users hit this path without auth check
   return (
     <Suspense
       fallback={
@@ -68,7 +70,7 @@ export default async function Home({
         </div>
       }
     >
-      <ProductsLoader key={user?.id || 'anonymous'} />
+      <ProductsLoader />
     </Suspense>
   );
 }
