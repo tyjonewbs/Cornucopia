@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+
+// Force dynamic rendering for this route since it uses searchParams
+export const dynamic = 'force-dynamic';
 import { usernameSchema } from '@/lib/validators/userSchemas';
 import { getUser } from '@/lib/auth';
 
