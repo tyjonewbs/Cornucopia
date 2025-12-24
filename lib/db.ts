@@ -11,20 +11,21 @@ declare global {
  * 
  * Key optimizations:
  * - Connection limit: 1 per instance (serverless best practice)
- * - Connection timeout: 5s (fail fast for serverless)
- * - Pool timeout: 0 (no pooling in serverless)
- * - pgbouncer: true (for Supabase transaction pooler)
+ * - Connection timeout: 10s (reasonable for cold starts)
+ * - Pool timeout: 10s (small buffer for connection acquisition)
+ * 
+ * Note: For Supabase Session Pooler (port 5432), don't add pgbouncer=true
+ * The pgbouncer param is only for Transaction Pooler (port 6543)
  */
 function getPrismaClient(): PrismaClient {
   const isDevelopment = process.env.NODE_ENV !== 'production';
   
-  // Add serverless-optimized connection parameters to DATABASE_URL
-  // Use shorter timeout and pgbouncer for faster connections
-  const databaseUrl = env.DATABASE_URL.includes('?')
-    ? `${env.DATABASE_URL}&connection_limit=1&pool_timeout=0&connect_timeout=5&pgbouncer=true`
-    : `${env.DATABASE_URL}?connection_limit=1&pool_timeout=0&connect_timeout=5&pgbouncer=true`;
+  // Get the base DATABASE_URL - don't modify if it already has parameters
+  // Supabase Session Pooler works best with direct connection string
+  const databaseUrl = env.DATABASE_URL;
   
   console.log('Creating Prisma client for serverless environment');
+  console.log('Database host:', databaseUrl.includes('pooler.supabase.com') ? 'Supabase Pooler' : 'Other');
   
   return new PrismaClient({
     log: isDevelopment 
