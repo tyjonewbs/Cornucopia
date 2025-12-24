@@ -12,13 +12,14 @@ export const revalidate = 0
 
 async function getUserAnalyticsData() {
   const supabase = getSupabaseServer()
-  const { data: { session } } = await supabase.auth.getSession()
+  // Use getUser() for secure server-side auth validation
+  const { data: { user } } = await supabase.auth.getUser()
   
-  if (!session?.user) {
+  if (!user) {
     return null
   }
 
-  const userId = session.user.id
+  const userId = user.id
 
   // Get user's market stands and products
   const [

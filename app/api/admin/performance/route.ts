@@ -13,15 +13,16 @@ export async function GET(request: NextRequest) {
     // Check authentication and admin role
     const { createRouteHandlerClient } = await import('@/lib/supabase-route');
     const supabase = createRouteHandlerClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    // Use getUser() for secure server-side auth validation
+    const { data: { user: authUser } } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { default: prisma } = await import('@/lib/db');
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: authUser.id },
       select: { role: true }
     });
 

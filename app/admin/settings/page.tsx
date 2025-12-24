@@ -9,14 +9,15 @@ export const revalidate = 0
 
 async function checkSuperAdmin() {
   const supabase = getSupabaseServer()
-  const { data: { session } } = await supabase.auth.getSession()
+  // Use getUser() for secure server-side auth validation
+  const { data: { user: authUser } } = await supabase.auth.getUser()
   
-  if (!session?.user) {
+  if (!authUser) {
     redirect('/')
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: authUser.id },
     select: { role: true }
   })
 

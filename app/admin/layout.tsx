@@ -11,26 +11,27 @@ export const revalidate = 0
 
 async function getUser() {
   const supabase = getSupabaseServer()
-  const { data: { session }, error } = await supabase.auth.getSession()
+  // Use getUser() for secure server-side auth validation
+  const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
   if (error) {
-    console.error('Error getting session:', error)
+    console.error('Error getting user:', error)
     return null
   }
 
-  if (!session?.user) {
+  if (!authUser) {
     return null
   }
 
   // Check role from user metadata first
-  const role = session.user.user_metadata?.role
+  const role = authUser.user_metadata?.role
   if (role && ['ADMIN', 'SUPER_ADMIN'].includes(role)) {
     return { role }
   }
 
   // Fallback to database check
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: authUser.id },
     select: { role: true }
   })
 
@@ -52,10 +53,10 @@ async function getUser() {
     )
 
     await adminClient.auth.admin.updateUserById(
-      session.user.id,
+      authUser.id,
       {
         user_metadata: {
-          ...session.user.user_metadata,
+          ...authUser.user_metadata,
           role: user.role
         }
       }

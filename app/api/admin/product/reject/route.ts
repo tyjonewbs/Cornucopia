@@ -7,14 +7,15 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication and admin role
     const supabase = createRouteHandlerClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    // Use getUser() for secure server-side auth validation
+    const { data: { user: authUser } } = await supabase.auth.getUser()
 
-    if (!session?.user) {
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: authUser.id },
       select: { role: true }
     })
 
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
           productId: id,
           oldStatus: product.status,
           newStatus: 'REJECTED',
-          changedById: session.user.id,
+          changedById: authUser.id,
           note
         }
       })

@@ -27,12 +27,12 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/', requestUrl.origin));
     }
 
-    // Get the session to confirm it was set
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log('[Auth Callback] Session established:', session ? 'yes' : 'no');
+    // Use getUser() for secure validation that session was established
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log('[Auth Callback] User authenticated:', user ? 'yes' : 'no');
 
-    // Only redirect to protected routes if we have a session
-    if (session) {
+    // Only redirect to protected routes if we have a validated user
+    if (user) {
       const redirectPath = returnTo || '/dashboard/market-stand';
       console.log('[Auth Callback] Redirecting to:', redirectPath);
       return NextResponse.redirect(new URL(redirectPath, requestUrl.origin));
