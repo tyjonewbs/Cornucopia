@@ -78,6 +78,7 @@ export async function createDeliveryZone(formData: FormData) {
 
     // Parse form data
     const description = formData.get("description") as string;
+    const deliveryType = formData.get("deliveryType") as string || "ONE_TIME";
     const data = {
       name: formData.get("name") as string,
       ...(description && description.trim() ? { description: description.trim() } : {}),
@@ -91,9 +92,13 @@ export async function createDeliveryZone(formData: FormData) {
       minimumOrder: formData.get("minimumOrder")
         ? parseInt(formData.get("minimumOrder") as string)
         : null,
+      deliveryType: deliveryType as "RECURRING" | "ONE_TIME",
       deliveryDays: JSON.parse(formData.get("deliveryDays") as string),
       deliveryTimeWindows: formData.get("deliveryTimeWindows")
         ? JSON.parse(formData.get("deliveryTimeWindows") as string)
+        : null,
+      scheduledDates: formData.get("scheduledDates")
+        ? JSON.parse(formData.get("scheduledDates") as string)
         : null,
       isActive: formData.get("isActive") === "true",
     };
@@ -177,10 +182,18 @@ export async function updateDeliveryZone(id: string, formData: FormData) {
         ? parseInt(formData.get("minimumOrder") as string)
         : null;
     }
+    if (formData.has("deliveryType")) {
+      data.deliveryType = formData.get("deliveryType") as "RECURRING" | "ONE_TIME";
+    }
     if (formData.has("deliveryDays")) data.deliveryDays = JSON.parse(formData.get("deliveryDays") as string);
     if (formData.has("deliveryTimeWindows")) {
       data.deliveryTimeWindows = formData.get("deliveryTimeWindows")
         ? JSON.parse(formData.get("deliveryTimeWindows") as string)
+        : null;
+    }
+    if (formData.has("scheduledDates")) {
+      data.scheduledDates = formData.get("scheduledDates")
+        ? JSON.parse(formData.get("scheduledDates") as string)
         : null;
     }
     if (formData.has("isActive")) data.isActive = formData.get("isActive") === "true";
