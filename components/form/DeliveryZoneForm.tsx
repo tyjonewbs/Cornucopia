@@ -54,65 +54,49 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
 
   const [zipCodes, setZipCodes] = useState<string[]>(deliveryZone?.zipCodes || []);
   const [currentZipCode, setCurrentZipCode] = useState("");
-  
-  const [cities, setCities] = useState<string[]>(deliveryZone?.cities || []);
-  const [currentCity, setCurrentCity] = useState("");
-  
-  const [states, setStates] = useState<string[]>(deliveryZone?.states || []);
-  const [currentState, setCurrentState] = useState("");
 
-  // One-time delivery dates
-  const [scheduledDates, setScheduledDates] = useState<ScheduledDate[]>(
-    deliveryZone?.scheduledDates || []
+  // One-time delivery date (single date per zone)
+  const [newDate, setNewDate] = useState(
+    deliveryZone?.scheduledDates?.[0]?.date || ""
   );
-  const [newDate, setNewDate] = useState("");
-  const [newTimeWindow, setNewTimeWindow] = useState("");
-  const [newNote, setNewNote] = useState("");
+  const [newTimeWindow, setNewTimeWindow] = useState(
+    deliveryZone?.scheduledDates?.[0]?.timeWindow || ""
+  );
+  const [newNote, setNewNote] = useState(
+    deliveryZone?.scheduledDates?.[0]?.note || ""
+  );
 
   const handleAddZipCode = () => {
-    const zipCode = currentZipCode.trim();
-    if (zipCode && /^\d{5}$/.test(zipCode)) {
-      if (!zipCodes.includes(zipCode)) {
-        setZipCodes([...zipCodes, zipCode]);
-        setCurrentZipCode("");
+    const input = currentZipCode.trim();
+    if (!input) return;
+
+    // Support comma or space separated ZIP codes
+    const potentialZips = input.split(/[\s,]+/).filter(z => z);
+    const validZips: string[] = [];
+    const invalidZips: string[] = [];
+
+    potentialZips.forEach(zipCode => {
+      if (/^\d{5}$/.test(zipCode)) {
+        if (!zipCodes.includes(zipCode)) {
+          validZips.push(zipCode);
+        }
+      } else {
+        invalidZips.push(zipCode);
       }
-    } else {
-      toast.error("Please enter a valid 5-digit ZIP code");
+    });
+
+    if (validZips.length > 0) {
+      setZipCodes([...zipCodes, ...validZips]);
+      setCurrentZipCode("");
+    }
+
+    if (invalidZips.length > 0) {
+      toast.error(`Invalid ZIP code(s): ${invalidZips.join(', ')}`);
     }
   };
 
   const handleRemoveZipCode = (zipCode: string) => {
     setZipCodes(zipCodes.filter(z => z !== zipCode));
-  };
-
-  const handleAddCity = () => {
-    const city = currentCity.trim();
-    if (city) {
-      if (!cities.includes(city)) {
-        setCities([...cities, city]);
-        setCurrentCity("");
-      }
-    }
-  };
-
-  const handleRemoveCity = (city: string) => {
-    setCities(cities.filter(c => c !== city));
-  };
-
-  const handleAddState = () => {
-    const state = currentState.trim().toUpperCase();
-    if (state && state.length === 2) {
-      if (!states.includes(state)) {
-        setStates([...states, state]);
-        setCurrentState("");
-      }
-    } else {
-      toast.error("Please enter a valid 2-letter state code");
-    }
-  };
-
-  const handleRemoveState = (state: string) => {
-    setStates(states.filter(s => s !== state));
   };
 
   const handleDayToggle = (day: string) => {
@@ -124,37 +108,6 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
     }));
   };
 
-  const handleAddScheduledDate = () => {
-    if (!newDate) {
-      toast.error("Please select a date");
-      return;
-    }
-
-    const date = new Date(newDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (date < today) {
-      toast.error("Please select a future date");
-      return;
-    }
-
-    const newScheduledDate: ScheduledDate = {
-      date: newDate,
-      timeWindow: newTimeWindow || undefined,
-      note: newNote || undefined,
-    };
-
-    setScheduledDates([...scheduledDates, newScheduledDate]);
-    setNewDate("");
-    setNewTimeWindow("");
-    setNewNote("");
-  };
-
-  const handleRemoveScheduledDate = (index: number) => {
-    setScheduledDates(scheduledDates.filter((_, i) => i !== index));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -164,8 +117,8 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
       return;
     }
 
-    if (zipCodes.length === 0 && cities.length === 0 && states.length === 0) {
-      toast.error("Please add at least one coverage area (ZIP code, city, or state)");
+    if (zipCodes.length === 0) {
+      toast.error("Please add at least one ZIP code");
       return;
     }
 
@@ -174,9 +127,21 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
       return;
     }
 
-    if (deliveryType === 'ONE_TIME' && scheduledDates.length === 0) {
-      toast.error("Please add at least one scheduled date for one-time deliveries");
+    if (deliveryType === 'ONE_TIME' && !newDate) {
+      toast.error("Please select a delivery date for one-time deliveries");
       return;
+    }
+
+    // Validate the date is in the future
+    if (deliveryType === 'ONE_TIME' && newDate) {
+      const date = new Date(newDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (date < today) {
+        toast.error("Please select a future date");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -186,8 +151,8 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
       submitData.append("name", formData.name);
       submitData.append("description", description);
       submitData.append("zipCodes", JSON.stringify(zipCodes));
-      submitData.append("cities", JSON.stringify(cities));
-      submitData.append("states", JSON.stringify(states));
+      submitData.append("cities", JSON.stringify([]));
+      submitData.append("states", JSON.stringify([]));
       submitData.append("deliveryFee", Math.round(parseFloat(formData.deliveryFee || "0") * 100).toString());
       
       if (formData.freeDeliveryThreshold) {
@@ -205,7 +170,12 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
       
       // Add scheduled dates for one-time or null for recurring
       if (deliveryType === 'ONE_TIME') {
-        submitData.append("scheduledDates", JSON.stringify(scheduledDates));
+        const scheduledDate: ScheduledDate = {
+          date: newDate,
+          timeWindow: newTimeWindow || undefined,
+          note: newNote || undefined,
+        };
+        submitData.append("scheduledDates", JSON.stringify([scheduledDate]));
       }
       
       submitData.append("isActive", isActive.toString());
@@ -283,11 +253,15 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
 
           {/* Coverage Areas */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Coverage Areas *</h3>
+            <div>
+              <h3 className="text-lg font-semibold">Coverage ZIP Codes *</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Enter one or more ZIP codes separated by commas or spaces (e.g., "78701, 78702, 78703")
+              </p>
+            </div>
             
             {/* ZIP Codes */}
             <div className="space-y-2">
-              <Label>ZIP Codes</Label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {zipCodes.map((zipCode) => (
                   <div key={zipCode} className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-md">
@@ -306,78 +280,13 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
               </div>
               <div className="flex gap-2">
                 <Input
-                  placeholder="Enter 5-digit ZIP code"
+                  placeholder="e.g., 78701 or 78701, 78702, 78703"
                   value={currentZipCode}
                   onChange={(e) => setCurrentZipCode(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddZipCode())}
-                  maxLength={5}
+                  onBlur={handleAddZipCode}
                 />
                 <Button type="button" onClick={handleAddZipCode} variant="outline">
-                  Add
-                </Button>
-              </div>
-            </div>
-
-            {/* Cities */}
-            <div className="space-y-2">
-              <Label>Cities</Label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {cities.map((city) => (
-                  <div key={city} className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-md">
-                    <span>{city}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 hover:bg-transparent"
-                      onClick={() => handleRemoveCity(city)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter city name"
-                  value={currentCity}
-                  onChange={(e) => setCurrentCity(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddCity())}
-                />
-                <Button type="button" onClick={handleAddCity} variant="outline">
-                  Add
-                </Button>
-              </div>
-            </div>
-
-            {/* States */}
-            <div className="space-y-2">
-              <Label>States</Label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {states.map((state) => (
-                  <div key={state} className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-md">
-                    <span>{state}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 hover:bg-transparent"
-                      onClick={() => handleRemoveState(state)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter 2-letter state code (e.g., TX)"
-                  value={currentState}
-                  onChange={(e) => setCurrentState(e.target.value.toUpperCase())}
-                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddState())}
-                  maxLength={2}
-                />
-                <Button type="button" onClick={handleAddState} variant="outline">
                   Add
                 </Button>
               </div>
@@ -516,102 +425,49 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
             ) : (
               <div className="space-y-4 p-4 bg-secondary/20 rounded-lg">
                 <div>
-                  <Label>Scheduled Delivery Dates *</Label>
+                  <Label>Scheduled Delivery Date *</Label>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Add specific dates when you'll be delivering to this area
+                    Select the date when you'll be delivering to this area
                   </p>
                 </div>
 
-                {/* Display Scheduled Dates */}
-                {scheduledDates.length > 0 && (
-                  <div className="space-y-2">
-                    {scheduledDates.map((scheduledDate, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start gap-3 p-3 bg-white rounded-md border"
-                      >
-                        <Calendar className="h-5 w-5 text-primary mt-0.5" />
-                        <div className="flex-1">
-                          <div className="font-medium">
-                            {new Date(scheduledDate.date).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </div>
-                          {scheduledDate.timeWindow && (
-                            <div className="text-sm text-muted-foreground">
-                              {scheduledDate.timeWindow}
-                            </div>
-                          )}
-                          {scheduledDate.note && (
-                            <div className="text-sm text-muted-foreground italic mt-1">
-                              "{scheduledDate.note}"
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveScheduledDate(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                {/* Date Input Fields */}
+                <div className="grid gap-3">
+                  <div>
+                    <Label htmlFor="newDate" className="text-sm">Date *</Label>
+                    <Input
+                      id="newDate"
+                      type="date"
+                      value={newDate}
+                      onChange={(e) => setNewDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
                   </div>
-                )}
-
-                {/* Add New Date */}
-                <div className="space-y-3 border-t pt-4">
-                  <Label>Add New Date</Label>
-                  <div className="grid gap-3">
-                    <div>
-                      <Label htmlFor="newDate" className="text-sm">Date *</Label>
-                      <Input
-                        id="newDate"
-                        type="date"
-                        value={newDate}
-                        onChange={(e) => setNewDate(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="newTimeWindow" className="text-sm">Time Window (Optional)</Label>
-                      <select
-                        id="newTimeWindow"
-                        value={newTimeWindow}
-                        onChange={(e) => setNewTimeWindow(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-md"
-                      >
-                        <option value="">Select time window...</option>
-                        {TIME_WINDOWS.map((window) => (
-                          <option key={window} value={window}>
-                            {window}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label htmlFor="newNote" className="text-sm">Note (Optional)</Label>
-                      <Input
-                        id="newNote"
-                        placeholder="e.g., City trip for farmer's market"
-                        value={newNote}
-                        onChange={(e) => setNewNote(e.target.value)}
-                        maxLength={500}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={handleAddScheduledDate}
-                      variant="outline"
-                      className="w-full"
+                  <div>
+                    <Label htmlFor="newTimeWindow" className="text-sm">Time Window (Optional)</Label>
+                    <select
+                      id="newTimeWindow"
+                      value={newTimeWindow}
+                      onChange={(e) => setNewTimeWindow(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      + Add Date
-                    </Button>
+                      <option value="">Select time window...</option>
+                      {TIME_WINDOWS.map((window) => (
+                        <option key={window} value={window}>
+                          {window}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="newNote" className="text-sm">Note (Optional)</Label>
+                    <Input
+                      id="newNote"
+                      placeholder="e.g., City trip for farmer's market"
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      maxLength={500}
+                    />
                   </div>
                 </div>
               </div>
