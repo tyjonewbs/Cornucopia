@@ -141,7 +141,7 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
           onFiltersChange={handleFiltersChange}
         />
       </AppSidebar>
-      <main className="flex-1 ml-64 px-4 md:px-8 py-8">
+      <main className="flex-1 px-4 md:px-8 py-8">
       {error && (
         <div className="mb-6">
           <div className="bg-red-50 border-l-4 border-red-400 p-4">

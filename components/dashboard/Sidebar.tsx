@@ -58,9 +58,8 @@ export function Sidebar({ isProducer }: SidebarProps) {
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
 
   return (
-    <AppSidebar headerHref="/dashboard">
-      
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+    <AppSidebar headerHref="/dashboard" showHeader={false}>
+      <nav className="flex-1 px-3 pt-3 pb-4">
         <div className="space-y-1">
           {/* Common menu items */}
           {menuItems.map((item) => (

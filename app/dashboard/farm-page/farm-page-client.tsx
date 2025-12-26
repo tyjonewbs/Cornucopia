@@ -62,7 +62,7 @@ export function FarmPageClient({ farms }: FarmPageClientProps) {
           <p className="text-muted-foreground mb-6">
             Create your farm profile to tell your story and showcase what makes your farm special.
           </p>
-          <Link href="/dashboard/local/setup">
+          <Link href="/local/setup">
             <Button size="lg" className="bg-green-700 hover:bg-green-800">
               Create Your Farm Page
             </Button>
@@ -94,29 +94,6 @@ export function FarmPageClient({ farms }: FarmPageClientProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-          <ChevronLeft className="h-4 w-4" />
-          <span>Back to Dashboard</span>
-        </Link>
-        
-        {farms.length > 1 && (
-          <Select value={selectedFarmId} onValueChange={setSelectedFarmId}>
-            <SelectTrigger className="w-[250px]">
-              <SelectValue placeholder="Select a farm" />
-            </SelectTrigger>
-            <SelectContent>
-              {farms.map((farm) => (
-                <SelectItem key={farm.id} value={farm.id}>
-                  {farm.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-
       {/* Image Gallery */}
       <div className="mb-8">
         <ImageGalleryGrid images={selectedFarm.images} farmName={selectedFarm.name} />
@@ -267,7 +244,7 @@ export function FarmPageClient({ farms }: FarmPageClientProps) {
           <Card>
             <CardContent className="p-6">
               <ContactOwnerDialog farmName={selectedFarm.name} website={selectedFarm.website}>
-                <Button className="w-full bg-amber-700 hover:bg-amber-800">
+                <Button className="w-full bg-[#8B4513] hover:bg-[#723C0F]">
                   Contact Owner
                 </Button>
               </ContactOwnerDialog>

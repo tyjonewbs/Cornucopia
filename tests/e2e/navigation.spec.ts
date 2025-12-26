@@ -8,56 +8,84 @@ test.describe('Navigation Tests', () => {
   });
 
   test('should navigate to About page', async ({ page }) => {
-    // Find and click About link
-    const aboutLink = page.getByRole('link', { name: /about/i });
-    await aboutLink.click();
-    await waitForPageLoad(page);
+    // About link is in the footer, scroll to it
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    
+    // Find and click About link in footer
+    const aboutLink = page.locator('footer').getByRole('link', { name: /about us/i });
+    
+    // Wait for navigation to complete
+    await Promise.all([
+      page.waitForURL('**/about**', { timeout: 10000 }),
+      aboutLink.click()
+    ]);
     
     // Verify we're on the about page
     expect(page.url()).toContain('/about');
   });
 
   test('should navigate to Our Team page', async ({ page }) => {
-    // Find and click Our Team link
-    const teamLink = page.getByRole('link', { name: /our team/i });
-    await teamLink.click();
-    await waitForPageLoad(page);
+    // Our Team link is in the footer, scroll to it
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    
+    // Find and click Our Team link in footer
+    const teamLink = page.locator('footer').getByRole('link', { name: /our team/i });
+    
+    // Wait for navigation to complete
+    await Promise.all([
+      page.waitForURL('**/our-team**', { timeout: 10000 }),
+      teamLink.click()
+    ]);
     
     // Verify we're on the our-team page
     expect(page.url()).toContain('/our-team');
   });
 
   test('should navigate to Contact page', async ({ page }) => {
-    // Find and click Contact link
-    const contactLink = page.getByRole('link', { name: /contact/i });
-    await contactLink.click();
-    await waitForPageLoad(page);
+    // Contact link is in the footer, scroll to it
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    
+    // Find and click Contact link in footer (use first() since there are multiple contact links)
+    const contactLink = page.locator('footer').getByRole('link', { name: /contact/i }).first();
+    
+    // Wait for navigation to complete
+    await Promise.all([
+      page.waitForURL('**/contact**', { timeout: 10000 }),
+      contactLink.click()
+    ]);
     
     // Verify we're on the contact page
     expect(page.url()).toContain('/contact');
   });
 
   test('should navigate to Blog page if exists', async ({ page }) => {
-    // Try to find blog link
-    const blogLink = page.getByRole('link', { name: /blog/i });
+    // Blog link is in the footer, scroll to it
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    
+    // Try to find blog link in footer
+    const blogLink = page.locator('footer').getByRole('link', { name: /blog/i });
     
     // Only test if blog link exists
     if (await blogLink.count() > 0) {
-      await blogLink.click();
-      await waitForPageLoad(page);
+      // Wait for navigation to complete
+      await Promise.all([
+        page.waitForURL('**/blog**', { timeout: 10000 }),
+        blogLink.click()
+      ]);
       expect(page.url()).toContain('/blog');
     }
   });
 
   test('should navigate back to homepage from logo click', async ({ page }) => {
-    // Navigate to another page first
-    const aboutLink = page.getByRole('link', { name: /about/i });
+    // Navigate to another page first (scroll to footer for About link)
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const aboutLink = page.locator('footer').getByRole('link', { name: /about us/i });
     await aboutLink.click();
     await waitForPageLoad(page);
     
-    // Click logo to go back home
-    const logo = page.locator('nav').getByText(/Cornucopia/i).first();
-    await logo.click();
+    // Click logo link in nav (the logo is an image with alt="Cornucopia" inside a link)
+    const logoLink = page.locator('nav a[href="/"]').first();
+    await logoLink.click();
     await waitForPageLoad(page);
     
     // Should be back at homepage
@@ -85,22 +113,34 @@ test.describe('Navigation Tests', () => {
     await page.goto('/');
     await waitForPageLoad(page);
     
-    // Navigate to about
-    await page.getByRole('link', { name: /about/i }).click();
-    await waitForPageLoad(page);
+    // Navigate to about (scroll to footer)
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const aboutLink = page.locator('footer').getByRole('link', { name: /about us/i });
+    await Promise.all([
+      page.waitForURL('**/about**', { timeout: 10000 }),
+      aboutLink.click()
+    ]);
     
-    // Navigate to contact
-    await page.getByRole('link', { name: /contact/i }).click();
-    await waitForPageLoad(page);
+    // Navigate to contact (scroll to footer)
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const contactLink = page.locator('footer').getByRole('link', { name: /contact/i }).first();
+    await Promise.all([
+      page.waitForURL('**/contact**', { timeout: 10000 }),
+      contactLink.click()
+    ]);
     
     // Use browser back button
-    await page.goBack();
-    await waitForPageLoad(page);
+    await Promise.all([
+      page.waitForURL('**/about**', { timeout: 10000 }),
+      page.goBack()
+    ]);
     expect(page.url()).toContain('/about');
     
     // Use browser forward button
-    await page.goForward();
-    await waitForPageLoad(page);
+    await Promise.all([
+      page.waitForURL('**/contact**', { timeout: 10000 }),
+      page.goForward()
+    ]);
     expect(page.url()).toContain('/contact');
   });
 

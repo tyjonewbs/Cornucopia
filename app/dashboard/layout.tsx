@@ -19,7 +19,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-[calc(100vh-80px)] bg-gray-50">
       <Sidebar isProducer={isProducer} />
-      <main className="flex-1 ml-64 p-6">
+      <main className="flex-1 p-6">
         {children}
       </main>
     </div>
