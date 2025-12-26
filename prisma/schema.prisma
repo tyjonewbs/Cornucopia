@@ -8,47 +8,41 @@ datasource db {
   provider     = "postgresql"
   url          = env("DATABASE_URL")
   relationMode = "foreignKeys"
-  extensions   = [uuid_ossp(map: "uuid-ossp", schema: "extensions")]
+  extensions   = [postgis(schema: "public"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]
 }
 
 model User {
-  id                    String                 @id @unique
-  email                 String                 @db.VarChar(255)
-  
-  // Profile fields - username required for anonymization, others optional
-  username              String?                @unique @db.VarChar(30)
-  firstName             String?                @db.VarChar(100)
-  lastName              String?                @db.VarChar(100)
+  id                    String                    @id @unique
+  email                 String                    @db.VarChar(255)
+  firstName             String?                   @db.VarChar(100)
+  lastName              String?                   @db.VarChar(100)
   profileImage          String?
-  
-  // Location data for push notifications
-  city                  String?                @db.VarChar(100)
-  state                 String?                @db.VarChar(50)
-  zipCode               String?                @db.VarChar(10)
-  
-  // Tracking fields
-  profileComplete       Boolean                @default(false)
+  connectedAccountId    String?                   @db.VarChar(100)
+  stripeConnectedLinked Boolean                   @default(false)
+  role                  UserRole                  @default(USER)
+  username              String?                   @unique @db.VarChar(30)
+  city                  String?                   @db.VarChar(100)
+  state                 String?                   @db.VarChar(50)
+  zipCode               String?                   @db.VarChar(10)
+  profileComplete       Boolean                   @default(false)
   usernameLastChanged   DateTime?
-  
-  connectedAccountId    String?                @db.VarChar(100)
-  stripeConnectedLinked Boolean                @default(false)
-  role                  UserRole               @default(USER)
+  cart                  Cart?
+  deliveryZones         DeliveryZone[]
   locals                Local[]
   marketStands          MarketStand[]
+  subscriptions         MarketStandSubscription[]
+  orders                Order[]
+  reportedIssues        OrderIssue[]              @relation("ReportedIssues")
+  resolvedIssues        OrderIssue[]              @relation("ResolvedIssues")
   products              Product[]
   productReviews        ProductReview[]
+  ProductStandListing   ProductStandListing[]
   productStatusChanges  ProductStatusHistory[]
+  savedProducts         SavedProduct[]
   standReviews          StandReview[]
   standStatusChanges    StandStatusHistory[]
   engagement            UserEngagement?
   sessions              VisitorSession[]
-  orders                Order[]
-  savedProducts         SavedProduct[]
-  subscriptions         MarketStandSubscription[]
-  deliveryZones         DeliveryZone[]
-  reportedIssues        OrderIssue[]           @relation("ReportedIssues")
-  resolvedIssues        OrderIssue[]           @relation("ResolvedIssues")
-  cart                  Cart?
 
   @@index([email], map: "user_email_idx")
   @@index([username], map: "user_username_idx")
@@ -57,94 +51,96 @@ model User {
 }
 
 model MarketStand {
-  id            String                @id @default(uuid())
-  name          String                @db.VarChar(255)
-  description   String?
-  images        String[]
-  tags          String[]              @db.VarChar(50)
-  latitude      Float
-  longitude     Float
-  locationName  String                @db.VarChar(255)
-  streetAddress String?               @db.VarChar(255)
-  city          String?               @db.VarChar(100)
-  zipCode       String?               @db.VarChar(10)
-  locationGuide String
-  website       String?
-  socialMedia   String[]
-  status        Status                @default(PENDING)
-  isActive      Boolean               @default(true)
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  userId        String
-  averageRating Float?
-  totalReviews  Int                   @default(0)
-  hours         Json?
-  user          User                  @relation(fields: [userId], references: [id])
-  products      Product[]             @relation("ProductToMarketStand")
+  id              String                    @id @default(uuid())
+  name            String                    @db.VarChar(255)
+  description     String?
+  images          String[]
+  tags            String[]                  @db.VarChar(50)
+  latitude        Float
+  longitude       Float
+  locationName    String                    @db.VarChar(255)
+  locationGuide   String
+  website         String?
+  socialMedia     String[]
+  status          Status                    @default(PENDING)
+  isActive        Boolean                   @default(true)
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  userId          String
+  averageRating   Float?
+  totalReviews    Int                       @default(0)
+  hours           Json?
+  streetAddress   String?                   @db.VarChar(255)
+  city            String?                   @db.VarChar(100)
+  zipCode         String?                   @db.VarChar(10)
+  location        Unsupported("geography")?
+  cartItems       CartItem[]
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subscriptions   MarketStandSubscription[]
+  orders          Order[]
+  products        Product[]                 @relation("ProductToMarketStand")
   productListings ProductStandListing[]
-  metrics       StandMetrics?
-  reviews       StandReview[]
-  statusHistory StandStatusHistory[]
-  orders        Order[]
-  subscriptions MarketStandSubscription[]
-  cartItems     CartItem[]
+  metrics         StandMetrics?
+  reviews         StandReview[]
+  statusHistory   StandStatusHistory[]
 
   @@index([latitude, longitude], map: "market_stand_location_idx")
   @@index([isActive], map: "market_stand_active_idx")
   @@index([userId])
+  @@index([location], map: "market_stand_location_geo_idx", type: Gist)
 }
 
 model Product {
-  id                 String                 @id @default(uuid())
-  name               String                 @db.VarChar(255)
+  id                 String                   @id @default(uuid())
+  name               String                   @db.VarChar(255)
   price              Int
   description        String
   images             String[]
-  tags               String[]               @db.VarChar(50)
-  inventory          Int                    @default(0)
+  tags               String[]                 @db.VarChar(50)
+  inventory          Int                      @default(0)
   inventoryUpdatedAt DateTime?
-  status             Status                 @default(PENDING)
-  isActive           Boolean                @default(true)
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
+  status             Status                   @default(PENDING)
+  isActive           Boolean                  @default(true)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
   userId             String
   marketStandId      String?
   localId            String?
-  deliveryAvailable  Boolean                @default(false)
+  averageRating      Float?
+  totalReviews       Int                      @default(0)
+  deliveryAvailable  Boolean                  @default(false)
   deliveryZoneId     String?
+  availableDate      DateTime?
+  availableUntil     DateTime?
   deliveryType       DeliveryType?
   deliverySchedule   Json?
   deliveryDates      DateTime[]
-  availableDate      DateTime?
-  availableUntil     DateTime?
-  averageRating      Float?
-  totalReviews       Int                    @default(0)
-  taxCode            TaxCode                @default(RAW_FOOD)
-  taxable            Boolean                @default(false)
-  local              Local?                 @relation("ProductToLocal", fields: [localId], references: [id], onDelete: SetNull)
-  marketStand        MarketStand?           @relation("ProductToMarketStand", fields: [marketStandId], references: [id], onDelete: SetNull)
-  deliveryZone       DeliveryZone?          @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
-  user               User                   @relation(fields: [userId], references: [id])
+  taxCode            TaxCode                  @default(RAW_FOOD)
+  taxable            Boolean                  @default(false)
+  cartItems          CartItem[]
+  orderItems         OrderItem[]
+  deliveryZone       DeliveryZone?            @relation(fields: [deliveryZoneId], references: [id])
+  local              Local?                   @relation("ProductToLocal", fields: [localId], references: [id])
+  marketStand        MarketStand?             @relation("ProductToMarketStand", fields: [marketStandId], references: [id])
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  deliveryListings   ProductDeliveryListing[]
   metrics            ProductMetrics?
   reviews            ProductReview[]
-  statusHistory      ProductStatusHistory[]
-  orderItems         OrderItem[]
-  savedBy            SavedProduct[]
   standListings      ProductStandListing[]
-  deliveryListings   ProductDeliveryListing[]
-  cartItems          CartItem[]
+  statusHistory      ProductStatusHistory[]
+  savedBy            SavedProduct[]
 
   @@index([isActive, inventory], map: "product_active_inventory_idx")
   @@index([updatedAt(sort: Desc)], map: "product_updated_at_idx")
   @@index([marketStandId], map: "product_market_stand_idx")
   @@index([localId], map: "product_local_idx")
   @@index([userId], map: "product_user_idx")
-  @@index([deliveryZoneId], map: "Product_deliveryZoneId_idx")
-  @@index([deliveryAvailable], map: "Product_deliveryAvailable_idx")
-  @@index([deliveryType], map: "Product_deliveryType_idx")
-  @@index([availableDate], map: "Product_availableDate_idx")
-  @@index([isActive, availableDate], map: "Product_isActive_availableDate_idx")
-  @@index([inventoryUpdatedAt], map: "Product_inventoryUpdatedAt_idx")
+  @@index([deliveryZoneId])
+  @@index([deliveryAvailable])
+  @@index([deliveryType])
+  @@index([availableDate])
+  @@index([isActive, availableDate])
+  @@index([inventoryUpdatedAt])
 }
 
 model ProductReview {
@@ -160,8 +156,8 @@ model ProductReview {
   helpfulVotes       Int      @default(0)
   reportCount        Int      @default(0)
   isVisible          Boolean  @default(true)
-  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user               User     @relation(fields: [userId], references: [id])
+  product            Product  @relation(fields: [productId], references: [id])
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([productId, isVisible], map: "product_review_product_idx")
   @@index([userId])
@@ -180,8 +176,8 @@ model StandReview {
   helpfulVotes       Int         @default(0)
   reportCount        Int         @default(0)
   isVisible          Boolean     @default(true)
-  marketStand        MarketStand @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
-  user               User        @relation(fields: [userId], references: [id])
+  marketStand        MarketStand @relation(fields: [marketStandId], references: [id])
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([marketStandId, isVisible], map: "stand_review_stand_idx")
   @@index([userId])
@@ -195,8 +191,8 @@ model ProductStatusHistory {
   changedById String
   note        String
   createdAt   DateTime @default(now())
-  changedBy   User     @relation(fields: [changedById], references: [id])
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  changedBy   User     @relation(fields: [changedById], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product     Product  @relation(fields: [productId], references: [id])
 
   @@index([productId])
   @@index([changedById])
@@ -210,8 +206,8 @@ model StandStatusHistory {
   changedById   String
   note          String
   createdAt     DateTime    @default(now())
-  changedBy     User        @relation(fields: [changedById], references: [id])
-  marketStand   MarketStand @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
+  changedBy     User        @relation(fields: [changedById], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  marketStand   MarketStand @relation(fields: [marketStandId], references: [id])
 
   @@index([marketStandId])
   @@index([changedById])
@@ -227,7 +223,7 @@ model ProductMetrics {
   revenue        Int                   @default(0)
   conversionRate Float?
   dailyMetrics   ProductDailyMetrics[]
-  product        Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product        Product               @relation(fields: [productId], references: [id])
 
   @@index([productId], map: "product_metrics_product_idx")
 }
@@ -241,7 +237,7 @@ model ProductDailyMetrics {
   addedToCart     Int            @default(0)
   purchases       Int            @default(0)
   revenue         Int            @default(0)
-  productMetrics  ProductMetrics @relation(fields: [productMetricId], references: [id], onDelete: Cascade)
+  productMetrics  ProductMetrics @relation(fields: [productMetricId], references: [id])
 
   @@index([productMetricId, date])
 }
@@ -256,7 +252,7 @@ model StandMetrics {
   averageOrderValue  Float?
   returningCustomers Int                 @default(0)
   dailyMetrics       StandDailyMetrics[]
-  marketStand        MarketStand         @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
+  marketStand        MarketStand         @relation(fields: [marketStandId], references: [id])
 
   @@index([marketStandId], map: "stand_metrics_stand_idx")
 }
@@ -269,7 +265,7 @@ model StandDailyMetrics {
   uniqueViews   Int          @default(0)
   orders        Int          @default(0)
   revenue       Int          @default(0)
-  standMetrics  StandMetrics @relation(fields: [standMetricId], references: [id], onDelete: Cascade)
+  standMetrics  StandMetrics @relation(fields: [standMetricId], references: [id])
 
   @@index([standMetricId, date])
 }
@@ -284,7 +280,7 @@ model UserEngagement {
   favoriteStands String[]
   searchHistory  String[]
   categoryViews  Json
-  user           User     @relation(fields: [userId], references: [id])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId])
 }
@@ -299,15 +295,15 @@ model VisitorSession {
   browser     String?   @db.VarChar(50)
   ipAddress   String?   @db.VarChar(45)
   pagesViewed Json
-  user        User?     @relation(fields: [userId], references: [id])
+  user        User?     @relation(fields: [userId], references: [id], onUpdate: NoAction)
 
   @@index([userId])
   @@index([sessionId])
 }
 
 model Local {
-  id               String        @id @default(uuid())
-  name             String        @db.VarChar(255)
+  id               String                    @id @default(uuid())
+  name             String                    @db.VarChar(255)
   description      String
   story            String
   images           String[]
@@ -318,25 +314,27 @@ model Local {
   events           Json
   operatingHours   Json
   wholesaleInfo    String?
-  contactForm      Boolean       @default(true)
+  contactForm      Boolean                   @default(true)
   latitude         Float
   longitude        Float
-  locationName     String        @db.VarChar(255)
+  locationName     String                    @db.VarChar(255)
   locationGuide    String
   website          String?
   socialMedia      String[]
-  status           Status        @default(PENDING)
-  isActive         Boolean       @default(true)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  status           Status                    @default(PENDING)
+  isActive         Boolean                   @default(true)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
   userId           String
-  user             User          @relation(fields: [userId], references: [id])
+  location         Unsupported("geography")?
+  user             User                      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   metrics          LocalMetrics?
-  products         Product[]     @relation("ProductToLocal")
+  products         Product[]                 @relation("ProductToLocal")
 
   @@index([latitude, longitude], map: "local_location_idx")
   @@index([isActive], map: "local_active_idx")
   @@index([userId], map: "local_user_idx")
+  @@index([location], map: "local_location_geo_idx", type: Gist)
 }
 
 model LocalMetrics {
@@ -347,7 +345,7 @@ model LocalMetrics {
   contactFormSubmissions Int    @default(0)
   productViews           Int    @default(0)
   eventSignups           Int    @default(0)
-  local                  Local  @relation(fields: [localId], references: [id], onDelete: Cascade)
+  local                  Local  @relation(fields: [localId], references: [id])
 
   @@index([localId], map: "local_metrics_local_idx")
 }
@@ -366,36 +364,40 @@ model Order {
   notes           String?
   pickupTime      DateTime?
   deliveryAddress String?
-  deliveryZoneId  String?
-  deliveryDate    DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryZoneId  String?
+  deliveryDate    DateTime?
+  deliveryZone    DeliveryZone? @relation(fields: [deliveryZoneId], references: [id])
   marketStand     MarketStand   @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
-  deliveryZone    DeliveryZone? @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
-  items           OrderItem[]
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   issues          OrderIssue[]
+  items           OrderItem[]
 
   @@index([userId], map: "order_user_idx")
   @@index([marketStandId], map: "order_stand_idx")
   @@index([status], map: "order_status_idx")
   @@index([createdAt(sort: Desc)], map: "order_created_idx")
-  @@index([deliveryZoneId], map: "Order_deliveryZoneId_idx")
-  @@index([deliveryDate], map: "Order_deliveryDate_idx")
-  @@index([deliveryZoneId, deliveryDate], map: "Order_deliveryZoneId_deliveryDate_idx")
+  @@index([deliveryZoneId])
+  @@index([deliveryDate])
+  @@index([deliveryZoneId, deliveryDate])
 }
 
 model OrderItem {
-  id          String  @id @default(uuid())
-  orderId     String
-  productId   String
-  quantity    Int
-  priceAtTime Int
-  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id                  String               @id @default(uuid())
+  orderId             String
+  productId           String
+  quantity            Int
+  priceAtTime         Int
+  listingId           String?
+  commissionAmount    Int?
+  ProductStandListing ProductStandListing? @relation(fields: [listingId], references: [id])
+  order               Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product             Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([orderId], map: "order_item_order_idx")
   @@index([productId], map: "order_item_product_idx")
+  @@index([listingId])
 }
 
 model SavedProduct {
@@ -403,8 +405,8 @@ model SavedProduct {
   userId    String
   productId String
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId], map: "saved_product_unique")
   @@index([userId], map: "saved_product_user_idx")
@@ -418,12 +420,175 @@ model MarketStandSubscription {
   notificationTypes NotificationType[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   marketStand       MarketStand        @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, marketStandId], map: "subscription_unique")
   @@index([userId], map: "subscription_user_idx")
   @@index([marketStandId], map: "subscription_stand_idx")
+}
+
+model DeliveryZone {
+  id                    String                   @id @default(uuid())
+  userId                String
+  name                  String                   @db.VarChar(255)
+  description           String?
+  zipCodes              String[]                 @default([])
+  cities                String[]                 @default([])
+  states                String[]                 @default([])
+  deliveryFee           Int                      @default(0)
+  freeDeliveryThreshold Int?
+  minimumOrder          Int?
+  deliveryDays          String[]                 @default([])
+  deliveryTimeWindows   Json?
+  isActive              Boolean                  @default(true)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @default(now()) @updatedAt
+  flaggedForReview      Boolean                  @default(false)
+  flagReason            String?
+  isSuspended           Boolean                  @default(false)
+  suspendedAt           DateTime?
+  suspendedById         String?
+  suspensionReason      String?
+  deliveryType          DeliveryType             @default(ONE_TIME)
+  scheduledDates        Json?
+  cartItems             CartItem[]
+  user                  User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders                Order[]
+  products              Product[]
+  productListings       ProductDeliveryListing[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([flaggedForReview])
+  @@index([isSuspended])
+  @@index([deliveryType])
+}
+
+model ProductStandListing {
+  id                String                @id @default(uuid())
+  productId         String
+  marketStandId     String
+  isActive          Boolean               @default(false)
+  isPrimary         Boolean               @default(false)
+  customPrice       Int?
+  customInventory   Int?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @default(now()) @updatedAt
+  status            ListingRequestStatus? @default(APPROVED)
+  requestedAt       DateTime?             @default(now())
+  requestMessage    String?
+  respondedBy       String?
+  respondedAt       DateTime?
+  responseNote      String?
+  commissionType    CommissionType?       @default(PERCENTAGE)
+  commissionRate    Float?
+  commissionFixed   Int?
+  totalUnitsSold    Int                   @default(0)
+  totalRevenue      Int                   @default(0)
+  totalCommission   Int                   @default(0)
+  lastSaleAt        DateTime?
+  commissionPending Int                   @default(0)
+  commissionPaid    Int                   @default(0)
+  lastPayoutAt      DateTime?
+  OrderItem         OrderItem[]
+  marketStand       MarketStand           @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
+  product           Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  User              User?                 @relation(fields: [respondedBy], references: [id])
+
+  @@unique([productId, marketStandId])
+  @@index([productId])
+  @@index([marketStandId])
+  @@index([isActive])
+  @@index([commissionPending])
+  @@index([lastSaleAt])
+  @@index([respondedBy])
+  @@index([status])
+}
+
+model ProductDeliveryListing {
+  id             String       @id @default(uuid())
+  productId      String
+  deliveryZoneId String
+  dayOfWeek      String
+  inventory      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+  deliveryZone   DeliveryZone @relation(fields: [deliveryZoneId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, deliveryZoneId, dayOfWeek])
+  @@index([productId])
+  @@index([deliveryZoneId])
+  @@index([dayOfWeek])
+  @@index([dayOfWeek, deliveryZoneId])
+}
+
+model OrderIssue {
+  id           String      @id @default(uuid())
+  orderId      String
+  reportedById String
+  issueType    IssueType
+  description  String
+  status       IssueStatus @default(PENDING)
+  resolution   String?
+  refundAmount Int?
+  refundedAt   DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  resolvedAt   DateTime?
+  resolvedById String?
+  adminNotes   String?
+  order        Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reportedBy   User        @relation("ReportedIssues", fields: [reportedById], references: [id])
+  resolvedBy   User?       @relation("ResolvedIssues", fields: [resolvedById], references: [id])
+
+  @@index([orderId])
+  @@index([reportedById])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Cart {
+  id        String     @id @default(dbgenerated("gen_random_uuid()"))
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@index([userId])
+}
+
+model CartItem {
+  id              String        @id @default(dbgenerated("gen_random_uuid()"))
+  cartId          String
+  productId       String
+  quantity        Int           @default(1)
+  fulfillmentType String
+  deliveryDate    DateTime?
+  deliveryZoneId  String?
+  marketStandId   String?
+  pickupTime      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  cart            Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  deliveryZone    DeliveryZone? @relation(fields: [deliveryZoneId], references: [id])
+  marketStand     MarketStand?  @relation(fields: [marketStandId], references: [id])
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId, deliveryDate, pickupTime], map: "CartItem_unique")
+  @@index([cartId])
+  @@index([productId])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
 }
 
 enum UserRole {
@@ -448,83 +613,9 @@ enum OrderStatus {
   PENDING
   CONFIRMED
   READY
-  DELIVERED
   COMPLETED
   CANCELLED
-}
-
-model DeliveryZone {
-  id                    String                   @id @default(uuid())
-  userId                String
-  name                  String                   @db.VarChar(255)
-  description           String?
-  zipCodes              String[]
-  cities                String[]
-  states                String[]
-  deliveryFee           Int                      @default(0)
-  freeDeliveryThreshold Int?
-  minimumOrder          Int?
-  deliveryType          DeliveryType             @default(ONE_TIME)
-  deliveryDays          String[]
-  deliveryTimeWindows   Json?
-  scheduledDates        Json?
-  isActive              Boolean                  @default(true)
-  flaggedForReview      Boolean                  @default(false)
-  flagReason            String?
-  isSuspended           Boolean                  @default(false)
-  suspendedAt           DateTime?
-  suspendedById         String?
-  suspensionReason      String?
-  createdAt             DateTime                 @default(now())
-  updatedAt             DateTime                 @updatedAt
-  user                  User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  products              Product[]
-  productListings       ProductDeliveryListing[]
-  orders                Order[]
-  cartItems             CartItem[]
-
-  @@index([userId], map: "DeliveryZone_userId_idx")
-  @@index([isActive], map: "DeliveryZone_isActive_idx")
-  @@index([flaggedForReview], map: "DeliveryZone_flaggedForReview_idx")
-  @@index([isSuspended], map: "DeliveryZone_isSuspended_idx")
-  @@index([deliveryType], map: "DeliveryZone_deliveryType_idx")
-}
-
-model ProductStandListing {
-  id              String      @id @default(uuid())
-  productId       String
-  marketStandId   String
-  isActive        Boolean     @default(true)
-  isPrimary       Boolean     @default(false)
-  customPrice     Int?
-  customInventory Int?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  product         Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  marketStand     MarketStand @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, marketStandId], map: "ProductStandListing_productId_marketStandId_key")
-  @@index([productId], map: "ProductStandListing_productId_idx")
-  @@index([marketStandId], map: "ProductStandListing_marketStandId_idx")
-  @@index([isActive], map: "ProductStandListing_isActive_idx")
-}
-
-model ProductDeliveryListing {
-  id             String       @id @default(uuid())
-  productId      String
-  deliveryZoneId String
-  dayOfWeek      String       @db.VarChar(10)
-  inventory      Int          @default(0)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  deliveryZone   DeliveryZone @relation(fields: [deliveryZoneId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, deliveryZoneId, dayOfWeek], map: "ProductDeliveryListing_productId_deliveryZoneId_dayOfWeek_key")
-  @@index([productId], map: "ProductDeliveryListing_productId_idx")
-  @@index([deliveryZoneId], map: "ProductDeliveryListing_deliveryZoneId_idx")
-  @@index([dayOfWeek], map: "ProductDeliveryListing_dayOfWeek_idx")
-  @@index([dayOfWeek, deliveryZoneId], map: "ProductDeliveryListing_dayOfWeek_deliveryZoneId_idx")
+  DELIVERED
 }
 
 enum NotificationType {
@@ -539,31 +630,6 @@ enum NotificationType {
 enum DeliveryType {
   RECURRING
   ONE_TIME
-}
-
-model OrderIssue {
-  id              String       @id @default(uuid())
-  orderId         String
-  reportedById    String
-  issueType       IssueType
-  description     String
-  status          IssueStatus  @default(PENDING)
-  resolution      String?
-  refundAmount    Int?
-  refundedAt      DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  resolvedAt      DateTime?
-  resolvedById    String?
-  adminNotes      String?
-  order           Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  reportedBy      User         @relation("ReportedIssues", fields: [reportedById], references: [id])
-  resolvedBy      User?        @relation("ResolvedIssues", fields: [resolvedById], references: [id])
-
-  @@index([orderId], map: "OrderIssue_orderId_idx")
-  @@index([reportedById], map: "OrderIssue_reportedById_idx")
-  @@index([status], map: "OrderIssue_status_idx")
-  @@index([createdAt(sort: Desc)], map: "OrderIssue_createdAt_idx")
 }
 
 enum IssueType {
@@ -589,35 +655,16 @@ enum TaxCode {
   NON_FOOD
 }
 
-model Cart {
-  id        String     @id @default(uuid())
-  userId    String     @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     CartItem[]
-
-  @@index([userId], map: "Cart_userId_idx")
+enum CommissionType {
+  PERCENTAGE
+  FIXED
+  HYBRID
 }
 
-model CartItem {
-  id              String        @id @default(uuid())
-  cartId          String
-  productId       String
-  quantity        Int           @default(1)
-  fulfillmentType String
-  deliveryDate    DateTime?
-  deliveryZoneId  String?
-  marketStandId   String?
-  pickupTime      DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  cart            Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  deliveryZone    DeliveryZone? @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
-  marketStand     MarketStand?  @relation(fields: [marketStandId], references: [id], onDelete: SetNull)
-
-  @@unique([cartId, productId, deliveryDate, pickupTime], map: "CartItem_unique")
-  @@index([cartId], map: "CartItem_cartId_idx")
-  @@index([productId], map: "CartItem_productId_idx")
+enum ListingRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  REMOVED
 }

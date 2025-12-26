@@ -111,6 +111,7 @@ export async function createDeliveryZone(formData: FormData) {
       data: {
         ...validated,
         deliveryTimeWindows: validated.deliveryTimeWindows || Prisma.JsonNull,
+        scheduledDates: validated.scheduledDates || Prisma.JsonNull,
         userId: user.id,
       },
     });
