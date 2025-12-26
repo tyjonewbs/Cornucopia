@@ -464,8 +464,10 @@ model DeliveryZone {
   deliveryFee           Int                      @default(0)
   freeDeliveryThreshold Int?
   minimumOrder          Int?
+  deliveryType          DeliveryType             @default(ONE_TIME)
   deliveryDays          String[]
   deliveryTimeWindows   Json?
+  scheduledDates        Json?
   isActive              Boolean                  @default(true)
   flaggedForReview      Boolean                  @default(false)
   flagReason            String?
@@ -485,6 +487,7 @@ model DeliveryZone {
   @@index([isActive], map: "DeliveryZone_isActive_idx")
   @@index([flaggedForReview], map: "DeliveryZone_flaggedForReview_idx")
   @@index([isSuspended], map: "DeliveryZone_isSuspended_idx")
+  @@index([deliveryType], map: "DeliveryZone_deliveryType_idx")
 }
 
 model ProductStandListing {

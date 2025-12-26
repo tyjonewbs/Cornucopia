@@ -8,7 +8,7 @@ import { HeaderSearchBar } from "./HeaderSearchBar";
 
 export function Navbar() {
   return (
-    <nav className="bg-[#0B4D2C]">
+    <nav className="sticky top-0 z-50 bg-[#0B4D2C] shadow-md">
       <div className="flex h-20 items-center px-4 max-w-7xl mx-auto gap-4">
         <Link href="/" className="flex items-center flex-shrink-0">
           <div className="relative w-[180px] h-[45px]">

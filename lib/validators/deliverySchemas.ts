@@ -18,6 +18,14 @@ const deliveryTimeWindowSchema = z.object({
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"),
 });
 
+const scheduledDateSchema = z.object({
+  date: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: "Invalid date format",
+  }),
+  timeWindow: z.string().optional(),
+  note: z.string().max(500, "Note must be less than 500 characters").optional(),
+});
+
 export const deliveryZoneSchema = z.object({
   name: z.string()
     .min(1, "Zone name is required")
@@ -52,6 +60,8 @@ export const deliveryZoneSchema = z.object({
     .optional()
     .nullable(),
   
+  deliveryType: z.enum(["RECURRING", "ONE_TIME"]).default("ONE_TIME"),
+  
   deliveryDays: z.array(z.enum([
     "Monday",
     "Tuesday",
@@ -60,9 +70,13 @@ export const deliveryZoneSchema = z.object({
     "Friday",
     "Saturday",
     "Sunday"
-  ])).min(1, "Select at least one delivery day"),
+  ])),
   
   deliveryTimeWindows: z.array(deliveryTimeWindowSchema)
+    .optional()
+    .nullable(),
+  
+  scheduledDates: z.array(scheduledDateSchema)
     .optional()
     .nullable(),
   
@@ -75,6 +89,30 @@ export const deliveryZoneSchema = z.object({
   {
     message: "At least one coverage area (ZIP code, city, or state) is required",
     path: ["zipCodes"],
+  }
+).refine(
+  (data) => {
+    // If RECURRING, must have at least one delivery day
+    if (data.deliveryType === "RECURRING") {
+      return data.deliveryDays && data.deliveryDays.length > 0;
+    }
+    return true;
+  },
+  {
+    message: "Select at least one delivery day for recurring deliveries",
+    path: ["deliveryDays"],
+  }
+).refine(
+  (data) => {
+    // If ONE_TIME, must have at least one scheduled date
+    if (data.deliveryType === "ONE_TIME") {
+      return data.scheduledDates && data.scheduledDates.length > 0;
+    }
+    return true;
+  },
+  {
+    message: "Add at least one scheduled date for one-time deliveries",
+    path: ["scheduledDates"],
   }
 );
 

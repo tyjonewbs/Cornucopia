@@ -17,6 +17,12 @@ export interface DeliveryEligibilityResult {
   deliveryOptions: DeliveryOption[];
 }
 
+export interface ScheduledDate {
+  date: string; // ISO date string
+  timeWindow?: string;
+  note?: string;
+}
+
 export interface DeliveryZoneInfo {
   id: string;
   name: string;
@@ -27,8 +33,10 @@ export interface DeliveryZoneInfo {
   deliveryFee: number;
   freeDeliveryThreshold?: number | null;
   minimumOrder?: number | null;
+  deliveryType: 'RECURRING' | 'ONE_TIME';
   deliveryDays: string[];
   deliveryTimeWindows?: any;
+  scheduledDates?: ScheduledDate[];
   isActive?: boolean;
 }
 

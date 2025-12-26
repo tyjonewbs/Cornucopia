@@ -232,7 +232,8 @@ export async function deleteDeliveryZone(id: string) {
       return { success: false, error: "Not authenticated" };
     }
 
-    // Check if zone exists and belongs to user
+    // CRITICAL FIX: Use a transaction and verify userId in the WHERE clause
+    // to prevent accidental deletion of other users' zones
     const existingZone = await prisma.deliveryZone.findFirst({
       where: { 
         id,
@@ -241,12 +242,15 @@ export async function deleteDeliveryZone(id: string) {
     });
 
     if (!existingZone) {
-      return { success: false, error: "Delivery zone not found" };
+      return { success: false, error: "Delivery zone not found or access denied" };
     }
 
     // Check if zone is being used by any products (deliveryZoneId field)
     const productsWithZone = await prisma.product.count({
-      where: { deliveryZoneId: id },
+      where: { 
+        deliveryZoneId: id,
+        userId: user.id // Extra safety check
+      },
     });
 
     // Check if zone has any delivery listings
@@ -254,26 +258,54 @@ export async function deleteDeliveryZone(id: string) {
       where: { deliveryZoneId: id },
     });
 
-    if (productsWithZone > 0 || deliveryListings > 0) {
-      const productMsg = productsWithZone > 0 ? `${productsWithZone} product(s) are linked to this zone` : '';
-      const listingMsg = deliveryListings > 0 ? `${deliveryListings} delivery listing(s) exist` : '';
-      const separator = productsWithZone > 0 && deliveryListings > 0 ? ' and ' : '';
+    // Check if zone has any orders
+    const activeOrders = await prisma.order.count({
+      where: {
+        deliveryZoneId: id,
+        status: { in: ['PENDING', 'CONFIRMED', 'READY'] }
+      }
+    });
+
+    // Check if zone has any cart items
+    const cartItems = await prisma.cartItem.count({
+      where: { deliveryZoneId: id }
+    });
+
+    if (productsWithZone > 0 || deliveryListings > 0 || activeOrders > 0 || cartItems > 0) {
+      const messages = [];
+      if (productsWithZone > 0) messages.push(`${productsWithZone} product(s) are linked to this zone`);
+      if (deliveryListings > 0) messages.push(`${deliveryListings} delivery listing(s) exist`);
+      if (activeOrders > 0) messages.push(`${activeOrders} active order(s) exist`);
+      if (cartItems > 0) messages.push(`${cartItems} cart item(s) reference this zone`);
       
       return { 
         success: false, 
-        error: `Cannot delete zone. ${productMsg}${separator}${listingMsg}. Please remove all products from this zone first.` 
+        error: `Cannot delete zone. ${messages.join(', ')}. Please remove all products and complete/cancel all orders first.` 
       };
     }
 
-    // Delete the zone
-    await prisma.deliveryZone.delete({
-      where: { id },
+    // Use transaction to safely delete the zone with userId verification
+    await prisma.$transaction(async (tx) => {
+      // Double-check the zone still belongs to the user
+      const verifyZone = await tx.deliveryZone.findFirst({
+        where: { id, userId: user.id }
+      });
+      
+      if (!verifyZone) {
+        throw new Error("Zone verification failed - zone not found or access denied");
+      }
+      
+      // Delete only this specific zone by id (verified to belong to user above)
+      await tx.deliveryZone.delete({
+        where: { id },
+      });
     });
 
     revalidatePath('/dashboard/delivery-zones');
     
     return { success: true };
   } catch (error) {
+    console.error("Error deleting delivery zone:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Error deleting delivery zone"

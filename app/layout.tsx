@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
@@ -52,6 +53,7 @@ export default function RootLayout({
                   <LocationProvider>
                     <Navbar />
                     {children}
+                    <Footer />
                     <Toaster />
                     <ServiceWorkerRegistration />
                   </LocationProvider>
