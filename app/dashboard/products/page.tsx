@@ -28,8 +28,10 @@ export default async function ProductsPage() {
         deliveryFee: zone.deliveryFee,
         freeDeliveryThreshold: zone.freeDeliveryThreshold,
         minimumOrder: zone.minimumOrder,
+        deliveryType: (zone as any).deliveryType || 'ONE_TIME' as const,
         deliveryDays: zone.deliveryDays,
         deliveryTimeWindows: zone.deliveryTimeWindows,
+        scheduledDates: (zone as any).scheduledDates || undefined,
       }))
     : [];
 

@@ -26,8 +26,10 @@ export function toDeliveryZoneDTO(
     deliveryFee: zone.deliveryFee,
     freeDeliveryThreshold: zone.freeDeliveryThreshold,
     minimumOrder: zone.minimumOrder,
+    deliveryType: (zone as any).deliveryType || 'ONE_TIME',
     deliveryDays: zone.deliveryDays,
     deliveryTimeWindows: zone.deliveryTimeWindows ? JSON.parse(JSON.stringify(zone.deliveryTimeWindows)) : null,
+    scheduledDates: (zone as any).scheduledDates ? JSON.parse(JSON.stringify((zone as any).scheduledDates)) : undefined,
     isActive: zone.isActive,
   };
 }
