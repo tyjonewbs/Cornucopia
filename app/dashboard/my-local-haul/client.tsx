@@ -23,7 +23,7 @@ export function MyLocalHaulClient({ initialData }: MyLocalHaulClientProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Local Haul</h1>
+        <h1 className="text-3xl font-bold">Orders</h1>
         <p className="text-muted-foreground mt-2">
           Track your purchases, saved items, reviews, and market stand subscriptions
         </p>

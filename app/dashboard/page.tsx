@@ -247,15 +247,15 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader>
-              <CardTitle className="text-lg">Browse Market Stands</CardTitle>
+              <CardTitle className="text-lg">Explore Local</CardTitle>
               <CardDescription>
-                Discover local farms and producers in your area
+                Discover local farms, market stands, and events near you
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/market-stand/grid">
+              <Link href="/market-stand">
                 <Button variant="outline" className="w-full">
-                  Explore Stands
+                  Explore Map
                 </Button>
               </Link>
             </CardContent>

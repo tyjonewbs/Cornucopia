@@ -31,54 +31,92 @@ export function ProductImageHeader({ images, productName }: ProductImageHeaderPr
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
+  // If only one image, show it full width
+  if (images.length === 1) {
+    return (
+      <>
+        <div className="mb-8">
+          <div 
+            className="relative w-full h-[400px] lg:h-[500px] rounded-lg bg-gray-100 overflow-hidden cursor-pointer group"
+            onClick={() => openGallery(0)}
+          >
+            <Image
+              src={heroImage}
+              alt={productName}
+              fill
+              className="object-cover transition-transform group-hover:scale-105"
+              sizes="100vw"
+              priority
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all" />
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       {/* Header Image Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-[65%_35%] gap-3 mb-8">
-        {/* Large Hero Image (Left, 65%) */}
-        <div 
-          className="relative aspect-[4/3] w-full rounded-lg bg-gray-100 overflow-hidden cursor-pointer group"
-          onClick={() => openGallery(0)}
-        >
-          <Image
-            src={heroImage}
-            alt={productName}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-            sizes="(max-width: 1024px) 100vw, 65vw"
-            priority
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all" />
-        </div>
-
-        {/* 2x2 Image Grid (Right, 35%) */}
-        {gridImages.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            {gridImages.map((img, idx) => (
-              <div
-                key={idx}
-                className="relative aspect-square w-full rounded-lg bg-gray-100 overflow-hidden cursor-pointer group"
-                onClick={() => openGallery(idx + 1)}
-              >
-                <Image
-                  src={img}
-                  alt={`${productName} ${idx + 2}`}
-                  fill
-                  className="object-cover transition-transform group-hover:scale-105"
-                  sizes="(max-width: 1024px) 50vw, 17.5vw"
-                />
-                {idx === 3 && images.length > 5 && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="text-white font-semibold">
-                      See all {images.length} photos
-                    </span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
-              </div>
-            ))}
+      <div className="mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-3">
+          {/* Large Hero Image (Left) */}
+          <div 
+            className="relative w-full h-[400px] lg:h-[500px] rounded-lg bg-gray-100 overflow-hidden cursor-pointer group"
+            onClick={() => openGallery(0)}
+          >
+            <Image
+              src={heroImage}
+              alt={productName}
+              fill
+              className="object-cover transition-transform group-hover:scale-105"
+              sizes="(max-width: 1024px) 100vw, 66vw"
+              priority
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all" />
           </div>
-        )}
+
+          {/* 2x2 Image Grid (Right) */}
+          {gridImages.length > 0 && (
+            <div className="grid grid-cols-2 grid-rows-2 gap-3 h-[400px] lg:h-[500px]">
+              {[...Array(4)].map((_, idx) => {
+                const img = gridImages[idx];
+                if (!img) {
+                  // Empty placeholder
+                  return (
+                    <div
+                      key={idx}
+                      className="relative w-full h-full rounded-lg bg-gray-100"
+                    />
+                  );
+                }
+                return (
+                  <div
+                    key={idx}
+                    className="relative w-full h-full rounded-lg bg-gray-100 overflow-hidden cursor-pointer group"
+                    onClick={() => openGallery(idx + 1)}
+                  >
+                    <Image
+                      src={img}
+                      alt={`${productName} ${idx + 2}`}
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                      sizes="(max-width: 1024px) 50vw, 16.5vw"
+                    />
+                    {idx === 3 && images.length > 5 && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="text-white text-sm font-semibold">
+                          +{images.length - 5} more
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Full Screen Gallery Modal */}

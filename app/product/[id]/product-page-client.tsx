@@ -10,7 +10,8 @@ import { ProductDescription } from "@/components/ProductDescription";
 import { ProductLocationMap } from "@/components/ProductLocationMap";
 import { MarketStandHours } from "@/components/MarketStandHours";
 import { QRPaymentCallout } from "@/components/QRPaymentCallout";
-import { AlsoAvailableAtLink } from "@/components/AlsoAvailableAtLink";
+import { ProducerCard } from "@/components/ProducerCard";
+import { ProductAvailabilitySection } from "@/components/ProductAvailabilitySection";
 import { DeliveryOptionsCard } from "@/components/DeliveryOptionsCard";
 import { JSONContent } from "@tiptap/react";
 import type { SerializedNearbyProduct } from "@/app/actions/nearby-products";
@@ -179,9 +180,14 @@ export function ProductPageClient({ data, nearbyProducts }: ProductPageClientPro
             </section>
           )}
 
+          {/* Producer/Farm Card */}
+          {data.local && (
+            <ProducerCard local={data.local} />
+          )}
+
           {/* Alternative Stands */}
           {data.standListings && data.standListings.length > 0 && (
-            <AlsoAvailableAtLink
+            <ProductAvailabilitySection
               stands={data.standListings.map((l: any) => l.marketStand)}
               productName={data.name}
             />

@@ -134,14 +134,14 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
   }, []);
 
   return (
-    <div className="flex min-h-[calc(100vh-80px)]">
+    <div className="flex min-h-[calc(100vh-56px-64px)] md:min-h-[calc(100vh-80px)]">
       <AppSidebar showHeader={false}>
         <ProductFilters
           filters={filters}
           onFiltersChange={handleFiltersChange}
         />
       </AppSidebar>
-      <main className="flex-1 px-4 md:px-8 py-8">
+      <main className="flex-1 px-3 md:px-8 py-4 md:py-8">
       {error && (
         <div className="mb-6">
           <div className="bg-red-50 border-l-4 border-red-400 p-4">

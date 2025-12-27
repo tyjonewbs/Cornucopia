@@ -16,11 +16,22 @@ import { toast } from 'sonner';
 interface DeliveryOptionsCardProps {
   productId: string;
   productName: string;
+  deliveryZone?: {
+    name: string;
+    deliveryFee: number;
+    freeDeliveryThreshold?: number | null;
+    minimumOrder?: number | null;
+    zipCodes: string[];
+    cities: string[];
+    states: string[];
+    deliveryDays: string[];
+  } | null;
 }
 
 export function DeliveryOptionsCard({
   productId,
   productName,
+  deliveryZone,
 }: DeliveryOptionsCardProps) {
   const router = useRouter();
   const [zipCode, setZipCode] = useState('');

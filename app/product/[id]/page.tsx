@@ -27,6 +27,7 @@ async function getData(id: string) {
       averageRating: true,
       totalReviews: true,
       marketStandId: true,
+      localId: true,
       user: {
         select: {
           id: true,
@@ -35,6 +36,15 @@ async function getData(id: string) {
           connectedAccountId: true,
           stripeConnectedLinked: true,
         },
+      },
+      local: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          images: true,
+          certifications: true,
+        }
       },
       marketStand: {
         select: {
@@ -81,6 +91,10 @@ async function getData(id: string) {
               latitude: true,
               longitude: true,
               locationName: true,
+              streetAddress: true,
+              city: true,
+              zipCode: true,
+              hours: true,
             }
           }
         }

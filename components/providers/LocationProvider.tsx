@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { geocodeZipCode } from '@/app/actions/geocode';
+import { geocodeZipCode, reverseGeocodeToZip } from '@/app/actions/geocode';
 import { setCachedZipCode, getCachedLocation } from '@/lib/utils/location-cache';
 
 export interface LocationCoords {
@@ -109,7 +109,7 @@ export function LocationProvider({ children }: LocationProviderProps) {
     }
   }, [zipCode]);
 
-  const useMyLocation = useCallback(() => {
+  const useMyLocation = useCallback(async () => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser');
       return;
@@ -119,16 +119,28 @@ export function LocationProvider({ children }: LocationProviderProps) {
     setError(null);
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        // Reverse geocode to get zip code
+        const reversedZip = await reverseGeocodeToZip(lat, lng);
+        
+        if (reversedZip) {
+          setZipCode(reversedZip);
+        }
+        
         const browserLocation: LocationType = {
           coords: {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
+            lat,
+            lng,
             accuracy: position.coords.accuracy,
             timestamp: position.timestamp
           },
-          source: 'browser'
+          source: 'browser',
+          zipCode: reversedZip || undefined
         };
+        
         setUserLocation(browserLocation);
         setIsLoadingBrowserLocation(false);
       },

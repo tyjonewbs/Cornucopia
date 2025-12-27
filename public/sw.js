@@ -9,7 +9,9 @@ const DYNAMIC_CACHE = 'cornucopia-dynamic-v3';
 const STATIC_ASSETS = [
   '/',
   '/offline',
-  '/_next/static/css/app.css',
+  '/manifest.json',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
 ];
 
 // Install event - cache static assets

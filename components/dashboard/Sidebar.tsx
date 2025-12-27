@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,8 +15,10 @@ import {
   MapPin,
   Package,
   Truck,
+  Menu,
 } from "lucide-react";
-import { AppSidebar } from "@/components/AppSidebar";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 interface MenuItem {
   name: string;
@@ -26,7 +29,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { name: "My Local Haul", icon: ShoppingBag, href: "/dashboard/my-local-haul" },
+  { name: "Orders", icon: ShoppingBag, href: "/dashboard/orders" },
   { name: "Market Stands", icon: MapPin, href: "/market-stand/grid" },
 ];
 
@@ -52,24 +55,24 @@ interface SidebarProps {
   isProducer: boolean;
 }
 
-export function Sidebar({ isProducer }: SidebarProps) {
+function SidebarContent({ isProducer }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
 
   return (
-    <AppSidebar headerHref="/dashboard" showHeader={false}>
-      <nav className="flex-1 px-3 pt-3 pb-4">
+    <>
+      <nav className="flex-1 px-3 pt-3 pb-4 overflow-y-auto">
         <div className="space-y-1">
           {/* Common menu items */}
           {menuItems.map((item) => (
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive(item.href)
                   ? "bg-[#8B4513] text-white"
-                  : "text-gray-700 hover:bg-gray-100"
+                  : "text-gray-700 hover:bg-gray-100 active:bg-gray-200"
               }`}
             >
               <item.icon className="h-5 w-5" />
@@ -85,10 +88,10 @@ export function Sidebar({ isProducer }: SidebarProps) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.href)
                       ? "bg-[#8B4513] text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                      : "text-gray-700 hover:bg-gray-100 active:bg-gray-200"
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
@@ -101,7 +104,7 @@ export function Sidebar({ isProducer }: SidebarProps) {
               <div className="my-2 border-t border-gray-200" />
               <Link
                 href="/product/new"
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-[#8B4513] to-[#D2691E] text-white hover:opacity-90 transition-opacity"
+                className="flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-[#8B4513] to-[#D2691E] text-white hover:opacity-90 transition-opacity"
               >
                 <Package className="h-5 w-5" />
                 <span>Become a Producer</span>
@@ -115,10 +118,10 @@ export function Sidebar({ isProducer }: SidebarProps) {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive(item.href)
                   ? "bg-[#8B4513] text-white"
-                  : "text-gray-700 hover:bg-gray-100"
+                  : "text-gray-700 hover:bg-gray-100 active:bg-gray-200"
               }`}
             >
               <item.icon className="h-5 w-5" />
@@ -133,13 +136,49 @@ export function Sidebar({ isProducer }: SidebarProps) {
           <Link
             key={item.name}
             href={item.href}
-            className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100"
+            className="flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 active:bg-gray-200"
           >
             <item.icon className="h-5 w-5" />
             <span>{item.name}</span>
           </Link>
         ))}
       </div>
-    </AppSidebar>
+    </>
+  );
+}
+
+export function Sidebar({ isProducer }: SidebarProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      {/* Desktop Sidebar - hidden on mobile */}
+      <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col flex-shrink-0">
+        <SidebarContent isProducer={isProducer} />
+      </aside>
+
+      {/* Mobile Menu Button - fixed above bottom nav */}
+      <div className="md:hidden fixed bottom-20 right-4 z-40">
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild>
+            <Button
+              size="lg"
+              className="rounded-full shadow-lg bg-[#8B4513] hover:bg-[#8B4513]/90 h-14 w-14"
+            >
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80 p-0 flex flex-col">
+            <SheetHeader className="p-4 border-b">
+              <SheetTitle>Dashboard Menu</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <SidebarContent isProducer={isProducer} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
   );
 }

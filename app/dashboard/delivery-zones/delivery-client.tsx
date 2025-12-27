@@ -291,14 +291,21 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
         </div>
 
         {/* Upcoming Delivery Dates */}
-        {upcomingDeliveryDates.map(({ date, dayName, dateKey }) => {
-          const dayZones = zonesWithProducts.filter(
-            zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(dayName)
+        {(() => {
+          const hasAnyActiveDeliveries = upcomingDeliveryDates.some(({ dayName }) => 
+            zonesWithProducts.some(zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(dayName))
           );
-          
-          if (dayZones.length === 0) return null;
 
           return (
+            <>
+              {upcomingDeliveryDates.map(({ date, dayName, dateKey }) => {
+                const dayZones = zonesWithProducts.filter(
+                  zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(dayName)
+                );
+                
+                if (dayZones.length === 0) return null;
+
+                return (
             <Card key={dateKey} className="overflow-hidden">
               <CardHeader className="bg-blue-50">
                 <CardTitle className="flex items-center gap-2">
@@ -495,12 +502,70 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                     </Collapsible>
                   );
                 })}
-              </CardContent>
-            </Card>
-          );
-        })}
+                  </CardContent>
+                </Card>
+              );
+            })}
 
-        {/* Empty State */}
+            {/* No Active Deliveries State */}
+            {!hasAnyActiveDeliveries && zonesWithProducts.length > 0 && (
+              <Card>
+                <CardContent className="pt-12 pb-12">
+                  <div className="text-center mb-6">
+                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      No Active Deliveries Scheduled
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                      You have {zonesWithProducts.length} delivery {zonesWithProducts.length === 1 ? 'zone' : 'zones'}, but none are currently active or configured with delivery days.
+                    </p>
+                  </div>
+
+                  {/* List of zones with their status */}
+                  <div className="max-w-2xl mx-auto space-y-3">
+                    {zonesWithProducts.map(({ zone }) => (
+                      <div key={zone.id} className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Truck className="h-4 w-4 text-gray-600" />
+                              <span className="font-semibold">{zone.name}</span>
+                              {!zone.isActive && (
+                                <Badge variant="secondary">Inactive</Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600 ml-7">
+                              {zone.deliveryDays && zone.deliveryDays.length > 0 ? (
+                                <span>Delivery days: {zone.deliveryDays.join(', ')}</span>
+                              ) : (
+                                <span className="text-orange-600">⚠️ No delivery days configured</span>
+                              )}
+                            </div>
+                          </div>
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/dashboard/delivery-zones/${zone.id}/edit`}>
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-center mt-6">
+                    <p className="text-sm text-gray-600 mb-4">
+                      Edit your zones to activate them and configure delivery days.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        );
+      })()}
+
+        {/* Empty State - No Zones at All */}
         {zonesWithProducts.length === 0 && (
           <Card>
             <CardContent className="pt-12 pb-12 text-center">

@@ -69,3 +69,46 @@ export async function getBrowserLocation(): Promise<GeocodingResponse | null> {
     );
   });
 }
+
+/**
+ * Reverse geocode coordinates to zip code
+ * Uses Nominatim (OpenStreetMap) API
+ */
+export async function reverseGeocodeToZip(lat: number, lng: number): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+      {
+        headers: {
+          'User-Agent': 'Cornucopia-App'
+        },
+        cache: 'no-store'
+      }
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    
+    // Extract zip code from address
+    const zipCode = data.address?.postcode;
+    
+    if (!zipCode) {
+      return null;
+    }
+
+    // US zip codes are 5 digits, extract first 5 digits if longer
+    const cleanZip = zipCode.replace(/\D/g, '').slice(0, 5);
+    
+    if (cleanZip.length === 5) {
+      return cleanZip;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Reverse geocoding error:', error);
+    return null;
+  }
+}
