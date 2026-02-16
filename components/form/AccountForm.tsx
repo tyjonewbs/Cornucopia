@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   CardContent,
   CardDescription,
@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, Edit2, Check, X } from 'lucide-react';
 import { UsernameInput } from './UsernameInput';
+import { ProfileImageUpload } from './ProfileImageUpload';
 import { US_STATES } from '@/lib/constants/us-states';
 import { toast } from 'sonner';
 import { canChangeUsername, getDaysUntilUsernameChange } from '@/lib/dto/user.dto';
@@ -42,6 +43,7 @@ export function AccountForm({ user }: AccountFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [isUsernameValid, setIsUsernameValid] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(user.profileImage);
   
   const [formData, setFormData] = useState({
     username: user.username || '',
@@ -111,6 +113,35 @@ export function AccountForm({ user }: AccountFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-y-6">
+        {/* Profile Image Upload */}
+        <div className="flex flex-col gap-y-2 items-center pt-4 pb-4 border-b">
+          <ProfileImageUpload
+            currentImage={profileImage}
+            onUploadComplete={async (url) => {
+              setProfileImage(url);
+              // Update profile image immediately
+              try {
+                const response = await fetch('/api/user', {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    profileImage: url,
+                  }),
+                });
+
+                if (!response.ok) {
+                  throw new Error('Failed to update profile image');
+                }
+              } catch {
+                toast.error('Failed to save profile image');
+              }
+            }}
+            userInitial={user.firstName?.[0] || user.email[0].toUpperCase()}
+          />
+        </div>
+
         {/* Email - Read Only */}
         <div className="flex flex-col gap-y-2">
           <Label>Email</Label>

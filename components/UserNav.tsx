@@ -7,7 +7,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
@@ -16,7 +15,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { AuthDialog } from "./AuthDialog";
 import { ProducerOnboardingDialog } from "./ProducerOnboardingDialog";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import { getAuthRedirectUrl } from "@/lib/supabase-config";
 import { checkIsProducer } from "@/app/actions/user";
 
 export function UserNav() {
@@ -25,16 +23,27 @@ export function UserNav() {
   const [isProducer, setIsProducer] = useState(false);
   const [isCheckingProducer, setIsCheckingProducer] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('');
   const router = useRouter();
 
   useEffect(() => {
-    async function checkProducerStatus() {
+    async function fetchUserData() {
       if (user?.id) {
         try {
+          // Fetch user profile data including profileImage
+          const response = await fetch('/api/user');
+          if (response.ok) {
+            const userData = await response.json();
+            setProfileImage(userData.profileImage);
+            setUserName(userData.firstName || user?.user_metadata?.given_name || 'User');
+          }
+          
+          // Check producer status
           const producerStatus = await checkIsProducer(user.id);
           setIsProducer(producerStatus);
         } catch (error) {
-          console.error("Failed to check producer status:", error);
+          console.error("Failed to fetch user data:", error);
         } finally {
           setIsCheckingProducer(false);
         }
@@ -43,8 +52,8 @@ export function UserNav() {
       }
     }
     
-    checkProducerStatus();
-  }, [user?.id]);
+    fetchUserData();
+  }, [user?.id, user?.user_metadata?.given_name]);
 
   const handleLogout = async () => {
     try {
@@ -112,10 +121,10 @@ export function UserNav() {
           <Button variant="ghost" size="sm" className="relative h-8 w-8">
             <Avatar>
               <AvatarImage
-                src={user?.user_metadata?.avatar_url || ''}
-                alt={user?.user_metadata?.given_name || 'User'}
+                src={profileImage || user?.user_metadata?.avatar_url || ''}
+                alt={userName || 'User'}
               />
-              <AvatarFallback>{user?.user_metadata?.given_name?.[0] || 'U'}</AvatarFallback>
+              <AvatarFallback>{userName?.[0] || user?.user_metadata?.given_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
@@ -125,7 +134,7 @@ export function UserNav() {
             onClick={() => navigate('/account')}
           >
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{user?.user_metadata?.given_name || 'User'}</p>
+              <p className="text-sm font-medium leading-none">{userName || user?.user_metadata?.given_name || 'User'}</p>
               <p className="text-xs leading-none text-muted-foreground">
                 {user?.email || ''}
               </p>

@@ -2,8 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import HomeClient from "./home-client";
-import { getHomeProducts } from "./actions/geo-products";
-import { getFastHomeProducts } from "./actions/cached-products";
+import { getHomePageData } from "./actions/home-data";
 import { ProductGridSkeleton } from "@/components/skeletons/ProductCardSkeleton";
 
 // Enable ISR with 60 second revalidation
@@ -21,45 +20,31 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | nul
 }
 
 /**
- * Load products with fallback strategy for cold starts
+ * Load home page data (products, stands, farms) with fallback strategy for cold starts
  * 
  * Strategy:
- * 1. Try geo products with 6s timeout (leaves 4s buffer for rendering)
- * 2. On timeout/error, fall back to fast cached products
- * 3. If everything fails, return empty array (UI still renders)
+ * 1. Try to fetch all data with 6s timeout (leaves 4s buffer for rendering)
+ * 2. On timeout/error, fall back to empty state
+ * 3. If everything fails, return empty arrays (UI still renders)
  */
-async function ProductsLoader() {
+async function HomeDataLoader() {
   try {
-    // Attempt geo products with timeout for cold start protection
+    // Attempt to fetch data with timeout for cold start protection
     // 6 second timeout leaves buffer for other operations within 10s limit
-    const geoProducts = await withTimeout(getHomeProducts(), 6000);
+    const homeData = await withTimeout(getHomePageData(), 6000);
     
-    if (geoProducts && geoProducts.length > 0) {
-      return <HomeClient initialProducts={geoProducts} />;
+    if (homeData) {
+      return <HomeClient initialData={homeData} />;
     }
     
-    // Geo query timed out or returned empty - try fast fallback
-    console.log('Geo products timed out or empty, using fast fallback');
-    const fallbackProducts = await withTimeout(getFastHomeProducts(), 2000);
-    
-    if (fallbackProducts && fallbackProducts.length > 0) {
-      return <HomeClient initialProducts={fallbackProducts} />;
-    }
-    
-    // Both failed - render empty state
-    console.warn('Both geo and fallback products failed');
-    return <HomeClient initialProducts={[]} />;
+    // Query timed out - render empty state
+    console.log('Home data timed out, using empty state');
+    return <HomeClient initialData={{ products: [], stands: [], farms: [] }} />;
   } catch (error: unknown) {
-    console.error('Failed to load products:', error);
+    console.error('Failed to load home data:', error);
     
-    // Last resort - try fast fallback on error
-    try {
-      const emergencyFallback = await getFastHomeProducts();
-      return <HomeClient initialProducts={emergencyFallback} />;
-    } catch {
-      // Complete failure - render empty state
-      return <HomeClient initialProducts={[]} />;
-    }
+    // Complete failure - render empty state
+    return <HomeClient initialData={{ products: [], stands: [], farms: [] }} />;
   }
 }
 
@@ -93,7 +78,7 @@ export default async function Home({
     }
   }
 
-  // Stream products with Suspense - most users hit this path without auth check
+  // Stream data with Suspense - most users hit this path without auth check
   return (
     <Suspense
       fallback={
@@ -114,7 +99,7 @@ export default async function Home({
         </div>
       }
     >
-      <ProductsLoader />
+      <HomeDataLoader />
     </Suspense>
   );
 }

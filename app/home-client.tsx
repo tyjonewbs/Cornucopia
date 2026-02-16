@@ -1,22 +1,22 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { ProductGridClient } from "@/components/ProductGrid/ProductGridClient";
 import LoadingStateGrid from "@/components/LoadingStateGrid";
 import { ErrorBoundary } from "react-error-boundary";
 import ProductError from "@/components/ProductGrid/error";
-import { type SerializedProduct, getHomeProducts } from "./actions/geo-products";
+import { getHomePageData, type HomePageData } from "./actions/home-data";
 import { useLocation } from "@/components/providers/LocationProvider";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ProductFilters, ProductFilterState, DEFAULT_FILTERS } from "@/components/ProductFilters";
+import { ResponsiveProductGrid } from "@/components/ResponsiveProductGrid";
 
 interface HomeClientProps {
-  initialProducts: SerializedProduct[];
+  initialData: HomePageData;
 }
 
-export default function HomeClient({ initialProducts }: HomeClientProps) {
+export default function HomeClient({ initialData }: HomeClientProps) {
   const { userLocation } = useLocation();
-  const [products, setProducts] = useState<SerializedProduct[]>(initialProducts);
+  const [data, setData] = useState<HomePageData>(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<ProductFilterState>(DEFAULT_FILTERS);
@@ -25,32 +25,24 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
   const previousLocationRef = useRef<typeof userLocation>(null);
   const isInitialMount = useRef(true);
 
-  // Fetch products when location changes OR when we have a cached location on mount
+  // Fetch all data when location changes OR when we have a cached location on mount
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        const newProducts = await getHomeProducts(
+        const newData = await getHomePageData(
           userLocation?.coords.lat,
           userLocation?.coords.lng,
-          userLocation?.source,
-          userLocation?.zipCode,
-          userLocation?.coords.accuracy,
-          userLocation?.coords.timestamp
+          userLocation?.zipCode
         );
 
-        if (Array.isArray(newProducts)) {
-          setProducts(newProducts);
-        } else {
-          console.error('Invalid products response:', newProducts);
-          setError('Failed to load products. Please try again.');
-        }
+        setData(newData);
       } catch (error) {
-        console.error('Error fetching products:', error);
-        setError('Failed to update products. Please try again.');
-        setProducts(initialProducts);
+        console.error('Error fetching home data:', error);
+        setError('Failed to update results. Please try again.');
+        setData(initialData);
       } finally {
         setIsLoading(false);
       }
@@ -61,10 +53,9 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
       isInitialMount.current = false;
       previousLocationRef.current = userLocation;
 
-      // If we have a cached location on mount, fetch products for that location
-      // (the server-rendered initialProducts were fetched without location)
+      // If we have a cached location on mount, fetch data for that location
       if (userLocation) {
-        fetchProducts();
+        fetchData();
       }
       return;
     }
@@ -80,12 +71,12 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
     }
 
     previousLocationRef.current = userLocation;
-    fetchProducts();
-  }, [userLocation, initialProducts]);
+    fetchData();
+  }, [userLocation, initialData]);
 
-  // Apply client-side filters
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+  // Apply client-side filters to products
+  const filteredData = useMemo(() => {
+    const filteredProducts = data.products.filter((product) => {
       // Category filter
       if (filters.categories.length > 0) {
         const productTags = product.tags.map((t) => t.toLowerCase());
@@ -97,7 +88,6 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
 
       // Distance filter
       if (product.distance !== null && product.distance > filters.distance * 1.60934) {
-        // Convert miles to km (distance is stored in km)
         return false;
       }
 
@@ -127,7 +117,13 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
 
       return true;
     });
-  }, [products, filters]);
+
+    return {
+      products: filteredProducts,
+      stands: data.stands,
+      farms: data.farms,
+    };
+  }, [data, filters]);
 
   const handleFiltersChange = useCallback((newFilters: ProductFilterState) => {
     setFilters(newFilters);
@@ -162,10 +158,11 @@ export default function HomeClient({ initialProducts }: HomeClientProps) {
         {isLoading ? (
           <LoadingStateGrid />
         ) : (
-          <ProductGridClient
-            key={userLocation?.coords.lat || 'no-location'}
-            initialProducts={filteredProducts}
-            userLocation={userLocation}
+          <ResponsiveProductGrid
+            products={filteredData.products}
+            stands={filteredData.stands}
+            farms={filteredData.farms}
+            showPromoBanners={true}
           />
         )}
       </ErrorBoundary>

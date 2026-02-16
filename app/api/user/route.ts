@@ -73,7 +73,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { username, firstName, lastName, city, state, zipCode } = validation.data;
+    const { username, firstName, lastName, city, state, zipCode, profileImage } = validation.data;
 
     // Get current user data
     const currentUser = await prisma.user.findUnique({
@@ -132,6 +132,7 @@ export async function PATCH(request: NextRequest) {
     }
     if (firstName !== undefined) updateData.firstName = firstName || null;
     if (lastName !== undefined) updateData.lastName = lastName || null;
+    if (profileImage !== undefined) updateData.profileImage = profileImage || null;
     if (city !== undefined) updateData.city = city || null;
     if (state !== undefined) updateData.state = state || null;
     if (zipCode !== undefined) updateData.zipCode = zipCode || null;
