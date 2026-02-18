@@ -82,8 +82,8 @@ export default async function Home({
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[calc(100vh-80px)]">
-          <aside className="w-64 bg-white border-r border-gray-200">
+        <div className="flex min-h-[calc(100vh-56px-64px)] md:min-h-[calc(100vh-80px)]">
+          <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col">
             <div className="p-4 space-y-4">
               <div className="h-6 bg-gray-200 rounded animate-pulse w-24" />
               <div className="space-y-2">
@@ -93,7 +93,7 @@ export default async function Home({
               </div>
             </div>
           </aside>
-          <main className="flex-1 px-4 md:px-8 py-8">
+          <main className="flex-1 px-3 md:px-8 py-4 md:py-8">
             <ProductGridSkeleton count={12} />
           </main>
         </div>

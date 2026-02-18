@@ -21,7 +21,7 @@ export function ProductRow({ title, initialProducts }: ProductRowProps) {
   const hasNonLocalProducts = nonLocalProducts.length > 0;
 
   const renderProductGrid = (products: SerializedProduct[]) => (
-    <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 mt-4 gap-10">
+    <div className="grid grid-cols-2 lg:grid-cols-3 mt-4 gap-3 md:gap-4 lg:gap-6">
       {products.map((product) => (
         <ProductCard
           key={product.id}

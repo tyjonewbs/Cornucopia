@@ -150,7 +150,7 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
         <>
           <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Local Products</h2>
           {products.local.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-10 mb-8 md:mb-12">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6 mb-8 md:mb-12">
             {products.local.map((product) => (
               <ProductCard
                 key={product.id}
@@ -184,7 +184,7 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
       {(!userLocation || products.local.length < 15) && products.explore.length > 0 && (
         <>
           <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Explore Products</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-10">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
             {products.explore.map((product) => (
               <ProductCard
                 key={product.id}

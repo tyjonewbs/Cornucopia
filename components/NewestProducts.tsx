@@ -65,7 +65,7 @@ export function NewestProducts() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 mt-4 gap-10">
+      <div className="grid grid-cols-2 lg:grid-cols-3 mt-4 gap-3 md:gap-4 lg:gap-6">
         {products.map((product) => (
           <ProductCard
             key={product.id}
@@ -91,7 +91,7 @@ function LoadingState() {
         <Skeleton className="h-6 w-24 hidden md:block" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="space-y-4">
             <Skeleton className="w-full aspect-[4/3]" />

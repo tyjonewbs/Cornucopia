@@ -8,7 +8,7 @@ export default function LoadingStateGrid() {
           <Skeleton className="h-8 w-48" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2 gap-10">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
               <div className="relative aspect-[4/3] w-full">
