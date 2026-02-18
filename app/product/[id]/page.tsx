@@ -157,7 +157,8 @@ export default async function ProductPage({
   }
 
   // Fetch nearby products and saved status in parallel
-  const user = await getUser();
+  let user = null;
+  try { user = await getUser(); } catch {}
   const [nearbyProducts, initialSaved] = await Promise.all([
     data.marketStand?.latitude && data.marketStand?.longitude
       ? getNearbyProducts(data.id, data.marketStand.latitude, data.marketStand.longitude)
@@ -166,7 +167,7 @@ export default async function ProductPage({
       ? prisma.savedProduct.findUnique({
           where: { userId_productId: { userId: user.id, productId: data.id } },
           select: { id: true },
-        }).then((r) => !!r)
+        }).then((r) => !!r).catch(() => false)
       : Promise.resolve(false),
   ]);
 
