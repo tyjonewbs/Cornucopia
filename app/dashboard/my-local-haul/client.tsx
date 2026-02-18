@@ -1,24 +1,59 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Heart, MessageSquare, Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Package, Heart, MessageSquare, Bell, MapPin, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { toggleSavedProduct } from '@/app/actions/saved-products';
+
+interface SavedProductItem {
+  id: string;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    images: string[];
+    inventory: number;
+    isActive: boolean;
+    marketStand: {
+      id: string;
+      name: string;
+      locationName: string | null;
+    } | null;
+  };
+}
 
 interface MyLocalHaulClientProps {
-  initialData: any; // Will type properly once Prisma client is regenerated
+  initialData: any;
 }
 
 export function MyLocalHaulClient({ initialData }: MyLocalHaulClientProps) {
   const [activeTab, setActiveTab] = useState('orders');
+  const router = useRouter();
 
   const {
     orders = [],
-    savedProducts = [],
+    savedProducts: initialSavedProducts = [],
     productReviews = [],
     standReviews = [],
     subscriptions = [],
   } = initialData || {};
+
+  const [savedProducts, setSavedProducts] = useState<SavedProductItem[]>(initialSavedProducts);
+
+  const handleUnsave = async (productId: string) => {
+    const result = await toggleSavedProduct(productId);
+    if (!result.saved) {
+      setSavedProducts((prev) => prev.filter((sp) => sp.product.id !== productId));
+      toast.success('Product removed from saved');
+      router.refresh();
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
@@ -117,9 +152,64 @@ export function MyLocalHaulClient({ initialData }: MyLocalHaulClientProps) {
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  {savedProducts.length} product{savedProducts.length !== 1 ? 's' : ''} saved
-                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {savedProducts.map((sp: SavedProductItem) => (
+                    <div key={sp.id} className="relative group rounded-lg overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
+                      <Link href={`/product/${encodeURIComponent(sp.product.id)}`} className="block">
+                        <div className="relative aspect-[4/3] w-full">
+                          {sp.product.images[0] ? (
+                            <Image
+                              src={sp.product.images[0]}
+                              alt={sp.product.name}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <Package className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          {!sp.product.isActive && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <span className="text-white font-medium text-sm">Unavailable</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-sm truncate">{sp.product.name}</h3>
+                            <p className="font-medium text-primary text-sm ml-2 flex-shrink-0">
+                              ${(sp.product.price / 100).toFixed(2)}
+                            </p>
+                          </div>
+                          {sp.product.marketStand && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              <MapPin className="h-3 w-3" />
+                              <span className="truncate">{sp.product.marketStand.name}</span>
+                              {sp.product.marketStand.locationName && (
+                                <span className="truncate">- {sp.product.marketStand.locationName}</span>
+                              )}
+                            </div>
+                          )}
+                          {typeof sp.product.inventory === 'number' && sp.product.inventory > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {sp.product.inventory} left
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-white/80 hover:bg-white shadow-sm h-8 w-8"
+                        onClick={() => handleUnsave(sp.product.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>

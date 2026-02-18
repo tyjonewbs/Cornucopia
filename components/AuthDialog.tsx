@@ -15,14 +15,19 @@ interface AuthDialogProps {
   trigger?: React.ReactNode;
   className?: string;
   returnTo?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AuthDialog({ mode = 'login', trigger, className, returnTo }: AuthDialogProps) {
+export function AuthDialog({ mode = 'login', trigger, className, returnTo, open: controlledOpen, onOpenChange }: AuthDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(mode === 'signup');
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
 
   const handleGoogleAuth = async () => {
     try {
@@ -85,9 +90,11 @@ export function AuthDialog({ mode = 'login', trigger, className, returnTo }: Aut
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {customTrigger}
-      </DialogTrigger>
+      {(trigger || controlledOpen === undefined) && (
+        <DialogTrigger asChild>
+          {customTrigger}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <div className="flex flex-col space-y-4 py-4">
           <h2 className="text-lg font-semibold text-center">

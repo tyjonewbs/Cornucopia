@@ -13,27 +13,37 @@ import { QRPaymentCallout } from "@/components/QRPaymentCallout";
 import { ProducerCard } from "@/components/ProducerCard";
 import { ProductAvailabilitySection } from "@/components/ProductAvailabilitySection";
 import { DeliveryOptionsCard } from "@/components/DeliveryOptionsCard";
+import { AuthDialog } from "@/components/AuthDialog";
 import { JSONContent } from "@tiptap/react";
+import { toast } from "sonner";
+import { toggleSavedProduct } from "@/app/actions/saved-products";
 import type { SerializedNearbyProduct } from "@/app/actions/nearby-products";
 
 interface ProductPageClientProps {
   data: any; // We'll use 'any' for now since the types are complex
   nearbyProducts: SerializedNearbyProduct[];
+  initialSaved?: boolean;
 }
 
-export function ProductPageClient({ data, nearbyProducts }: ProductPageClientProps) {
-  const [isSaved, setIsSaved] = useState(false);
+export function ProductPageClient({ data, nearbyProducts, initialSaved = false }: ProductPageClientProps) {
+  const [isSaved, setIsSaved] = useState(initialSaved);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const handleBuyNow = () => {
-    document.getElementById('location-section')?.scrollIntoView({ 
+    document.getElementById('location-section')?.scrollIntoView({
       behavior: 'smooth',
       block: 'start'
     });
   };
 
   const handleToggleFavorite = async () => {
-    // TODO: Implement favorite toggle with API
-    setIsSaved(!isSaved);
+    const result = await toggleSavedProduct(data.id);
+    if (result.error === "NOT_AUTHENTICATED") {
+      setShowAuthDialog(true);
+      return;
+    }
+    setIsSaved(result.saved);
+    toast.success(result.saved ? "Product saved!" : "Product removed from saved");
   };
 
   const descriptionContent: JSONContent = {
@@ -228,6 +238,13 @@ export function ProductPageClient({ data, nearbyProducts }: ProductPageClientPro
           <NearbyProducts products={nearbyProducts} />
         </div>
       </div>
+
+      {/* Auth dialog for unauthenticated save attempts */}
+      <AuthDialog
+        mode="login"
+        open={showAuthDialog}
+        onOpenChange={setShowAuthDialog}
+      />
     </div>
   );
 }

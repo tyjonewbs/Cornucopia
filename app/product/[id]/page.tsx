@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { ProductPageClient } from "./product-page-client";
 import { notFound } from "next/navigation";
 import { getNearbyProducts } from "@/app/actions/nearby-products";
+import { getUser } from "@/lib/auth";
 
 async function getData(id: string) {
   const data = await prisma.product.findUnique({
@@ -155,15 +156,19 @@ export default async function ProductPage({
     notFound();
   }
 
-  // Fetch nearby products if we have market stand location
-  let nearbyProducts: Awaited<ReturnType<typeof getNearbyProducts>> = [];
-  if (data.marketStand?.latitude && data.marketStand?.longitude) {
-    nearbyProducts = await getNearbyProducts(
-      data.id,
-      data.marketStand.latitude,
-      data.marketStand.longitude
-    );
-  }
+  // Fetch nearby products and saved status in parallel
+  const user = await getUser();
+  const [nearbyProducts, initialSaved] = await Promise.all([
+    data.marketStand?.latitude && data.marketStand?.longitude
+      ? getNearbyProducts(data.id, data.marketStand.latitude, data.marketStand.longitude)
+      : Promise.resolve([]),
+    user
+      ? prisma.savedProduct.findUnique({
+          where: { userId_productId: { userId: user.id, productId: data.id } },
+          select: { id: true },
+        }).then((r) => !!r)
+      : Promise.resolve(false),
+  ]);
 
-  return <ProductPageClient data={data} nearbyProducts={nearbyProducts} />;
+  return <ProductPageClient data={data} nearbyProducts={nearbyProducts} initialSaved={initialSaved} />;
 }
