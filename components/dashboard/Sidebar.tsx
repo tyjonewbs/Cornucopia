@@ -29,7 +29,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { name: "Orders", icon: ShoppingBag, href: "/dashboard/orders" },
+  { name: "Purchases", icon: ShoppingBag, href: "/dashboard/purchases" },
   { name: "Market Stands", icon: MapPin, href: "/market-stand/grid" },
 ];
 

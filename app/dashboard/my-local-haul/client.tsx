@@ -126,9 +126,15 @@ export function MyLocalHaulClient({ initialData }: MyLocalHaulClientProps) {
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  {orders.length} order{orders.length !== 1 ? 's' : ''} found
-                </p>
+                <div className="text-center py-8">
+                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground mb-4">
+                    {orders.length} order{orders.length !== 1 ? 's' : ''} placed
+                  </p>
+                  <Button asChild>
+                    <Link href="/dashboard/purchases">View All Purchases</Link>
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>

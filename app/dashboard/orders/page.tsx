@@ -1,17 +1,19 @@
 import { redirect } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 import { getUser } from "@/lib/auth";
-import { getDeliveryOrders } from "@/app/actions/orders";
+import { getSellerOrders } from "@/app/actions/orders";
 import OrdersClient from "./orders-client";
 
 export default async function OrdersPage() {
+  noStore();
+
   const user = await getUser();
 
   if (!user) {
     redirect("/");
   }
 
-  // Fetch delivery orders grouped by day and zone
-  const ordersByDay = await getDeliveryOrders();
+  const sellerOrders = await getSellerOrders();
 
-  return <OrdersClient ordersByDay={ordersByDay} />;
+  return <OrdersClient sellerOrders={sellerOrders} />;
 }

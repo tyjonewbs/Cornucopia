@@ -7,6 +7,7 @@ generator client {
 datasource db {
   provider     = "postgresql"
   url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
   relationMode = "foreignKeys"
   extensions   = [postgis(schema: "public"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]
 }
@@ -388,28 +389,33 @@ model LocalMetrics {
 }
 
 model Order {
-  id              String        @id @default(uuid())
-  orderNumber     String        @unique @db.VarChar(50)
-  userId          String
-  marketStandId   String
-  type            OrderType     @default(PICKUP)
-  status          OrderStatus   @default(PENDING)
-  totalAmount     Int
-  subtotal        Int
-  tax             Int
-  fees            Int           @default(0)
-  notes           String?
-  pickupTime      DateTime?
-  deliveryAddress String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deliveryZoneId  String?
-  deliveryDate    DateTime?
-  deliveryZone    DeliveryZone? @relation(fields: [deliveryZoneId], references: [id])
-  marketStand     MarketStand   @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  issues          OrderIssue[]
-  items           OrderItem[]
+  id                     String         @id @default(uuid())
+  orderNumber            String         @unique @db.VarChar(50)
+  userId                 String
+  marketStandId          String
+  type                   OrderType      @default(PICKUP)
+  status                 OrderStatus    @default(PENDING)
+  paymentStatus          PaymentStatus  @default(UNPAID)
+  totalAmount            Int
+  subtotal               Int
+  tax                    Int
+  fees                   Int            @default(0)
+  platformFee            Int            @default(0)
+  notes                  String?
+  pickupTime             DateTime?
+  deliveryAddress        String?
+  stripeSessionId        String?        @db.VarChar(255)
+  stripePaymentIntentId  String?        @db.VarChar(255)
+  stripeTransferGroup    String?        @db.VarChar(255)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  deliveryZoneId         String?
+  deliveryDate           DateTime?
+  deliveryZone           DeliveryZone?  @relation(fields: [deliveryZoneId], references: [id])
+  marketStand            MarketStand    @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
+  user                   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issues                 OrderIssue[]
+  items                  OrderItem[]
 
   @@index([userId], map: "order_user_idx")
   @@index([marketStandId], map: "order_stand_idx")
@@ -418,6 +424,8 @@ model Order {
   @@index([deliveryZoneId])
   @@index([deliveryDate])
   @@index([deliveryZoneId, deliveryDate])
+  @@index([stripeSessionId], map: "order_stripe_session_idx")
+  @@index([stripePaymentIntentId], map: "order_stripe_pi_idx")
 }
 
 model OrderItem {
@@ -619,6 +627,25 @@ model CartItem {
   @@index([productId])
 }
 
+model PendingCheckout {
+  id              String   @id @default(uuid())
+  stripeSessionId String   @unique @db.VarChar(255)
+  userId          String
+  cartId          String
+  transferGroup   String   @db.VarChar(100)
+  platformFee     Int
+  subtotal        Int
+  tax             Int
+  deliveryFees    Int
+  items           Json
+  transfers       Json
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+
+  @@index([stripeSessionId])
+  @@index([expiresAt])
+}
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model spatial_ref_sys {
   srid      Int     @id
@@ -653,6 +680,14 @@ enum OrderStatus {
   COMPLETED
   CANCELLED
   DELIVERED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  PARTIALLY_REFUNDED
+  FAILED
 }
 
 enum NotificationType {

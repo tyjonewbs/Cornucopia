@@ -19,6 +19,7 @@ const inter = Inter({
   display: 'swap',
   preload: true,
   adjustFontFallback: true,
+  variable: '--font-inter',
 });
 
 export const viewport: Viewport = {
@@ -74,7 +75,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

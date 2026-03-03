@@ -102,9 +102,9 @@ export default async function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{orderCount}</div>
               <p className="text-xs text-muted-foreground">Total orders placed</p>
-              <Link href="/dashboard/my-local-haul">
+              <Link href="/dashboard/purchases">
                 <Button variant="link" className="p-0 h-auto mt-2">
-                  View all orders →
+                  View all purchases →
                 </Button>
               </Link>
             </CardContent>

@@ -16,12 +16,11 @@ export function StripeConnectButton() {
         method: "POST",
       });
       
+      const data = await response.json().catch(() => null);
+
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `HTTP error! status: ${response.status}`);
+        throw new Error(data?.error || `HTTP error! status: ${response.status}`);
       }
-      
-      const data = await response.json();
       
       if (data.url) {
         router.push(data.url);

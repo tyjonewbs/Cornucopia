@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MapPin, ShoppingBag, User } from "lucide-react";
+import { Home, MapPin, ShoppingCart, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -14,7 +14,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: "Home", href: "/", icon: Home },
   { name: "Markets", href: "/market-stand/grid", icon: MapPin },
-  { name: "Orders", href: "/dashboard/orders", icon: ShoppingBag },
+  { name: "Cart", href: "/cart", icon: ShoppingCart },
+  { name: "Purchases", href: "/dashboard/purchases", icon: ShoppingBag },
   { name: "Account", href: "/dashboard", icon: User },
 ];
 

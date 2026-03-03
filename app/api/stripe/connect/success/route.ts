@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../../../lib/db";
 import { getUser } from "@/lib/auth";
+import { stripe } from "@/lib/stripe";
 
 export async function GET() {
   try {
@@ -16,25 +17,43 @@ export async function GET() {
       return new NextResponse("Server configuration error", { status: 500 });
     }
 
-    // 3. Update user's Stripe connection status
-    try {
-      const updatedUser = await prisma.user.update({
-        where: { id: user.id },
-        data: { stripeConnectedLinked: true },
-        select: { connectedAccountId: true }
-      });
+    // 3. Fetch user's connected account ID
+    const userData = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { connectedAccountId: true },
+    });
 
-      if (!updatedUser.connectedAccountId) {
-        return new NextResponse("Invalid account state", { status: 400 });
+    if (!userData?.connectedAccountId) {
+      const redirectUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/billing`);
+      redirectUrl.searchParams.set("stripe", "error");
+      return NextResponse.redirect(redirectUrl.toString());
+    }
+
+    // 4. Verify the Stripe account actually completed onboarding
+    try {
+      const account = await stripe.accounts.retrieve(userData.connectedAccountId);
+
+      if (!account.details_submitted || !account.charges_enabled) {
+        // User returned from Stripe but didn't finish onboarding
+        const redirectUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/billing`);
+        redirectUrl.searchParams.set("stripe", "incomplete");
+        return NextResponse.redirect(redirectUrl.toString());
       }
 
-      // 4. Redirect back to dashboard with success message
+      // 5. Account verified - mark as linked
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { stripeConnectedLinked: true },
+      });
+
       const redirectUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard`);
       redirectUrl.searchParams.set("stripe", "success");
-      
       return NextResponse.redirect(redirectUrl.toString());
-    } catch {
-      return new NextResponse("Failed to update account status", { status: 500 });
+    } catch (error) {
+      console.error("Failed to verify Stripe account:", error);
+      const redirectUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/billing`);
+      redirectUrl.searchParams.set("stripe", "error");
+      return NextResponse.redirect(redirectUrl.toString());
     }
   } catch {
     return new NextResponse("Internal Error", { status: 500 });

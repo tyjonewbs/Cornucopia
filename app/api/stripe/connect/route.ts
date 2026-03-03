@@ -1,7 +1,6 @@
 import { stripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import Stripe from "stripe";
 import { getUser } from "@/lib/auth";
 
 export async function POST() {
@@ -14,73 +13,75 @@ export async function POST() {
     }
 
     // 2. Check if user already has a Stripe account
+    let accountId: string | null = null;
     try {
       const existingUser = await prisma.user.findUnique({
         where: { id: user.id },
         select: { connectedAccountId: true }
       });
-
-      if (existingUser?.connectedAccountId) {
-        return new NextResponse("Stripe account already connected", { status: 400 });
-      }
-    } catch {
-      return new NextResponse("Database error", { status: 500 });
+      accountId = existingUser?.connectedAccountId || null;
+    } catch (error) {
+      console.error("Database error checking existing user:", error);
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
     // 3. Verify environment variables
     if (!process.env.NEXT_PUBLIC_APP_URL) {
-      return new NextResponse("Server configuration error", { status: 500 });
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
-    // 4. Create Stripe Connect account
-    let account: Stripe.Response<Stripe.Account>;
-    try {
-      account = await stripe.accounts.create({
-        type: "express",
-        country: "US",
-        email: user.email || undefined,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-        tos_acceptance: {
-          service_agreement: 'recipient'
-        }
-      });
-    } catch {
-      return new NextResponse("Failed to create Stripe account", { status: 500 });
-    }
-
-    // 5. Update user with connected account ID
-    try {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { connectedAccountId: account.id }
-      });
-    } catch {
-      // Try to clean up the created Stripe account
+    // 4. Create Stripe Connect account if one doesn't exist
+    if (!accountId) {
       try {
-        await stripe.accounts.del(account.id);
-      } catch {
-        // If cleanup fails, we still want to return the error for the update operation
+        const account = await stripe.accounts.create({
+          type: "express",
+          country: "US",
+          email: user.email || undefined,
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+        });
+        accountId = account.id;
+      } catch (error) {
+        console.error("Stripe account creation error:", error);
+        const message = error instanceof Error ? error.message : "Failed to create Stripe account";
+        return NextResponse.json({ error: message }, { status: 500 });
       }
-      return new NextResponse("Failed to update user record", { status: 500 });
+
+      // 5. Update user with connected account ID
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { connectedAccountId: accountId }
+        });
+      } catch (error) {
+        console.error("Failed to update user with Stripe account:", error);
+        try {
+          await stripe.accounts.del(accountId);
+        } catch (cleanupError) {
+          console.error("Failed to cleanup Stripe account:", cleanupError);
+        }
+        return NextResponse.json({ error: "Failed to update user record" }, { status: 500 });
+      }
     }
 
-    // 6. Create account link for onboarding
+    // 6. Create account link for onboarding (works for both new and existing accounts)
     try {
       const accountLink = await stripe.accountLinks.create({
-        account: account.id,
-        refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/market-stand/setup`,
+        account: accountId,
+        refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
         return_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/stripe/connect/success`,
         type: "account_onboarding",
       });
 
       return NextResponse.json({ url: accountLink.url });
-    } catch {
-      return new NextResponse("Failed to create onboarding link", { status: 500 });
+    } catch (error) {
+      console.error("Failed to create account link:", error);
+      return NextResponse.json({ error: "Failed to create onboarding link" }, { status: 500 });
     }
-  } catch {
+  } catch (error) {
+    console.error("Stripe connect internal error:", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

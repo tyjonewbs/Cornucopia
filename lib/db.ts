@@ -9,36 +9,36 @@ declare global {
 
 /**
  * Get Prisma Client optimized for serverless environments (Vercel)
- * 
+ *
  * Key optimizations for cold start performance:
  * - Lazy connection: Prisma connects on first query, not on instantiation
  * - Minimal logging in production: Reduces overhead
- * - Connection pooling handled by Supabase Pooler (port 5432)
- * 
- * Note: For Supabase Session Pooler (port 5432), don't add pgbouncer=true
- * The pgbouncer param is only for Transaction Pooler (port 6543)
+ * - Connection pooling handled by Supabase Transaction Pooler (port 6543)
+ *   with pgbouncer=true in the DATABASE_URL
+ * - directUrl in schema.prisma points to Session Pooler (port 5432) for migrations
  */
 function getPrismaClient(): PrismaClient {
   const isDevelopment = process.env.NODE_ENV !== 'production';
-  
-  // Get the base DATABASE_URL - don't modify if it already has parameters
-  // Supabase Session Pooler works best with direct connection string
+
   const databaseUrl = env.DATABASE_URL;
-  
-  // Only log in development to reduce cold start overhead
+
   if (isDevelopment) {
     console.log('Creating Prisma client for serverless environment');
     console.log('Database host:', databaseUrl.includes('pooler.supabase.com') ? 'Supabase Pooler' : 'Other');
+    console.log('Using Transaction Pooler:', databaseUrl.includes('6543') ? 'yes' : 'no');
   }
-  
+
+  // Limit Prisma's internal connection pool to avoid overwhelming PgBouncer
+  const separator = databaseUrl.includes('?') ? '&' : '?';
+  const urlWithLimit = `${databaseUrl}${separator}connection_limit=3`;
+
   return new PrismaClient({
-    // Minimal logging in production
-    log: isDevelopment 
+    log: isDevelopment
       ? ['error', 'warn']
       : ['error'],
     datasources: {
       db: {
-        url: databaseUrl,
+        url: urlWithLimit,
       },
     },
     errorFormat: 'minimal',

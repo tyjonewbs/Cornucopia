@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { NavbarLinks } from "./NavbarLinks";
 import { UserNav } from "./UserNav";
+import { CartBadge } from "./CartBadge";
 import Image from "next/image";
 import { HeaderSearchBar } from "./HeaderSearchBar";
 
@@ -31,6 +32,7 @@ export function Navbar() {
         {/* Desktop navigation + user nav - hidden on mobile, fixed to right */}
         <div className="hidden md:flex items-center gap-6 flex-shrink-0">
           <NavbarLinks />
+          <CartBadge />
           <UserNav />
         </div>
       </div>
