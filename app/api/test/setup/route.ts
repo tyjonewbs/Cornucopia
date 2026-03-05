@@ -3,6 +3,8 @@ import prisma from '@/lib/db'
 import { Analytics } from '@/lib/analytics'
 import { Status } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     // Create or update test user (idempotent)
