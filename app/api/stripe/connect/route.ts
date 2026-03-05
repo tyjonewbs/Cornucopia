@@ -78,7 +78,8 @@ export async function POST() {
       return NextResponse.json({ url: accountLink.url });
     } catch (error) {
       console.error("Failed to create account link:", error);
-      return NextResponse.json({ error: "Failed to create onboarding link" }, { status: 500 });
+      const message = error instanceof Error ? error.message : "Failed to create onboarding link";
+      return NextResponse.json({ error: message }, { status: 500 });
     }
   } catch (error) {
     console.error("Stripe connect internal error:", error);
