@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { format, addDays, startOfDay, getDay, isBefore } from "date-fns";
+import { format, addDays, startOfDay, getDay } from "date-fns";
 import { 
   Calendar,
   Truck,
@@ -40,13 +40,13 @@ import {
   updateDeliveryListingInventory,
   removeProductFromDeliveryZone,
   getAvailableProductsForZone,
+  updateProductZoneInventory,
 } from "@/app/actions/delivery-zones";
-import { closeDelivery, reopenDelivery } from "@/app/actions/deliveries";
-import { ProductAssociationPanel } from "@/components/delivery/ProductAssociationPanel";
 import { formatPrice } from "@/lib/utils/format";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { DeliveryInfo } from "@/types/delivery";
+import { ProductInventoryRow } from "@/components/dashboard/ProductInventoryRow";
 
 interface ProductListing {
   id: string;
@@ -353,7 +353,7 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
-                {dayZones.map(({ zone, productsByDay }) => {
+                {dayZones.map(({ zone, productsByDay, zoneProducts }) => {
                   const dayProducts = productsByDay[dayName] || [];
                   const totalInventory = dayProducts.reduce((sum, p) => sum + p.inventory, 0);
                   const isExpanded = expandedDays.has(`${zone.id}-${dateKey}`);
@@ -535,6 +535,27 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                               <PackagePlus className="h-4 w-4 mr-2" />
                               Add Products to {format(date, 'MMMM d')} Delivery
                             </Button>
+
+                            {/* Product Toggles */}
+                            {zoneProducts && zoneProducts.length > 0 && (
+                              <div className="mt-4 pt-4 border-t">
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                  Set inventory for products in {zone.name}
+                                </h4>
+                                <div className="space-y-2">
+                                  {zoneProducts.map((product) => (
+                                    <ProductInventoryRow
+                                      key={product.id}
+                                      product={product}
+                                      initialInventory={product.inventory}
+                                      onInventoryChange={async (_productId, newValue) =>
+                                        updateProductZoneInventory(product.id, zone.id, newValue)
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </CollapsibleContent>
                       </div>
@@ -562,7 +583,7 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
 
                   {/* List of zones with their status */}
                   <div className="max-w-2xl mx-auto space-y-3">
-                    {zonesWithProducts.map(({ zone }) => (
+                    {zonesWithProducts.map(({ zone, zoneProducts }) => (
                       <div key={zone.id} className="border rounded-lg p-4 bg-gray-50">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -576,6 +597,8 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                             <div className="text-sm text-gray-600 ml-7">
                               {zone.deliveryDays && zone.deliveryDays.length > 0 ? (
                                 <span>Delivery days: {zone.deliveryDays.join(', ')}</span>
+                              ) : zone.deliveryType === 'ONE_TIME' && zone.scheduledDates && (zone.scheduledDates as any[]).length > 0 ? (
+                                <span>Scheduled dates: {(zone.scheduledDates as any[]).map((d: any) => format(new Date(d.date), 'MMM d, yyyy')).join(', ')}</span>
                               ) : (
                                 <span className="text-orange-600">⚠️ No delivery days configured</span>
                               )}
@@ -588,6 +611,27 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                             </Link>
                           </Button>
                         </div>
+
+                        {/* Product Toggles */}
+                        {zoneProducts && zoneProducts.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">
+                              Set inventory for products in {zone.name}
+                            </h4>
+                            <div className="space-y-2">
+                              {zoneProducts.map((product) => (
+                                <ProductInventoryRow
+                                  key={product.id}
+                                  product={product}
+                                  initialInventory={product.inventory}
+                                  onInventoryChange={async (_productId, newValue) =>
+                                    updateProductZoneInventory(product.id, zone.id, newValue)
+                                  }
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -603,18 +647,6 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
           </>
         );
       })()}
-
-        {/* Product Toggles per Zone */}
-        {zonesWithProducts.length > 0 && zonesWithProducts.map(({ zone, zoneProducts }) => (
-          zoneProducts && zoneProducts.length > 0 ? (
-            <ProductAssociationPanel
-              key={`products-${zone.id}`}
-              zoneId={zone.id}
-              zoneName={zone.name}
-              products={zoneProducts}
-            />
-          ) : null
-        ))}
 
         {/* Empty State - No Zones at All */}
         {zonesWithProducts.length === 0 && (

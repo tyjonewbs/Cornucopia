@@ -56,12 +56,12 @@ export function PromoBanner({
   };
 
   return (
-    <Link 
+    <Link
       href={href}
-      className="block group col-span-2 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+      className="block group rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow bg-white"
     >
-      <div className={`relative ${getBgColor()} h-24 md:h-28 flex items-center`}>
-        {/* Background Image (if provided) */}
+      {/* Banner header with background image */}
+      <div className={`relative ${getBgColor()} aspect-[4/3] flex items-end`}>
         {image && (
           <div className="absolute inset-0 opacity-30">
             <Image
@@ -69,54 +69,44 @@ export function PromoBanner({
               alt={title}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 100vw, 50vw"
+              sizes="(max-width: 768px) 50vw, 33vw"
             />
           </div>
         )}
 
-        {/* Content */}
-        <div className="relative z-10 flex items-center gap-3 md:gap-4 px-4 md:px-6 w-full">
-          {/* Icon */}
-          <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-            {getIcon()}
-          </div>
-
-          {/* Text Content */}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-white font-bold text-sm md:text-base line-clamp-1">
-              {title}
-            </h3>
-            {subtitle && (
-              <p className="text-white/90 text-xs md:text-sm line-clamp-1">
-                {subtitle}
-              </p>
-            )}
-            {description && (
-              <p className="text-white/80 text-xs line-clamp-1 mt-0.5 hidden md:block">
-                {description}
-              </p>
-            )}
-          </div>
-
-          {/* Right side info */}
-          <div className="flex-shrink-0 text-right">
-            {distance !== null && distance !== undefined && (
-              <div className="text-white/90 text-xs md:text-sm font-medium">
-                {Math.round(distance * 0.621371)} mi
-              </div>
-            )}
-            {location && (
-              <div className="text-white/70 text-xs hidden md:block">
-                {location}
-              </div>
-            )}
-            {date && (
-              <div className="text-white/70 text-xs">
-                {date}
-              </div>
-            )}
-          </div>
+        {/* Icon badge */}
+        <div className="absolute top-2 left-2 z-10 w-9 h-9 md:w-10 md:h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+          {getIcon()}
         </div>
+
+        {/* Distance badge */}
+        {distance !== null && distance !== undefined && (
+          <div className="absolute top-2 right-2 z-10 bg-black/40 backdrop-blur-sm text-white text-xs font-medium px-2 py-0.5 rounded-full">
+            {Math.round(distance * 0.621371)} mi
+          </div>
+        )}
+      </div>
+
+      {/* Card content */}
+      <div className="p-3">
+        <h3 className="font-bold text-sm md:text-base line-clamp-1">
+          {title}
+        </h3>
+        {subtitle && (
+          <p className="text-gray-600 text-xs md:text-sm line-clamp-1 mt-0.5">
+            {subtitle}
+          </p>
+        )}
+        {location && (
+          <p className="text-gray-500 text-xs line-clamp-1 mt-0.5">
+            {location}
+          </p>
+        )}
+        {date && (
+          <p className="text-gray-500 text-xs mt-0.5">
+            {date}
+          </p>
+        )}
       </div>
     </Link>
   );

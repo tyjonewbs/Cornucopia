@@ -69,6 +69,17 @@
   }
 }
 
+/* Hide number input spin buttons globally and center text */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  text-align: center;
+}
+
 /* Mobile touch optimization */
 @layer utilities {
   .touch-manipulation {

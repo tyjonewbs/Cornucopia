@@ -8,16 +8,23 @@ import { Prisma } from "@prisma/client";
 import { generateDeliveriesForZone, generateOneTimeDeliveries } from "./deliveries";
 
 /**
+ * Get the authenticated user or throw an error
+ */
+async function requireAuth() {
+  const supabase = getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+  return user;
+}
+
+/**
  * Get all delivery zones for the current user
  */
 export async function getUserDeliveryZones() {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     const zones = await prisma.deliveryZone.findMany({
       where: { userId: user.id },
@@ -38,12 +45,7 @@ export async function getUserDeliveryZones() {
  */
 export async function getDeliveryZone(id: string) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     const zone = await prisma.deliveryZone.findFirst({
       where: { 
@@ -70,12 +72,7 @@ export async function getDeliveryZone(id: string) {
  */
 export async function createDeliveryZone(formData: FormData) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     // Parse form data
     const description = formData.get("description") as string;
@@ -153,12 +150,7 @@ export async function createDeliveryZone(formData: FormData) {
  */
 export async function updateDeliveryZone(id: string, formData: FormData) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     // Check if zone exists and belongs to user
     const existingZone = await prisma.deliveryZone.findFirst({
@@ -266,12 +258,7 @@ export async function updateDeliveryZone(id: string, formData: FormData) {
  */
 export async function deleteDeliveryZone(id: string) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     // CRITICAL FIX: Use a transaction and verify userId in the WHERE clause
     // to prevent accidental deletion of other users' zones
@@ -359,12 +346,7 @@ export async function deleteDeliveryZone(id: string) {
  */
 export async function toggleDeliveryZoneStatus(id: string) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     // Check if zone exists and belongs to user
     const existingZone = await prisma.deliveryZone.findFirst({
@@ -462,12 +444,7 @@ export async function calculateReservedQuantity(
  */
 export async function getDeliveryZoneProducts(zoneId: string) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     // Verify zone belongs to user
     const zone = await prisma.deliveryZone.findFirst({
@@ -544,12 +521,7 @@ export async function addProductToDeliveryZone(data: {
   initialInventory: number;
 }) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     const { productId, deliveryZoneId, dayOfWeek, isRecurring, initialInventory } = data;
 
@@ -626,12 +598,7 @@ export async function updateDeliveryListingInventory(
   newInventory: number
 ) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     // Verify listing belongs to user's zone
     const listing = await prisma.productDeliveryListing.findUnique({
@@ -667,12 +634,7 @@ export async function updateDeliveryListingInventory(
  */
 export async function removeProductFromDeliveryZone(listingId: string) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     // Verify listing belongs to user's zone
     const listing = await prisma.productDeliveryListing.findUnique({
@@ -710,12 +672,7 @@ export async function getAvailableProductsForZone(
   dayOfWeek: string
 ) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     // Get all user's products
     const allProducts = await prisma.product.findMany({
@@ -763,12 +720,7 @@ export async function getAvailableProductsForZone(
  */
 export async function toggleProductInZone(productId: string, zoneId: string) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     // Verify zone belongs to user
     const zone = await prisma.deliveryZone.findFirst({
@@ -821,12 +773,7 @@ export async function toggleProductInZone(productId: string, zoneId: string) {
  */
 export async function getProductsWithZoneStatus(zoneId: string) {
   try {
-    const supabase = getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: "Not authenticated" };
-    }
+    const user = await requireAuth();
 
     const products = await prisma.product.findMany({
       where: { userId: user.id, isActive: true },
@@ -853,6 +800,64 @@ export async function getProductsWithZoneStatus(zoneId: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Error fetching products",
+    };
+  }
+}
+
+/**
+ * Update a product's inventory and ensure it's associated with the zone
+ */
+export async function updateProductZoneInventory(
+  productId: string,
+  zoneId: string,
+  newInventory: number
+) {
+  try {
+    const user = await requireAuth();
+
+    const product = await prisma.product.findFirst({
+      where: { id: productId, userId: user.id },
+    });
+    if (!product) {
+      return { success: false, error: "Product not found" };
+    }
+
+    const zone = await prisma.deliveryZone.findFirst({
+      where: { id: zoneId, userId: user.id },
+    });
+    if (!zone) {
+      return { success: false, error: "Delivery zone not found" };
+    }
+
+    if (newInventory > 0) {
+      // Set inventory and ensure product is in this zone
+      await prisma.product.update({
+        where: { id: productId },
+        data: {
+          inventory: newInventory,
+          deliveryZoneId: zoneId,
+          deliveryAvailable: true,
+        },
+      });
+    } else {
+      // Set inventory to 0 and remove from zone
+      await prisma.product.update({
+        where: { id: productId },
+        data: {
+          inventory: 0,
+          deliveryZoneId: null,
+          deliveryAvailable: false,
+        },
+      });
+    }
+
+    revalidatePath('/dashboard/delivery-zones');
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Error updating inventory",
     };
   }
 }

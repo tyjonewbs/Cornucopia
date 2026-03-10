@@ -145,7 +145,7 @@ export function UserNav() {
             className="cursor-pointer"
             onClick={() => navigate('/dashboard/my-local-haul')}
           >
-            My Local Haul
+            Purchases
           </DropdownMenuItem>
           
           {isProducer ? (

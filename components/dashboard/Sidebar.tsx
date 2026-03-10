@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   BarChart2,
   Settings,
+  CreditCard,
   HelpCircle,
   LogOut,
   ShoppingBag,
@@ -44,6 +45,7 @@ const producerMenuItems: MenuItem[] = [
 
 const accountItems: MenuItem[] = [
   { name: "Account", icon: Settings, href: "/account" },
+  { name: "Billing", icon: CreditCard, href: "/billing" },
 ];
 
 const bottomMenuItems = [

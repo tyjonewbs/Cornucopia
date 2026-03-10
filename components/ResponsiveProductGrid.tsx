@@ -1,8 +1,6 @@
 'use client';
 
 import { ProductCard } from "@/components/ProductCard";
-import { MarketStandCard } from "@/components/MarketStandCard";
-import { LocalCard } from "@/components/LocalCard";
 import { PromoBanner } from "@/components/PromoBanner";
 import type { GeoSerializedProduct } from "@/lib/repositories/geoProductRepository";
 
@@ -125,71 +123,8 @@ export function ResponsiveProductGrid({
   });
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
       {gridItems}
-    </div>
-  );
-}
-
-// Alternative version that shows stands and farms as cards instead of banners
-export function MixedResultsGrid({
-  products,
-  stands = [],
-  farms = [],
-  userId = "",
-}: ResponsiveProductGridProps) {
-  // Combine all results and sort by distance
-  const allItems = [
-    ...products.map(p => ({ type: 'product' as const, data: p, distance: p.distance })),
-    ...stands.map(s => ({ type: 'stand' as const, data: s, distance: s.distance })),
-    ...farms.map(f => ({ type: 'farm' as const, data: f, distance: f.distance })),
-  ].sort((a, b) => {
-    const distA = a.distance ?? Infinity;
-    const distB = b.distance ?? Infinity;
-    return distA - distB;
-  });
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
-      {allItems.map((item, index) => {
-        if (item.type === 'product') {
-          const product = item.data as GeoSerializedProduct;
-          return (
-            <ProductCard
-              key={`product-${product.id}-${index}`}
-              id={product.id}
-              name={product.name}
-              images={product.images}
-              locationName={product.marketStand?.locationName || 'Delivery Only'}
-              updatedAt={product.updatedAt}
-              price={product.price}
-              tags={product.tags}
-              distance={product.distance}
-              availableDate={product.availableDate}
-              availableUntil={product.availableUntil}
-              deliveryAvailable={product.deliveryAvailable}
-              deliveryInfo={product.deliveryInfo}
-              inventory={product.inventory}
-            />
-          );
-        } else if (item.type === 'stand') {
-          const stand = item.data as MarketStand;
-          return (
-            <div key={`stand-${stand.id}-${index}`} className="col-span-2">
-              <MarketStandCard stand={stand} />
-            </div>
-          );
-        } else {
-          const farm = item.data as Farm;
-          return (
-            <LocalCard
-              key={`farm-${farm.id}-${index}`}
-              local={farm}
-              userId={userId}
-            />
-          );
-        }
-      })}
     </div>
   );
 }

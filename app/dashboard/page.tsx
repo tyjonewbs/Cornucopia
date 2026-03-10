@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { getUserProducerInfo } from "@/lib/utils/user";
 import prisma from "@/lib/db";
-import { ShoppingBag, Heart, Star, Store, Package, TrendingUp, AlertCircle } from "lucide-react";
+import { ShoppingBag, Heart, Star, Store, Package, TrendingUp, AlertCircle, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   // Fetch producer stats if user is a producer
   let producerStats = null;
   if (isProducer) {
-    const [standCount, lowInventoryCount, pendingOrdersCount, totalRevenue] = await Promise.all([
+    const [standCount, lowInventoryCount, pendingOrdersCount, totalRevenue, dbUser] = await Promise.all([
       prisma.marketStand.count({
         where: {
           userId: user.id,
@@ -70,6 +70,10 @@ export default async function DashboardPage() {
         _sum: {
           totalAmount: true
         }
+      }),
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { stripeConnectedLinked: true }
       })
     ]);
 
@@ -77,7 +81,8 @@ export default async function DashboardPage() {
       standCount,
       lowInventoryCount,
       pendingOrdersCount,
-      totalRevenue: totalRevenue._sum.totalAmount || 0
+      totalRevenue: totalRevenue._sum.totalAmount || 0,
+      stripeConnected: dbUser?.stripeConnectedLinked ?? false
     };
   }
 
@@ -208,6 +213,24 @@ export default async function DashboardPage() {
                 <Link href="/dashboard/analytics">
                   <Button variant="link" className="p-0 h-auto mt-2">
                     View analytics →
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Billing</CardTitle>
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {producerStats.stripeConnected ? "Connected" : "Setup"}
+                </div>
+                <p className="text-xs text-muted-foreground">Payment settings</p>
+                <Link href="/billing">
+                  <Button variant="link" className="p-0 h-auto mt-2">
+                    Manage billing →
                   </Button>
                 </Link>
               </CardContent>
