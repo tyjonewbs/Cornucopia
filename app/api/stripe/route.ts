@@ -83,6 +83,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     fulfillment: string;
     marketStandId?: string;
     deliveryZoneId?: string;
+    deliveryId?: string;
     deliveryDate?: string;
     pickupTime?: string;
   }>;
@@ -110,6 +111,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       items: typeof items;
       fulfillment: string;
       deliveryZoneId?: string;
+      deliveryId?: string;
       deliveryDate?: string;
       pickupTime?: string;
     }
@@ -123,6 +125,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         items: [],
         fulfillment: item.fulfillment,
         deliveryZoneId: item.deliveryZoneId,
+        deliveryId: item.deliveryId,
         deliveryDate: item.deliveryDate,
         pickupTime: item.pickupTime,
       });
@@ -176,6 +179,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
             stripeTransferGroup: transferGroup,
             deliveryAddress: null,
             deliveryZoneId: group.deliveryZoneId || null,
+            deliveryId: group.deliveryId || null,
             deliveryDate: group.deliveryDate
               ? new Date(group.deliveryDate)
               : null,

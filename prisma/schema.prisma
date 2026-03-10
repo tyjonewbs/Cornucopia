@@ -30,6 +30,7 @@ model User {
   cart                  Cart?
   contactSubmissions    ContactSubmission[]
   contactResponses      ContactSubmission[]       @relation("ContactResponses")
+  deliveries            Delivery[]
   deliveryZones         DeliveryZone[]
   locals                Local[]
   marketStands          MarketStand[]
@@ -127,6 +128,7 @@ model Product {
   marketStand        MarketStand?             @relation("ProductToMarketStand", fields: [marketStandId], references: [id])
   user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   deliveryListings   ProductDeliveryListing[]
+  deliveryProducts   DeliveryProduct[]
   metrics            ProductMetrics?
   reviews            ProductReview[]
   standListings      ProductStandListing[]
@@ -411,6 +413,8 @@ model Order {
   updatedAt              DateTime       @updatedAt
   deliveryZoneId         String?
   deliveryDate           DateTime?
+  deliveryId             String?
+  delivery               Delivery?      @relation(fields: [deliveryId], references: [id])
   deliveryZone           DeliveryZone?  @relation(fields: [deliveryZoneId], references: [id])
   marketStand            MarketStand    @relation(fields: [marketStandId], references: [id], onDelete: Cascade)
   user                   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -424,6 +428,7 @@ model Order {
   @@index([deliveryZoneId])
   @@index([deliveryDate])
   @@index([deliveryZoneId, deliveryDate])
+  @@index([deliveryId])
   @@index([stripeSessionId], map: "order_stripe_session_idx")
   @@index([stripePaymentIntentId], map: "order_stripe_pi_idx")
 }
@@ -498,6 +503,7 @@ model DeliveryZone {
   deliveryType          DeliveryType             @default(ONE_TIME)
   scheduledDates        Json?
   cartItems             CartItem[]
+  deliveries            Delivery[]               @relation("DeliveryToZones")
   user                  User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders                Order[]
   products              Product[]
@@ -569,6 +575,46 @@ model ProductDeliveryListing {
   @@index([dayOfWeek, deliveryZoneId])
 }
 
+model Delivery {
+  id          String         @id @default(uuid())
+  userId      String
+  date        DateTime       @db.Date
+  status      DeliveryStatus @default(SCHEDULED)
+  timeWindow  String?        @db.VarChar(100)
+  note        String?
+  closedAt    DateTime?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  zones    DeliveryZone[]    @relation("DeliveryToZones")
+  products DeliveryProduct[]
+  orders   Order[]
+  cartItems CartItem[]
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@index([status])
+}
+
+model DeliveryProduct {
+  id         String   @id @default(uuid())
+  deliveryId String
+  productId  String
+  cap        Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([deliveryId, productId])
+  @@index([deliveryId])
+  @@index([productId])
+}
+
 model OrderIssue {
   id           String      @id @default(uuid())
   orderId      String
@@ -613,11 +659,13 @@ model CartItem {
   fulfillmentType String
   deliveryDate    DateTime?
   deliveryZoneId  String?
+  deliveryId      String?
   marketStandId   String?
   pickupTime      DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   cart            Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  delivery        Delivery?     @relation(fields: [deliveryId], references: [id])
   deliveryZone    DeliveryZone? @relation(fields: [deliveryZoneId], references: [id])
   marketStand     MarketStand?  @relation(fields: [marketStandId], references: [id])
   product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -702,6 +750,15 @@ enum NotificationType {
 enum DeliveryType {
   RECURRING
   ONE_TIME
+}
+
+enum DeliveryStatus {
+  SCHEDULED
+  OPEN
+  CLOSED
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
 }
 
 enum IssueType {

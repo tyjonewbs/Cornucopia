@@ -98,8 +98,8 @@ export function MyLocalHaulClient({ initialData }: MyLocalHaulClientProps) {
           </TabsTrigger>
           <TabsTrigger value="subscriptions" className="gap-2">
             <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Subscriptions</span>
-            <span className="sm:hidden">Subs</span>
+            <span className="hidden sm:inline">Following</span>
+            <span className="sm:hidden">Following</span>
             {subscriptions.length > 0 && (
               <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
                 {subscriptions.length}
@@ -255,23 +255,23 @@ export function MyLocalHaulClient({ initialData }: MyLocalHaulClientProps) {
         <TabsContent value="subscriptions" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Market Stand Subscriptions</CardTitle>
+              <CardTitle>Following</CardTitle>
               <CardDescription>
-                Manage notifications from your favorite market stands
+                Market stands you're following
               </CardDescription>
             </CardHeader>
             <CardContent>
               {subscriptions.length === 0 ? (
                 <div className="text-center py-12">
                   <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No subscriptions</h3>
+                  <h3 className="text-lg font-semibold mb-2">Not following any stands</h3>
                   <p className="text-muted-foreground">
-                    Subscribe to market stands to get updates
+                    Follow market stands to get updates
                   </p>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Subscribed to {subscriptions.length} market stand{subscriptions.length !== 1 ? 's' : ''}
+                  Following {subscriptions.length} market stand{subscriptions.length !== 1 ? 's' : ''}
                 </p>
               )}
             </CardContent>

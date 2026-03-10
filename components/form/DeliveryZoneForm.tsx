@@ -7,10 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DeliveryZone, ScheduledDate } from "@/types/delivery";
-import { Calendar, X } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { format, startOfDay } from "date-fns";
 
 interface DeliveryZoneFormProps {
   deliveryZone?: DeliveryZone;
@@ -56,9 +59,12 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
   const [currentZipCode, setCurrentZipCode] = useState("");
 
   // One-time delivery date (single date per zone)
-  const [newDate, setNewDate] = useState(
-    deliveryZone?.scheduledDates?.[0]?.date || ""
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    deliveryZone?.scheduledDates?.[0]?.date
+      ? new Date(deliveryZone.scheduledDates[0].date)
+      : undefined
   );
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [newTimeWindow, setNewTimeWindow] = useState(
     deliveryZone?.scheduledDates?.[0]?.timeWindow || ""
   );
@@ -127,18 +133,15 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
       return;
     }
 
-    if (deliveryType === 'ONE_TIME' && !newDate) {
+    if (deliveryType === 'ONE_TIME' && !selectedDate) {
       toast.error("Please select a delivery date for one-time deliveries");
       return;
     }
 
     // Validate the date is in the future
-    if (deliveryType === 'ONE_TIME' && newDate) {
-      const date = new Date(newDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (date < today) {
+    if (deliveryType === 'ONE_TIME' && selectedDate) {
+      const today = startOfDay(new Date());
+      if (selectedDate < today) {
         toast.error("Please select a future date");
         return;
       }
@@ -169,9 +172,9 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
       submitData.append("deliveryDays", JSON.stringify(deliveryType === 'RECURRING' ? formData.deliveryDays : []));
       
       // Add scheduled dates for one-time or null for recurring
-      if (deliveryType === 'ONE_TIME') {
+      if (deliveryType === 'ONE_TIME' && selectedDate) {
         const scheduledDate: ScheduledDate = {
-          date: newDate,
+          date: selectedDate.toISOString().split('T')[0],
           timeWindow: newTimeWindow || undefined,
           note: newNote || undefined,
         };
@@ -434,14 +437,30 @@ export function DeliveryZoneForm({ deliveryZone, onSuccess }: DeliveryZoneFormPr
                 {/* Date Input Fields */}
                 <div className="grid gap-3">
                   <div>
-                    <Label htmlFor="newDate" className="text-sm">Date *</Label>
-                    <Input
-                      id="newDate"
-                      type="date"
-                      value={newDate}
-                      onChange={(e) => setNewDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                    />
+                    <Label className="text-sm">Date *</Label>
+                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => {
+                            setSelectedDate(date || undefined);
+                            setCalendarOpen(false);
+                          }}
+                          disabled={(date) => date < startOfDay(new Date())}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div>
                     <Label htmlFor="newTimeWindow" className="text-sm">Time Window (Optional)</Label>

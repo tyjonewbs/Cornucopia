@@ -5,6 +5,7 @@ import { createDeliveryZoneSchema, updateDeliveryZoneSchema } from "@/lib/valida
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { generateDeliveriesForZone, generateOneTimeDeliveries } from "./deliveries";
 
 /**
  * Get all delivery zones for the current user
@@ -116,8 +117,20 @@ export async function createDeliveryZone(formData: FormData) {
       },
     });
 
+    // Auto-generate Delivery records
+    try {
+      if (zone.deliveryType === 'RECURRING' && validated.deliveryDays?.length) {
+        await generateDeliveriesForZone(zone.id);
+      } else if (zone.deliveryType === 'ONE_TIME' && validated.scheduledDates?.length) {
+        await generateOneTimeDeliveries(zone.id, validated.scheduledDates);
+      }
+    } catch (genError) {
+      console.error('Error auto-generating deliveries:', genError);
+      // Non-fatal: zone was created, deliveries can be generated later
+    }
+
     revalidatePath('/dashboard/delivery-zones');
-    
+
     return { success: true, zone };
   } catch (error) {
     if (error instanceof Error && 'issues' in error) {
@@ -214,9 +227,23 @@ export async function updateDeliveryZone(id: string, formData: FormData) {
       data: updateData,
     });
 
+    // Re-generate deliveries if delivery days or type changed
+    try {
+      if (zone.deliveryType === 'RECURRING' && zone.deliveryDays?.length) {
+        await generateDeliveriesForZone(zone.id);
+      } else if (zone.deliveryType === 'ONE_TIME' && zone.scheduledDates) {
+        const scheduledDates = zone.scheduledDates as Array<{ date: string; timeWindow?: string; note?: string }>;
+        if (scheduledDates.length) {
+          await generateOneTimeDeliveries(zone.id, scheduledDates);
+        }
+      }
+    } catch (genError) {
+      console.error('Error re-generating deliveries:', genError);
+    }
+
     revalidatePath('/dashboard/delivery-zones');
     revalidatePath(`/dashboard/delivery-zones/${id}/edit`);
-    
+
     return { success: true, zone };
   } catch (error) {
     if (error instanceof Error && 'issues' in error) {
@@ -726,6 +753,106 @@ export async function getAvailableProductsForZone(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Error fetching available products"
+    };
+  }
+}
+
+/**
+ * Toggle a product's association with a delivery zone.
+ * Sets product.deliveryZoneId and product.deliveryAvailable.
+ */
+export async function toggleProductInZone(productId: string, zoneId: string) {
+  try {
+    const supabase = getSupabaseServer();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    // Verify zone belongs to user
+    const zone = await prisma.deliveryZone.findFirst({
+      where: { id: zoneId, userId: user.id },
+    });
+    if (!zone) {
+      return { success: false, error: "Delivery zone not found" };
+    }
+
+    // Verify product belongs to user
+    const product = await prisma.product.findFirst({
+      where: { id: productId, userId: user.id },
+    });
+    if (!product) {
+      return { success: false, error: "Product not found" };
+    }
+
+    const isCurrentlyInZone = product.deliveryZoneId === zoneId;
+
+    if (isCurrentlyInZone) {
+      // Remove from zone
+      await prisma.product.update({
+        where: { id: productId },
+        data: { deliveryZoneId: null, deliveryAvailable: false },
+      });
+    } else {
+      // Add to zone
+      await prisma.product.update({
+        where: { id: productId },
+        data: { deliveryZoneId: zoneId, deliveryAvailable: true },
+      });
+    }
+
+    revalidatePath('/dashboard/delivery-zones');
+
+    return {
+      success: true,
+      added: !isCurrentlyInZone,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Error toggling product",
+    };
+  }
+}
+
+/**
+ * Get all user products with their zone association status for a given zone.
+ */
+export async function getProductsWithZoneStatus(zoneId: string) {
+  try {
+    const supabase = getSupabaseServer();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const products = await prisma.product.findMany({
+      where: { userId: user.id, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        images: true,
+        inventory: true,
+        deliveryZoneId: true,
+        deliveryAvailable: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      success: true,
+      products: products.map((p) => ({
+        ...p,
+        isInZone: p.deliveryZoneId === zoneId,
+      })),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Error fetching products",
     };
   }
 }

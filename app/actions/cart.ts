@@ -163,6 +163,47 @@ export async function addToCart(params: AddToCartParams): Promise<CartActionResu
           error: 'Delivery date and zone required for delivery items',
         };
       }
+
+      // Validate delivery status if deliveryId provided
+      if (params.deliveryId) {
+        const delivery = await prisma.delivery.findUnique({
+          where: { id: params.deliveryId },
+          include: {
+            products: { where: { productId: params.productId } },
+          },
+        });
+
+        if (delivery && !['SCHEDULED', 'OPEN'].includes(delivery.status)) {
+          return {
+            success: false,
+            error: 'This delivery is no longer accepting orders',
+          };
+        }
+
+        // Check product cap if set
+        if (delivery?.products[0]?.cap != null) {
+          const orderedQty = await prisma.orderItem.aggregate({
+            _sum: { quantity: true },
+            where: {
+              productId: params.productId,
+              order: {
+                deliveryId: params.deliveryId,
+                status: { in: ['PENDING', 'CONFIRMED', 'READY'] },
+              },
+            },
+          });
+          const currentlyOrdered = orderedQty._sum.quantity || 0;
+          const remaining = delivery.products[0].cap - currentlyOrdered;
+          if (params.quantity > remaining) {
+            return {
+              success: false,
+              error: remaining <= 0
+                ? 'This product has reached its delivery cap'
+                : `Only ${remaining} available for this delivery`,
+            };
+          }
+        }
+      }
     } else if (params.fulfillmentType === 'PICKUP') {
       if (!params.marketStandId) {
         return {
@@ -247,6 +288,7 @@ export async function addToCart(params: AddToCartParams): Promise<CartActionResu
           fulfillmentType: params.fulfillmentType,
           deliveryDate: params.deliveryDate || null,
           deliveryZoneId: params.deliveryZoneId || null,
+          deliveryId: params.deliveryId || null,
           marketStandId: params.marketStandId || null,
           pickupTime: params.pickupTime || null,
         },

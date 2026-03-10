@@ -34,6 +34,7 @@ export interface CartItem {
   // Delivery-specific fields
   deliveryDate?: Date;
   deliveryZoneId?: string;
+  deliveryId?: string;
   deliveryZone?: CartItemDeliveryZone;
   
   // Pickup-specific fields
@@ -135,6 +136,7 @@ export interface AddToCartParams {
   // Delivery params
   deliveryDate?: Date;
   deliveryZoneId?: string;
+  deliveryId?: string;
   
   // Pickup params
   marketStandId?: string;

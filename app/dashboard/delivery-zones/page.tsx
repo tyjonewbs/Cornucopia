@@ -1,7 +1,9 @@
-import { getUserDeliveryZones, getDeliveryZoneProducts } from "@/app/actions/delivery-zones";
+import { getUserDeliveryZones, getDeliveryZoneProducts, getProductsWithZoneStatus } from "@/app/actions/delivery-zones";
+import { getDeliveriesForZone } from "@/app/actions/deliveries";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import DeliveryClient from "./delivery-client";
+import { addDays } from "date-fns";
 
 export default async function DeliveryZonesPage() {
   const supabase = getSupabaseServer();
@@ -25,13 +27,23 @@ export default async function DeliveryZonesPage() {
 
   const zones = result.zones || [];
 
-  // Fetch products for ALL zones
+  // Fetch products, deliveries, and zone product status for ALL zones
   const zonesWithProducts = await Promise.all(
     zones.map(async (zone) => {
-      const productsResult = await getDeliveryZoneProducts(zone.id);
+      const [productsResult, deliveriesResult, zoneProductsResult] = await Promise.all([
+        getDeliveryZoneProducts(zone.id),
+        getDeliveriesForZone(zone.id, {
+          from: new Date(),
+          to: addDays(new Date(), 28),
+          statuses: ['SCHEDULED', 'OPEN', 'CLOSED'],
+        }),
+        getProductsWithZoneStatus(zone.id),
+      ]);
       return {
         zone,
-        productsByDay: productsResult.success ? productsResult.productsByDay : {}
+        productsByDay: productsResult.success ? productsResult.productsByDay : {},
+        deliveries: deliveriesResult.success ? deliveriesResult.deliveries || [] : [],
+        zoneProducts: zoneProductsResult.success ? zoneProductsResult.products || [] : [],
       };
     })
   );

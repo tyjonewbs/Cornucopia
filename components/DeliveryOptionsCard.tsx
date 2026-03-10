@@ -120,6 +120,7 @@ export function DeliveryOptionsCard({
         fulfillmentType: 'DELIVERY',
         deliveryDate: parseISO(selectedOption.date),
         deliveryZoneId: selectedOption.deliveryZoneId,
+        deliveryId: selectedOption.deliveryId,
       });
 
       if (result.success) {
@@ -301,11 +302,11 @@ export function DeliveryOptionsCard({
                 <Calendar className="h-4 w-4 text-green-700" />
                 <h4 className="text-sm font-semibold text-green-900">Recurring Delivery</h4>
                 <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
-                  Subscription Available
+                  Recurring Delivery
                 </Badge>
               </div>
               <p className="text-xs text-gray-600">
-                Choose any date to add to cart. Set up recurring delivery during checkout.
+                Choose a delivery date to add to cart.
               </p>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {displayedRecurringOptions.map((option, idx) => (

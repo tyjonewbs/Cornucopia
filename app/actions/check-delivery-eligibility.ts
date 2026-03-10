@@ -96,7 +96,60 @@ export async function checkDeliveryEligibility({
       };
     }
 
-    // Generate delivery options based on delivery type
+    // Try to use Delivery records first (new path)
+    const deliveriesFromDb = await db.delivery.findMany({
+      where: {
+        zones: { some: { id: zone.id } },
+        status: { in: ['SCHEDULED', 'OPEN'] },
+        date: { gte: startOfDay(new Date()) },
+        products: {
+          some: { productId: productId },
+        },
+      },
+      include: {
+        products: {
+          where: { productId: productId },
+          include: {
+            product: { select: { inventory: true } },
+          },
+        },
+      },
+      orderBy: { date: 'asc' },
+      take: 56,
+    });
+
+    if (deliveriesFromDb.length > 0) {
+      // New path: use actual Delivery records
+      const twFromZone = (zone.deliveryTimeWindows as Record<string, string>) || {};
+
+      const options: SerializedDeliveryOption[] = deliveriesFromDb.map(d => {
+        const dayName = DAYS_OF_WEEK[getDay(d.date)];
+        const dp = d.products[0];
+        const inventory = dp?.cap ?? dp?.product?.inventory ?? 0;
+
+        return {
+          date: d.date.toISOString(),
+          dayOfWeek: dayName,
+          timeWindow: d.timeWindow || twFromZone[dayName] || '9am - 5pm',
+          deliveryFee: zone.deliveryFee,
+          freeDeliveryThreshold: zone.freeDeliveryThreshold || undefined,
+          minimumOrder: zone.minimumOrder || undefined,
+          inventory,
+          isRecurring: zone.deliveryType === 'RECURRING',
+          deliveryZoneId: zone.id,
+          deliveryId: d.id,
+        };
+      });
+
+      return {
+        isEligible: true,
+        matchedZipCode,
+        matchedCity,
+        deliveryOptions: options,
+      };
+    }
+
+    // Fallback: generate delivery options from zone data (legacy path)
     const deliveryOptions: SerializedDeliveryOption[] = [];
 
     if (product.deliveryType === 'ONE_TIME' && product.deliveryDates) {

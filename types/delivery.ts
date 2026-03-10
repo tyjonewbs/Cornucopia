@@ -50,6 +50,7 @@ export interface SerializedDeliveryOption {
   inventory?: number;
   isRecurring: boolean;
   deliveryZoneId: string;
+  deliveryId?: string;
 }
 
 export interface SerializedDeliveryEligibilityResult {
@@ -70,3 +71,46 @@ export type DeliverySchedule = {
 
 // Alias for DeliveryZone (matches DeliveryZoneInfo structure)
 export type DeliveryZone = DeliveryZoneInfo;
+
+// Delivery entity types
+export type DeliveryStatus = 'SCHEDULED' | 'OPEN' | 'CLOSED' | 'IN_TRANSIT' | 'COMPLETED' | 'CANCELLED';
+
+export interface DeliveryProductInfo {
+  id: string;
+  productId: string;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    images: string[];
+    inventory: number;
+  };
+  cap: number | null;
+}
+
+export interface DeliveryInfo {
+  id: string;
+  userId: string;
+  date: string;
+  status: DeliveryStatus;
+  timeWindow: string | null;
+  note: string | null;
+  closedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  zones: Array<{ id: string; name: string }>;
+  products: DeliveryProductInfo[];
+  _count?: {
+    orders: number;
+  };
+}
+
+export interface DeliveryWithOrderSummary extends DeliveryInfo {
+  orderSummary: Array<{
+    productId: string;
+    productName: string;
+    orderedQuantity: number;
+    cap: number | null;
+  }>;
+}

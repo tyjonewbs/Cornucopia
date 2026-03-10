@@ -161,7 +161,7 @@ const baseDeliveryZoneSchema = z.object({
     "Friday",
     "Saturday",
     "Sunday"
-  ])).min(1, "Select at least one delivery day"),
+  ])).min(0),
   
   deliveryTimeWindows: z.array(deliveryTimeWindowSchema)
     .optional()
@@ -194,6 +194,26 @@ export const checkDeliveryZoneCoverageSchema = z.object({
   state: z.string().length(2, "State must be 2-letter code").optional(),
 });
 
+// Delivery entity schemas
+export const createDeliverySchema = z.object({
+  date: z.coerce.date(),
+  zoneIds: z.array(z.string().uuid("Invalid zone ID")).min(1, "At least one zone is required"),
+  timeWindow: z.string().max(100).optional(),
+  note: z.string().max(500).optional(),
+  productIds: z.array(z.string().uuid()).optional(),
+});
+
+export const updateDeliverySchema = z.object({
+  status: z.enum(["SCHEDULED", "OPEN", "CLOSED", "IN_TRANSIT", "COMPLETED", "CANCELLED"]).optional(),
+  timeWindow: z.string().max(100).optional(),
+  note: z.string().max(500).optional(),
+});
+
+export const deliveryProductSchema = z.object({
+  productId: z.string().uuid("Invalid product ID"),
+  cap: z.number().int().min(0).optional().nullable(),
+});
+
 export type DeliveryZoneInput = z.infer<typeof deliveryZoneSchema>;
 export type CreateDeliveryZoneInput = z.infer<typeof createDeliveryZoneSchema>;
 export type UpdateDeliveryZoneInput = z.infer<typeof updateDeliveryZoneSchema>;
@@ -201,3 +221,6 @@ export type ProductStandListingInput = z.infer<typeof productStandListingSchema>
 export type CreateProductStandListingInput = z.infer<typeof createProductStandListingSchema>;
 export type UpdateProductStandListingInput = z.infer<typeof updateProductStandListingSchema>;
 export type CheckDeliveryZoneCoverageInput = z.infer<typeof checkDeliveryZoneCoverageSchema>;
+export type CreateDeliveryInput = z.infer<typeof createDeliverySchema>;
+export type UpdateDeliveryInput = z.infer<typeof updateDeliverySchema>;
+export type DeliveryProductInput = z.infer<typeof deliveryProductSchema>;

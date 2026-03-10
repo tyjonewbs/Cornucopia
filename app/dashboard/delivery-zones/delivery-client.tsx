@@ -34,16 +34,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
+import {
   deleteDeliveryZone,
   addProductToDeliveryZone,
   updateDeliveryListingInventory,
   removeProductFromDeliveryZone,
   getAvailableProductsForZone,
 } from "@/app/actions/delivery-zones";
+import { closeDelivery, reopenDelivery } from "@/app/actions/deliveries";
+import { ProductAssociationPanel } from "@/components/delivery/ProductAssociationPanel";
 import { formatPrice } from "@/lib/utils/format";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import type { DeliveryInfo } from "@/types/delivery";
 
 interface ProductListing {
   id: string;
@@ -62,9 +65,20 @@ interface ProductListing {
   };
 }
 
+interface ProductWithZoneStatus {
+  id: string;
+  name: string;
+  price: number;
+  images: string[];
+  inventory: number;
+  isInZone: boolean;
+}
+
 interface ZoneWithProducts {
   zone: any;
   productsByDay: Record<string, ProductListing[]>;
+  deliveries?: DeliveryInfo[];
+  zoneProducts?: ProductWithZoneStatus[];
 }
 
 interface DeliveryClientProps {
@@ -292,9 +306,19 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
 
         {/* Upcoming Delivery Dates */}
         {(() => {
-          const hasAnyActiveDeliveries = upcomingDeliveryDates.some(({ dayName }) => 
+          const hasAnyActiveDeliveries = upcomingDeliveryDates.some(({ dayName }) =>
             zonesWithProducts.some(zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(dayName))
           );
+
+          // Build a map of deliveries by date for quick lookup
+          const deliveriesByDate = new Map<string, { zone: any; delivery: DeliveryInfo }[]>();
+          zonesWithProducts.forEach(zwp => {
+            (zwp.deliveries || []).forEach(d => {
+              const dKey = d.date.split('T')[0];
+              if (!deliveriesByDate.has(dKey)) deliveriesByDate.set(dKey, []);
+              deliveriesByDate.get(dKey)!.push({ zone: zwp.zone, delivery: d });
+            });
+          });
 
           return (
             <>
@@ -302,8 +326,9 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                 const dayZones = zonesWithProducts.filter(
                   zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(dayName)
                 );
-                
-                if (dayZones.length === 0) return null;
+                const dayDeliveries = deliveriesByDate.get(dateKey) || [];
+
+                if (dayZones.length === 0 && dayDeliveries.length === 0) return null;
 
                 return (
             <Card key={dateKey} className="overflow-hidden">
@@ -311,6 +336,20 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-blue-600" />
                   {format(date, 'EEEE, MMMM d, yyyy')}
+                  {dayDeliveries.length > 0 && (
+                    <div className="flex gap-1 ml-2">
+                      {dayDeliveries.map(dd => (
+                        <Badge
+                          key={dd.delivery.id}
+                          variant={dd.delivery.status === 'OPEN' ? 'default' : dd.delivery.status === 'CLOSED' ? 'destructive' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {dd.delivery.status}
+                          {dd.delivery._count?.orders ? ` (${dd.delivery._count.orders} orders)` : ''}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
@@ -564,6 +603,18 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
           </>
         );
       })()}
+
+        {/* Product Toggles per Zone */}
+        {zonesWithProducts.length > 0 && zonesWithProducts.map(({ zone, zoneProducts }) => (
+          zoneProducts && zoneProducts.length > 0 ? (
+            <ProductAssociationPanel
+              key={`products-${zone.id}`}
+              zoneId={zone.id}
+              zoneName={zone.name}
+              products={zoneProducts}
+            />
+          ) : null
+        ))}
 
         {/* Empty State - No Zones at All */}
         {zonesWithProducts.length === 0 && (

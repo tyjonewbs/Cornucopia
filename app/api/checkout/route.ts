@@ -179,6 +179,7 @@ export async function POST() {
       fulfillment: item.fulfillmentType,
       marketStandId: item.marketStandId || undefined,
       deliveryZoneId: item.deliveryZoneId || undefined,
+      deliveryId: item.deliveryId || undefined,
       deliveryDate: item.deliveryDate?.toISOString() || undefined,
       pickupTime: item.pickupTime?.toISOString() || undefined,
     }));

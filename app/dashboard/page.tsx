@@ -128,7 +128,7 @@ export default async function DashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Subscriptions</CardTitle>
+              <CardTitle className="text-sm font-medium">Following</CardTitle>
               <Star className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
               <p className="text-xs text-muted-foreground">Following market stands</p>
               <Link href="/dashboard/my-local-haul">
                 <Button variant="link" className="p-0 h-auto mt-2">
-                  Manage subscriptions →
+                  Manage following →
                 </Button>
               </Link>
             </CardContent>
