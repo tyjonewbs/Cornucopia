@@ -51,7 +51,7 @@ const nextConfig = {
               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com;
               img-src 'self' blob: data: https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.google.com https://maps.gstatic.com https://picsum.photos;
               font-src 'self' https://fonts.gstatic.com;
-              connect-src 'self' https://*.supabase.co https://*.googleapis.com https://maps.googleapis.com https://*.posthog.com;
+              connect-src 'self' https://*.supabase.co https://*.googleapis.com https://maps.googleapis.com https://*.gstatic.com https://maps.gstatic.com https://*.posthog.com;
               frame-src 'self' https://www.google.com https://maps.google.com;
               base-uri 'self';
               form-action 'self';
@@ -71,7 +71,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
+            value: 'camera=(), microphone=(), geolocation=(self)'
           }
         ]
       },

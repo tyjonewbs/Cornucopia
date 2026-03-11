@@ -124,7 +124,7 @@ export default function ExploreMap({
   );
   const [map, setMap] = useState<google.maps.Map | null>(null);
   
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS || '';
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',

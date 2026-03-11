@@ -15,7 +15,7 @@ export default function MapView({ latitude, longitude, locationName }: MapViewPr
     );
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS || '';
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${latitude},${longitude}&zoom=14`;
 
   return (

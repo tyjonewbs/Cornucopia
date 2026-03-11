@@ -29,7 +29,7 @@ const containerStyle = {
 
 export default function MarketStandsMap({ marketStands, userLocation }: MarketStandsMapProps) {
   const [selectedStand, setSelectedStand] = useState<MarketStand | null>(null);
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS || '';
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',

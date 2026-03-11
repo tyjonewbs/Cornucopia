@@ -38,7 +38,7 @@ DIRECT_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-us-east-1.p
 NEXT_PUBLIC_APP_URL=https://your-project-name.vercel.app
 
 # Optional: Google Maps (if using maps features)
-NEXT_PUBLIC_GOOGLE_MAPS=your_google_maps_api_key_here
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 
 NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token_here
 
