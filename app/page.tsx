@@ -38,7 +38,6 @@ async function HomeDataLoader() {
     }
     
     // Query timed out - render empty state
-    console.log('Home data timed out, using empty state');
     return <HomeClient initialData={{ products: [], stands: [], farms: [] }} />;
   } catch (error: unknown) {
     console.error('Failed to load home data:', error);
@@ -51,17 +50,18 @@ async function HomeDataLoader() {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: { returnUrl?: string };
+  searchParams: Promise<{ returnUrl?: string }>;
 }) {
+  const { returnUrl } = await searchParams;
   // OPTIMIZATION: Only call getUser() if we actually need to check for redirect
   // This prevents blocking the page render for anonymous users on cold starts
-  if (searchParams.returnUrl) {
-    const supabase = getSupabaseServer();
+  if (returnUrl) {
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     // Handle authenticated users with returnUrl
     if (user) {
-      const decodedUrl = decodeURIComponent(searchParams.returnUrl);
+      const decodedUrl = decodeURIComponent(returnUrl);
       const protectedRoutes = [
         '/sell',
         '/settings',

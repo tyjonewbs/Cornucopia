@@ -145,7 +145,7 @@ export const getHomePageData = cache(async (
             slug: farmAny.slug,
             tagline: farmAny.tagline,
             _count: {
-              products: 0, // TODO: Count products from this farm
+              products: 0,
             },
           };
         })

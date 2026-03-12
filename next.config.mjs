@@ -11,12 +11,12 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   
+  serverExternalPackages: ['@prisma/client', 'prisma'],
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'cornucopia-dev.vercel.app'],
       bodySizeLimit: '2mb'
     },
-    serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons']
   },
   eslint: {

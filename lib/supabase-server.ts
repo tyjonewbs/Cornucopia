@@ -3,8 +3,8 @@ import { cookies } from 'next/headers';
 import { cache } from 'react';
 
 // Singleton instance for server-side
-export const getSupabaseServer = cache(() => {
-  const cookieStore = cookies();
+export const getSupabaseServer = cache(async () => {
+  const cookieStore = await cookies();
   
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

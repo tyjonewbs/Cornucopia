@@ -47,8 +47,9 @@ async function getUserDeliveryZones(userId: string) {
 export default async function NewProductPage({
   searchParams,
 }: {
-  searchParams: { marketStandId?: string };
+  searchParams: Promise<{ marketStandId?: string }>;
 }) {
+  const { marketStandId } = await searchParams;
   noStore();
   const user = await getUser();
 
@@ -65,8 +66,8 @@ export default async function NewProductPage({
   // They'll be prompted to add fulfillment options later
 
   // Use the market stand from query param if provided, otherwise use the first one
-  const defaultMarketStand = searchParams.marketStandId
-    ? marketStands.find(stand => stand.id === searchParams.marketStandId) || marketStands[0]
+  const defaultMarketStand = marketStandId
+    ? marketStands.find(stand => stand.id === marketStandId) || marketStands[0]
     : marketStands[0];
 
   return (

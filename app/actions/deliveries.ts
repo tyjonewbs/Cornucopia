@@ -16,7 +16,7 @@ export async function getDeliveriesForZone(
   options?: { from?: Date; to?: Date; statuses?: DeliveryStatus[] }
 ) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -99,7 +99,7 @@ export async function getDeliveriesForZone(
  */
 export async function getDelivery(deliveryId: string) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -167,7 +167,7 @@ export async function getDelivery(deliveryId: string) {
  */
 export async function getDeliveryOrderSummary(deliveryId: string) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -231,7 +231,7 @@ export async function createDelivery(data: {
   productIds?: string[];
 }) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -293,7 +293,7 @@ export async function createDelivery(data: {
  */
 export async function closeDelivery(deliveryId: string) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -333,7 +333,7 @@ export async function closeDelivery(deliveryId: string) {
  */
 export async function reopenDelivery(deliveryId: string) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -373,7 +373,7 @@ export async function reopenDelivery(deliveryId: string) {
  */
 export async function completeDelivery(deliveryId: string) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -413,7 +413,7 @@ export async function completeDelivery(deliveryId: string) {
  */
 export async function cancelDelivery(deliveryId: string) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -469,7 +469,7 @@ export async function addProductToDelivery(
   cap?: number | null
 ) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -529,7 +529,7 @@ export async function addProductToDelivery(
  */
 export async function removeProductFromDelivery(deliveryId: string, productId: string) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -570,7 +570,7 @@ export async function updateDeliveryProductCap(
   cap: number | null
 ) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -608,7 +608,7 @@ export async function updateDeliveryProductCap(
  */
 export async function generateDeliveriesForZone(zoneId: string, weeksAhead: number = 8) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -733,7 +733,7 @@ export async function generateOneTimeDeliveries(
   scheduledDates: Array<{ date: string; timeWindow?: string; note?: string }>
 ) {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -802,7 +802,7 @@ export async function generateOneTimeDeliveries(
  */
 export async function getUserProducts() {
   try {
-    const supabase = getSupabaseServer();
+    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {

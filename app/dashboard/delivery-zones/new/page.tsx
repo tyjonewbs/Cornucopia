@@ -3,7 +3,7 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 
 export default async function NewDeliveryZonePage() {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

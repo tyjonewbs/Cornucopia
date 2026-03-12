@@ -4,11 +4,12 @@ import prisma from "@/lib/db";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getUser();
-    
+
     if (!user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -16,7 +17,7 @@ export async function GET(
     // Verify market stand ownership
     const marketStand = await prisma.marketStand.findUnique({
       where: {
-        id: params.id,
+        id,
         userId: user.id,
       },
     });
@@ -28,7 +29,7 @@ export async function GET(
     // Get products for the market stand with optimized query
     const products = await prisma.product.findMany({
       where: {
-        marketStandId: params.id,
+        marketStandId: id,
       },
       select: {
         id: true,

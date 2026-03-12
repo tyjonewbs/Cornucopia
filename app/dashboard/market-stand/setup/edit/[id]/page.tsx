@@ -10,14 +10,15 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 interface EditMarketStandPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function EditMarketStandPage({ params }: EditMarketStandPageProps) {
   noStore();
-  
+  const { id } = await params;
+
   try {
     const user = await getUser();
 
@@ -27,8 +28,8 @@ export default async function EditMarketStandPage({ params }: EditMarketStandPag
 
     // Get the market stand
     const marketStand = await prisma.marketStand.findUnique({
-      where: { 
-        id: params.id,
+      where: {
+        id,
         userId: user.id.toString() // Ensure the user owns this market stand
       }
     });

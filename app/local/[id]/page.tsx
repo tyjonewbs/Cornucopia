@@ -3,11 +3,12 @@ import LocalProfile from './local-profile';
 import { notFound } from "next/navigation";
 import { getUser } from "@/lib/auth";
 
-export default async function LocalPage({ params }: { params: { id: string } }) {
+export default async function LocalPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const [local, user] = await Promise.all([
     prisma.local.findUnique({
       where: {
-        id: params.id
+        id
       }
     }),
     getUser()

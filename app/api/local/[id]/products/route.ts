@@ -3,10 +3,11 @@ import { getLocalProducts } from "@/app/actions/local-products";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const products = await getLocalProducts(params.id);
+    const { id } = await params;
+    const products = await getLocalProducts(id);
     return NextResponse.json(products);
   } catch (error) {
     console.error('Failed to fetch local products:', error);

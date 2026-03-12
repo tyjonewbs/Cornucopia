@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       return new NextResponse("No file provided", { status: 400 });
     }
 
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
 
     // Create a buffer from the file
     const arrayBuffer = await file.arrayBuffer();

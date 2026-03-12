@@ -1,5 +1,6 @@
 'use client';
 
+import React from "react";
 import { ProductCard } from "@/components/ProductCard";
 import { PromoBanner } from "@/components/PromoBanner";
 import type { GeoSerializedProduct } from "@/lib/repositories/geoProductRepository";
@@ -51,7 +52,7 @@ export function ResponsiveProductGrid({
   showPromoBanners = true,
 }: ResponsiveProductGridProps) {
   // Create a mixed array with products and promotional banners
-  const gridItems: JSX.Element[] = [];
+  const gridItems: React.JSX.Element[] = [];
   
   // Insert products with occasional promotional banners
   products.forEach((product, index) => {

@@ -104,10 +104,11 @@ async function getData(encodedId: string) {
 export default async function MarketStandPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   noStore();
-  const marketStand = await getData(params.id);
+  const { id } = await params;
+  const marketStand = await getData(id);
 
   if (!marketStand) {
     return (

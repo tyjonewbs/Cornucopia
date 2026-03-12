@@ -3,10 +3,11 @@ import { getDeliveryZone, getProductsWithZoneStatus } from "@/app/actions/delive
 import { DeliveryZone, ScheduledDate } from "@/types/delivery";
 import { redirect } from "next/navigation";
 
-export default async function EditDeliveryZonePage({ params }: { params: { id: string } }) {
+export default async function EditDeliveryZonePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const [zoneResult, productsResult] = await Promise.all([
-    getDeliveryZone(params.id),
-    getProductsWithZoneStatus(params.id),
+    getDeliveryZone(id),
+    getProductsWithZoneStatus(id),
   ]);
 
   if (!zoneResult.success || !zoneResult.zone) {

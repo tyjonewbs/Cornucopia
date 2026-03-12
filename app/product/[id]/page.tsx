@@ -147,10 +147,11 @@ async function getData(id: string) {
 export default async function ProductPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   noStore();
-  const data = await getData(decodeURIComponent(params.id));
+  const { id } = await params;
+  const data = await getData(decodeURIComponent(id));
 
   if (!data) {
     notFound();

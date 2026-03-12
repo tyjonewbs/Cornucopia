@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient()
+    const supabase = await createRouteHandlerClient()
     const { data: { user: authUser } } = await supabase.auth.getUser()
 
     if (!authUser) {

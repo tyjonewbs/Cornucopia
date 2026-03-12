@@ -108,7 +108,6 @@ export async function refreshStaticProductsCache(): Promise<boolean> {
     // Store in Redis
     await redis.setex(STATIC_PRODUCTS_KEY, STATIC_PRODUCTS_TTL, JSON.stringify(serializedProducts));
     
-    console.log(`Refreshed static products cache with ${serializedProducts.length} products`);
     return true;
   } catch (error) {
     console.error('Error refreshing static products cache:', error);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import { useEffect, useState } from "react";
 import { submitContactForm, type ContactState } from "@/app/actions/contact";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ const initialState: ContactState = {
 };
 
 export default function ContactPage() {
-  const [state, formAction] = useFormState(submitContactForm, initialState);
+  const [state, formAction] = useActionState(submitContactForm, initialState);
   const [category, setCategory] = useState<string>("GENERAL");
 
   useEffect(() => {

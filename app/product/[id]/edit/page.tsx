@@ -8,8 +8,9 @@ import { SellForm } from "@/components/form/Sellform";
 export default async function EditProductPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const user = await getUser();
 
   if (!user) {
@@ -17,7 +18,7 @@ export default async function EditProductPage({
   }
 
   // Fetch the product
-  const product = await getProduct(params.id);
+  const product = await getProduct(id);
 
   if (!product) {
     redirect("/dashboard/products");

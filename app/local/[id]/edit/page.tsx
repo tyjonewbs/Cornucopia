@@ -7,8 +7,9 @@ import { notFound, redirect } from "next/navigation";
 export default async function EditLocalPage({
   params
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const user = await getUser();
   if (!user) {
     redirect("/");
@@ -16,7 +17,7 @@ export default async function EditLocalPage({
 
   const local = await prisma.local.findUnique({
     where: {
-      id: params.id,
+      id,
       userId: user.id
     }
   });
@@ -27,7 +28,7 @@ export default async function EditLocalPage({
 
   const handleSubmit = async (formData: FormData) => {
     "use server";
-    await updateLocal(params.id, formData);
+    await updateLocal(id, formData);
   };
 
   return (

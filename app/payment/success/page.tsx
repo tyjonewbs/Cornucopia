@@ -7,11 +7,11 @@ import { getUser } from "@/lib/auth";
 import { formatPrice } from "@/lib/cart/calculations";
 
 interface Props {
-  searchParams: { session_id?: string };
+  searchParams: Promise<{ session_id?: string }>;
 }
 
 export default async function SuccessRoute({ searchParams }: Props) {
-  const sessionId = searchParams.session_id;
+  const { session_id: sessionId } = await searchParams;
   const user = await getUser();
 
   // Only fetch order details if we have a session ID AND an authenticated user

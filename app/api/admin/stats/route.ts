@@ -5,7 +5,7 @@ import { createRouteHandlerClient } from '@/lib/supabase-route'
 export async function GET() {
   try {
     // Check authentication and admin role
-    const supabase = createRouteHandlerClient()
+    const supabase = await createRouteHandlerClient()
     // Use getUser() for secure server-side auth validation
     const { data: { user: authUser } } = await supabase.auth.getUser()
 

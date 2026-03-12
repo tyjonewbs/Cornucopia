@@ -4,11 +4,12 @@ import prisma from "@/lib/db";
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getUser();
-    
+
     if (!user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -23,7 +24,7 @@ export async function PUT(
     // Verify product ownership through market stand
     const product = await prisma.product.findFirst({
       where: {
-        id: params.id,
+        id,
         marketStand: {
           userId: user.id,
         },
@@ -40,7 +41,7 @@ export async function PUT(
     // Update product inventory
     const updatedProduct = await prisma.product.update({
       where: {
-        id: params.id,
+        id,
       },
       data: {
         inventory: quantity,

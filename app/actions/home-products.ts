@@ -89,17 +89,12 @@ export const getHomeProducts = async (
           }
         : null;
 
-    console.log('Fetching products with location:', userLocation);
-    console.log('Received zipCode parameter:', zipCode);
-    
     const products = await getProducts({
       limit: cursor ? 12 : 20, // Reduced from 50 - geo-filtering will happen at DB level
       cursor,
       isActive: true,
       marketStandId: undefined,
     });
-
-    console.log('Raw products:', products.length);
 
     const productsWithDistance = products.map((product: ProductResponse) => {
       // Collect all market stands where this product is available
@@ -310,35 +305,8 @@ export const getHomeProducts = async (
       return a.distance - b.distance;
     }) as SerializedProduct[];
 
-    console.log('Sorted products:', sortedProducts.length);
-
-    // Log initial state
-    console.log('Processing products:', {
-      total: sortedProducts.length,
-      hasLocation: !!userLocation,
-      locationSource: userLocation?.source,
-      cursor
-    });
-
     // If we have a location, separate local and non-local products
     if (userLocation) {
-      // Log location details
-      console.log('Location details:', {
-        lat: userLocation.coords.lat,
-        lng: userLocation.coords.lng,
-        source: userLocation.source,
-        accuracy: userLocation.coords.accuracy
-      });
-
-      // Filter and log each product's distance
-      const productsWithDistanceInfo = sortedProducts.map(p => ({
-        id: p.id,
-        name: p.name,
-        distance: p.distance,
-        isLocal: p.distance !== null && p.distance <= 241.4
-      }));
-      console.log('Product distances:', productsWithDistanceInfo);
-
       // Use a larger radius for zip code locations since they're less precise
       const localRadius = userLocation.source === 'zipcode' ? 321.87 : 241.4; // 200 miles for zip, 150 miles for browser
       
@@ -352,33 +320,19 @@ export const getHomeProducts = async (
         !(p.deliveryInfo && p.deliveryInfo.isAvailable)
       );
       
-      console.log('Filtered products:', {
-        local: localProducts.length,
-        other: otherProducts.length,
-        radius: localRadius,
-        cursor
-      });
-
       // If loading initial products and we have less than 12 local products
       if (!cursor && localProducts.length < 12) {
-        const combined = [...localProducts, ...otherProducts];
-        console.log('Returning combined products:', combined.length);
-        return combined;
+        return [...localProducts, ...otherProducts];
       }
       
       // If loading more products, return non-local products
       if (cursor) {
-        console.log('Returning explore products:', otherProducts.length);
         return otherProducts;
       }
 
-      // Initial load with enough local products
-      console.log('Returning local products:', localProducts.length);
       return localProducts;
     }
 
-    // No location, return all products sorted by date
-    console.log('Returning all products:', sortedProducts.length);
     return sortedProducts;
   } catch (error) {
     // Use the error handler utility to handle the error consistently

@@ -14,7 +14,7 @@ export async function uploadImageWithAuth(
     throw new Error('Authentication required for image upload');
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const fileName = `${path}${Date.now()}-${filename}`;
   
   // Convert base64 to buffer

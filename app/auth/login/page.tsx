@@ -5,10 +5,11 @@ import { redirect } from "next/navigation";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const resolvedSearchParams = await searchParams;
   const user = await getUser();
-  const returnTo = searchParams.returnTo as string;
+  const returnTo = resolvedSearchParams.returnTo as string;
 
   if (user) {
     redirect(returnTo || '/dashboard/market-stand');

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { CreateMarketStand, UpdateMarketStand } from "@/app/actions/market-stand";
 import {
   CardContent,
@@ -128,7 +129,7 @@ const validateField = (name: string, value: string | string[] | WeeklyHours): st
   }
 };
 
-export function MarketStandForm({ userId, userEmail, userFirstName, userLastName, userProfileImage, marketStand, onSuccess }: MarketStandFormProps): JSX.Element {
+export function MarketStandForm({ userId, userEmail, userFirstName, userLastName, userProfileImage, marketStand, onSuccess }: MarketStandFormProps): React.JSX.Element {
   const router = useRouter();
   const [images, setImages] = useState<string[]>(marketStand?.images || []);
   const [formState, setFormState] = useState<FormState>({

@@ -48,10 +48,11 @@ async function getData(id: string) {
 export default async function NavigatePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   noStore();
-  const marketStand = await getData(decodeURIComponent(params.id));
+  const { id } = await params;
+  const marketStand = await getData(decodeURIComponent(id));
 
   if (!marketStand) {
     return (

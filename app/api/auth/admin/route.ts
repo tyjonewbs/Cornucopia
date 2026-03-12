@@ -5,7 +5,7 @@ import prisma from '@/lib/db'
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
-    const supabase = createRouteHandlerClient()
+    const supabase = await createRouteHandlerClient()
 
     // Sign in user
     const { data: { session }, error } = await supabase.auth.signInWithPassword({

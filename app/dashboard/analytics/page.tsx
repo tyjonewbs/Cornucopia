@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 async function getUserAnalyticsData() {
-  const supabase = getSupabaseServer()
+  const supabase = await getSupabaseServer()
   // Use getUser() for secure server-side auth validation
   const { data: { user } } = await supabase.auth.getUser()
   

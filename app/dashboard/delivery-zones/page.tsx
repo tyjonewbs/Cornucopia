@@ -6,7 +6,7 @@ import DeliveryClient from "./delivery-client";
 import { addDays } from "date-fns";
 
 export default async function DeliveryZonesPage() {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

@@ -11,7 +11,7 @@ import { generateDeliveriesForZone, generateOneTimeDeliveries } from "./deliveri
  * Get the authenticated user or throw an error
  */
 async function requireAuth() {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     throw new Error("Not authenticated");

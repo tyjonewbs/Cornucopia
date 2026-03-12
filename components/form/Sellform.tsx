@@ -11,9 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useFormState } from "react-dom";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -80,7 +79,7 @@ const sellProductAction = async (state: State | Response, formData: FormData) =>
 
 export function SellForm({ marketStand, marketStands = [], deliveryZones = [], initialData, productId, userId, productName }: SellFormProps) {
   const initialState: State = { message: null, status: undefined };
-  const [state, formAction] = useFormState(sellProductAction, initialState);
+  const [state, formAction] = useActionState(sellProductAction, initialState);
   const [images, setImages] = useState<string[]>(initialData?.images || []);
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
   const [currentTag, setCurrentTag] = useState('');

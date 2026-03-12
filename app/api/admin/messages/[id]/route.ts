@@ -4,9 +4,10 @@ import prisma from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getUser();
 
     if (!user || (user.user_metadata?.role !== 'ADMIN' && user.user_metadata?.role !== 'SUPER_ADMIN')) {
@@ -14,7 +15,7 @@ export async function GET(
     }
 
     const message = await prisma.contactSubmission.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: {
           select: {

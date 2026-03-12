@@ -15,7 +15,7 @@ export type State = {
 };
 
 export async function UpdateUserSettings(prevState: State, formData: FormData): Promise<State> {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   // Use getUser() for secure server-side auth validation
   const { data: { user }, error } = await supabase.auth.getUser();
 

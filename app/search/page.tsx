@@ -20,10 +20,10 @@ function LoadingSearch() {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { zip?: string; q?: string };
+  searchParams: Promise<{ zip?: string; q?: string }>;
 }) {
-  const zipCode = searchParams.zip;
-  const searchQuery = searchParams.q || '';
+  const { zip: zipCode, q } = await searchParams;
+  const searchQuery = q || '';
 
   // If no zip code provided, redirect to home
   if (!zipCode || !/^\d{5}$/.test(zipCode)) {

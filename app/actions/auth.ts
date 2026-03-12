@@ -12,7 +12,7 @@ if (!process.env.SUPABASE_JWT_SECRET) {
 }
 
 export async function signInWithEmail(email: string, password: string) {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
   
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -27,7 +27,7 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function signUpWithEmail(email: string, password: string) {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
   
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -45,12 +45,12 @@ export async function signUpWithEmail(email: string, password: string) {
 }
 
 export async function signOut() {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
   await supabase.auth.signOut();
 }
 
 export async function getUser() {
-  const supabase = getSupabaseServer();
+  const supabase = await getSupabaseServer();
   // Use getUser() instead of getSession() for secure server-side auth
   // getUser() validates the token with Supabase Auth server
   const { data: { user }, error } = await supabase.auth.getUser();

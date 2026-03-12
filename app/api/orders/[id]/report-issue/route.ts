@@ -10,16 +10,17 @@ const reportIssueSchema = z.object({
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const orderId = params.id;
+    const orderId = id;
 
     // Verify the order exists and belongs to the user
     const order = await prisma.order.findUnique({

@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code')
 
   if (code) {
-    const supabase = createRouteHandlerClient()
+    const supabase = await createRouteHandlerClient()
     
     // Exchange the code for a session
     let { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)

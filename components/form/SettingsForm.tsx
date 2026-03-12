@@ -10,9 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { useFormState } from "react-dom";
-
-import { useEffect } from "react";
+import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { type State, UpdateUserSettings } from "@/app/actions/settings";
 import { Submitbutton } from "../SubmitButtons";
@@ -25,7 +23,7 @@ interface iAppProps {
 
 export function SettingsForm({ email, firstName, lastName }: iAppProps) {
   const initalState: State = { message: "", status: undefined };
-  const [state, formAction] = useFormState(UpdateUserSettings, initalState);
+  const [state, formAction] = useActionState(UpdateUserSettings, initalState);
 
   useEffect(() => {
     if (state?.status === "error") {

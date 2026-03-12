@@ -61,9 +61,10 @@ async function getData(encodedId: string) {
 export default async function EditMarketStandPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   noStore();
+  const { id } = await params;
 
   // Authentication check
   const user = await getUser();
@@ -73,7 +74,7 @@ export default async function EditMarketStandPage({
   }
 
   // Fetch market stand data
-  const marketStand = await getData(params.id);
+  const marketStand = await getData(id);
 
   if (!marketStand) {
     return (
@@ -82,7 +83,7 @@ export default async function EditMarketStandPage({
         <pre className="mt-4 p-4 bg-gray-100 rounded text-sm overflow-auto">
           Debug Info:
           {JSON.stringify({
-            params,
+            id,
             userId: user.id,
             timestamp: new Date().toISOString()
           }, null, 2)}
@@ -93,7 +94,7 @@ export default async function EditMarketStandPage({
 
   // Verify ownership
   if (!marketStand || marketStand.userId !== user.id) {
-    return redirect(`/market-stand/${params.id}`); // Use original ID for consistency
+    return redirect(`/market-stand/${id}`); // Use original ID for consistency
   }
 
   // Format market stand data for the form

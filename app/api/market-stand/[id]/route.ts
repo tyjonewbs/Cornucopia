@@ -53,9 +53,9 @@ function transformMarketStandResponse(
 
 export const GET = async (
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
-const { id } = params;
+const { id } = await params;
 
   try {
     const marketStand = await prisma.marketStand.findUnique({
@@ -82,11 +82,12 @@ const { id } = params;
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<MarketStandDetailResponse | ErrorResponse | ValidationErrorResponse>> {
   try {
+    const { id } = await params;
     // Validate ID format
-    if (!validateMarketStandId(params.id)) {
+    if (!validateMarketStandId(id)) {
       throw new Error("Invalid market stand ID format");
     }
 
@@ -104,7 +105,7 @@ export async function PATCH(
 
     // Update market stand with validated data
     const updatedStand = await prisma.marketStand.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name: validationResult.data.name,
         description: validationResult.data.description,
@@ -127,9 +128,9 @@ export async function PATCH(
 
 export const DELETE = async (
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
-const { id } = params;
+const { id } = await params;
 
   try {
     await prisma.marketStand.delete({

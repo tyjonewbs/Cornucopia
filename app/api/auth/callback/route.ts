@@ -9,16 +9,12 @@ export async function GET(request: Request) {
     const code = requestUrl.searchParams.get('code');
     const returnTo = requestUrl.searchParams.get('returnTo');
 
-    console.log('[Auth Callback] Processing with code:', code ? 'present' : 'missing');
-    console.log('[Auth Callback] Return path:', returnTo || 'default');
-
     if (!code) {
-      console.error('[Auth Callback] No code provided');
       return NextResponse.redirect(new URL('/', requestUrl.origin));
     }
 
-    const supabase = createRouteHandlerClient();
-    
+    const supabase = await createRouteHandlerClient();
+
     // Exchange the code for a session
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -29,15 +25,12 @@ export async function GET(request: Request) {
 
     // Use getUser() for secure validation that session was established
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('[Auth Callback] User authenticated:', user ? 'yes' : 'no');
 
     // Only redirect to protected routes if we have a validated user
     if (user) {
       const redirectPath = returnTo || '/dashboard/market-stand';
-      console.log('[Auth Callback] Redirecting to:', redirectPath);
       return NextResponse.redirect(new URL(redirectPath, requestUrl.origin));
     } else {
-      console.log('[Auth Callback] No session, redirecting to home');
       return NextResponse.redirect(new URL('/', requestUrl.origin));
     }
   } catch (error) {
