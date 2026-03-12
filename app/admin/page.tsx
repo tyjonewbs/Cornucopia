@@ -144,17 +144,17 @@ export default function AdminDashboard() {
               <Button
                 variant="outline"
                 className="w-full justify-start space-x-2"
-                onClick={() => router.push('/admin/users')}
+                onClick={() => router.push('/admin/products')}
               >
-                <span>View All Users</span>
+                <span>Manage All Products</span>
               </Button>
 
               <Button
                 variant="outline"
                 className="w-full justify-start space-x-2"
-                onClick={() => router.push('/admin/analytics')}
+                onClick={() => router.push('/admin/market-stands')}
               >
-                <span>View Analytics</span>
+                <span>Manage Market Stands</span>
               </Button>
 
               <Button
@@ -188,12 +188,28 @@ export default function AdminDashboard() {
                 className="w-full justify-start space-x-2 text-red-600"
                 onClick={() => router.push('/admin/reviews/reported')}
               >
-                <span>Review Reported Reviews</span>
+                <span>Reported Reviews</span>
                 {stats.reportedReviews > 0 && (
                   <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-xs">
                     {stats.reportedReviews}
                   </span>
                 )}
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start space-x-2"
+                onClick={() => router.push('/admin/users')}
+              >
+                <span>Manage Users</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start space-x-2"
+                onClick={() => router.push('/admin/analytics')}
+              >
+                <span>View Analytics</span>
               </Button>
 
               <Button

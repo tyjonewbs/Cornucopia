@@ -4,7 +4,6 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Status } from '@prisma/client'
 import { formatDistanceToNow } from 'date-fns'
-import Link from 'next/link'
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import {
@@ -39,33 +38,31 @@ type StatusHistoryItem = {
   }
 }
 
-type MarketStandWithRelations = {
+type ProductWithRelations = {
   id: string
   name: string
-  locationName: string
+  price: number
+  inventory: number
   status: Status
   isActive: boolean
   createdAt: Date
   averageRating: number | null
   totalReviews: number
+  deliveryAvailable: boolean
+  tags: string[]
   user: {
-    id: string
     firstName: string | null
     lastName: string | null
     email: string
   }
-  products: Array<{
+  marketStand: {
     id: string
-    isActive: boolean
-  }>
-  reviews: Array<{
-    id: string
-  }>
+    name: string
+  } | null
   statusHistory: StatusHistoryItem[]
 }
 
-// Status Badge with Dropdown Component
-function StatusBadgeDropdown({ stand }: { stand: MarketStandWithRelations }) {
+function ProductStatusDropdown({ product }: { product: ProductWithRelations }) {
   const router = useRouter()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<Status | null>(null)
@@ -82,31 +79,34 @@ function StatusBadgeDropdown({ stand }: { stand: MarketStandWithRelations }) {
 
     setIsLoading(true)
     try {
-      const endpoint = selectedStatus === 'APPROVED'
-        ? '/api/admin/stand/approve'
-        : selectedStatus === 'SUSPENDED'
-        ? '/api/admin/stand/suspend'
-        : '/api/admin/stand/reject'
+      let endpoint: string
+      if (selectedStatus === 'APPROVED') {
+        endpoint = '/api/admin/product/approve'
+      } else if (selectedStatus === 'REJECTED') {
+        endpoint = '/api/admin/product/reject'
+      } else {
+        endpoint = '/api/admin/product/suspend'
+      }
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          id: stand.id, 
-          note: note || `Status changed to ${selectedStatus}` 
+        body: JSON.stringify({
+          id: product.id,
+          note: note || `Status changed to ${selectedStatus}`
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update status')
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update status')
       }
 
       const data = await response.json()
       toast.success(data.message || 'Status updated successfully')
       router.refresh()
-    } catch (error) {
-      toast.error('Failed to update status')
-      console.error(error)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update status')
     } finally {
       setIsLoading(false)
       setIsDialogOpen(false)
@@ -115,51 +115,48 @@ function StatusBadgeDropdown({ stand }: { stand: MarketStandWithRelations }) {
     }
   }
 
+  const availableStatuses = (['APPROVED', 'REJECTED', 'SUSPENDED'] as Status[])
+    .filter(s => s !== product.status)
+
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="focus:outline-none">
-            <Badge 
+            <Badge
               variant={
-                stand.status === 'APPROVED' ? 'default' :
-                stand.status === 'PENDING' ? 'secondary' :
-                stand.status === 'REJECTED' ? 'destructive' :
+                product.status === 'APPROVED' ? 'default' :
+                product.status === 'PENDING' ? 'secondary' :
+                product.status === 'REJECTED' ? 'destructive' :
                 'outline'
               }
               className="cursor-pointer hover:opacity-80 transition-opacity"
             >
-              {stand.status.toLowerCase()}
+              {product.status.toLowerCase()}
             </Badge>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => handleStatusChange('APPROVED')}>
-            Approve
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleStatusChange('REJECTED')}>
-            Reject
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleStatusChange('SUSPENDED')}>
-            Suspend
-          </DropdownMenuItem>
+          {availableStatuses.map(status => (
+            <DropdownMenuItem key={status} onClick={() => handleStatusChange(status)}>
+              {status === 'APPROVED' ? 'Approve' : status === 'REJECTED' ? 'Reject' : 'Suspend'}
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Confirm Status Change
-            </AlertDialogTitle>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
             <AlertDialogDescription className="space-y-4">
               <p>
-                Are you sure you want to change the status of <strong>{stand.name}</strong> to{' '}
+                Change <strong>{product.name}</strong> status to{' '}
                 <strong>{selectedStatus?.toLowerCase()}</strong>?
               </p>
               <div>
                 <label htmlFor="note" className="text-sm font-medium text-gray-700">
-                  Note/Reason {selectedStatus === 'REJECTED' && '(required)'}:
+                  Note {(selectedStatus === 'REJECTED' || selectedStatus === 'SUSPENDED') && '(required)'}:
                 </label>
                 <textarea
                   id="note"
@@ -167,7 +164,6 @@ function StatusBadgeDropdown({ stand }: { stand: MarketStandWithRelations }) {
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Enter reason for status change..."
                   className="mt-1 w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required={selectedStatus === 'REJECTED'}
                 />
               </div>
             </AlertDialogDescription>
@@ -176,7 +172,7 @@ function StatusBadgeDropdown({ stand }: { stand: MarketStandWithRelations }) {
             <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmStatusChange}
-              disabled={isLoading || (selectedStatus === 'REJECTED' && !note.trim())}
+              disabled={isLoading || ((selectedStatus === 'REJECTED' || selectedStatus === 'SUSPENDED') && !note.trim())}
             >
               {isLoading ? 'Updating...' : 'Confirm'}
             </AlertDialogAction>
@@ -187,13 +183,10 @@ function StatusBadgeDropdown({ stand }: { stand: MarketStandWithRelations }) {
   )
 }
 
-// Expandable Row for Status History
-function StatusHistoryRow({ stand }: { stand: MarketStandWithRelations }) {
+function ProductStatusHistory({ product }: { product: ProductWithRelations }) {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  if (stand.statusHistory.length === 0) {
-    return null
-  }
+  if (product.statusHistory.length === 0) return null
 
   return (
     <div>
@@ -201,19 +194,15 @@ function StatusHistoryRow({ stand }: { stand: MarketStandWithRelations }) {
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
       >
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4" />
-        ) : (
-          <ChevronRight className="h-4 w-4" />
-        )}
+        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         <span className="text-xs">
-          {stand.statusHistory.length} status {stand.statusHistory.length === 1 ? 'change' : 'changes'}
+          {product.statusHistory.length} {product.statusHistory.length === 1 ? 'change' : 'changes'}
         </span>
       </button>
 
       {isExpanded && (
         <div className="mt-2 space-y-2 pl-5 border-l-2 border-gray-200">
-          {stand.statusHistory.map((history) => (
+          {product.statusHistory.map((history) => (
             <div key={history.id} className="text-xs space-y-1 pb-2">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs">
@@ -225,14 +214,16 @@ function StatusHistoryRow({ stand }: { stand: MarketStandWithRelations }) {
               </div>
               <div className="text-gray-600">
                 <span className="font-medium">
-                  {history.changedBy.firstName && history.changedBy.lastName 
+                  {history.changedBy.firstName && history.changedBy.lastName
                     ? `${history.changedBy.firstName} ${history.changedBy.lastName}`
-                    : history.changedBy.firstName || history.changedBy.lastName || 'Unknown'}
+                    : history.changedBy.email}
                 </span>
               </div>
-              <div className="text-gray-700 bg-gray-50 p-2 rounded">
-                {history.note}
-              </div>
+              {history.note && (
+                <div className="text-gray-700 bg-gray-50 p-2 rounded">
+                  {history.note}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -241,21 +232,30 @@ function StatusHistoryRow({ stand }: { stand: MarketStandWithRelations }) {
   )
 }
 
-export const columns: ColumnDef<MarketStandWithRelations>[] = [
+export const columns: ColumnDef<ProductWithRelations>[] = [
   {
     id: "name",
-    header: "Market Stand",
+    header: "Product",
     cell: ({ row }) => {
-      const stand = row.original
+      const product = row.original
       return (
         <div className="flex flex-col">
-          <Link 
-            href={`/market-stand/${stand.id}`}
-            className="font-medium hover:underline text-blue-600"
-          >
-            {stand.name}
-          </Link>
-          <span className="text-sm text-gray-500">{stand.locationName}</span>
+          <span className="font-medium">{product.name}</span>
+          <span className="text-sm text-gray-500">
+            ${(product.price / 100).toFixed(2)}
+          </span>
+          {product.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {product.tags.slice(0, 3).map(tag => (
+                <span key={tag} className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                  {tag}
+                </span>
+              ))}
+              {product.tags.length > 3 && (
+                <span className="text-xs text-gray-400">+{product.tags.length - 3}</span>
+              )}
+            </div>
+          )}
         </div>
       )
     }
@@ -265,7 +265,7 @@ export const columns: ColumnDef<MarketStandWithRelations>[] = [
     header: "Owner",
     cell: ({ row }) => {
       const user = row.original.user
-      const displayName = user.firstName && user.lastName 
+      const displayName = user.firstName && user.lastName
         ? `${user.firstName} ${user.lastName}`
         : user.firstName || user.lastName || 'Unknown'
       return (
@@ -277,46 +277,38 @@ export const columns: ColumnDef<MarketStandWithRelations>[] = [
     }
   },
   {
-    id: "status",
-    header: "Status",
-    accessorFn: row => row.status,
+    id: "stand",
+    header: "Stand",
     cell: ({ row }) => {
-      const stand = row.original
+      const stand = row.original.marketStand
+      if (!stand) return <span className="text-sm text-gray-400">None</span>
+      return <span className="text-sm">{stand.name}</span>
+    }
+  },
+  {
+    id: "inventory",
+    header: "Stock",
+    cell: ({ row }) => {
+      const inventory = row.original.inventory
       return (
-        <div className="space-y-2">
-          <StatusBadgeDropdown stand={stand} />
-          <StatusHistoryRow stand={stand} />
+        <div className="text-center">
+          <span className={`font-medium ${inventory === 0 ? 'text-red-600' : ''}`}>
+            {inventory}
+          </span>
         </div>
       )
     }
   },
   {
-    id: "active",
-    header: "Active",
-    accessorFn: row => row.isActive,
+    id: "status",
+    header: "Status",
+    accessorFn: row => row.status,
     cell: ({ row }) => {
-      const isActive = row.getValue("active") as boolean
+      const product = row.original
       return (
-        <Badge variant={isActive ? 'default' : 'secondary'}>
-          {isActive ? 'Yes' : 'No'}
-        </Badge>
-      )
-    }
-  },
-  {
-    id: "products",
-    header: "Products",
-    accessorFn: row => row.products,
-    cell: ({ row }) => {
-      const products = row.original.products
-      return (
-        <div className="text-center">
-          <span className="font-medium">{products.length}</span>
-          {products.length > 0 && (
-            <div className="text-xs text-gray-500">
-              {products.filter(p => p.isActive).length} active
-            </div>
-          )}
+        <div className="space-y-2">
+          <ProductStatusDropdown product={product} />
+          <ProductStatusHistory product={product} />
         </div>
       )
     }
@@ -325,13 +317,13 @@ export const columns: ColumnDef<MarketStandWithRelations>[] = [
     id: "reviews",
     header: "Reviews",
     cell: ({ row }) => {
-      const stand = row.original
+      const product = row.original
       return (
         <div className="text-center">
-          <div className="font-medium">{stand.totalReviews}</div>
-          {stand.averageRating !== null && stand.totalReviews > 0 && (
+          <div className="font-medium">{product.totalReviews}</div>
+          {product.averageRating !== null && product.totalReviews > 0 && (
             <div className="text-xs text-gray-500">
-              ⭐ {stand.averageRating.toFixed(1)}
+              {product.averageRating.toFixed(1)}/5
             </div>
           )}
         </div>

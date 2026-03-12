@@ -15,11 +15,6 @@ interface ProductGridClientProps {
 export function ProductGridClient({ initialProducts, userLocation }: ProductGridClientProps) {
   const [products, setProducts] = useState(() => {
     try {
-      console.log('Initializing products state with:', {
-        hasLocation: !!userLocation,
-        initialProductsCount: initialProducts.length
-      });
-      
       // Initialize products state once during component mount
       if (userLocation) {
         // Filter local products: either within radius OR has available delivery
@@ -31,10 +26,6 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
           (p.distance === null || p.distance > 160.934) &&
           !(p.deliveryInfo && p.deliveryInfo.isAvailable)
         );
-        console.log('Initial products split:', {
-          localCount: local.length,
-          exploreCount: explore.length
-        });
         return {
           local,
           explore,
@@ -47,7 +38,6 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
         lastId: initialProducts.length > 0 ? initialProducts[initialProducts.length - 1].id : undefined
       };
     } catch (error) {
-      console.error('Error initializing products state:', error);
       // Provide a safe fallback state
       return {
         local: [],
@@ -70,11 +60,6 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
   // Update products when location or initial data changes
   useEffect(() => {
     try {
-      console.log('Updating products state:', {
-        hasLocation: !!userLocation,
-        initialProductsCount: initialProducts.length
-      });
-
       if (userLocation) {
         // Filter local products: either within radius OR has available delivery
         const local = initialProducts.filter(p => 
@@ -85,10 +70,6 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
           (p.distance === null || p.distance > 160.934) &&
           !(p.deliveryInfo && p.deliveryInfo.isAvailable)
         );
-        console.log('Updated products split:', {
-          localCount: local.length,
-          exploreCount: explore.length
-        });
         setProducts({
           local,
           explore,
@@ -102,15 +83,12 @@ export function ProductGridClient({ initialProducts, userLocation }: ProductGrid
         });
       }
     } catch (error) {
-      console.error('Error updating products state:', error);
       // Don't update state on error to prevent reverting to explore-only view
     }
   }, [initialProducts, userLocation]);
 
   const loadMoreProducts = async () => {
-    // Note: Pagination not yet implemented in geo-products
-    // PostGIS function would need cursor support added
-    console.log('Load more not yet implemented for geo-filtered products');
+    // TODO: Pagination not yet implemented in geo-products
   };
 
   if (isLoading) {

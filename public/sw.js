@@ -1,9 +1,9 @@
 // Service Worker for Cornucopia
 // Provides offline capability and improved caching
 
-const CACHE_NAME = 'cornucopia-v3';
-const STATIC_CACHE = 'cornucopia-static-v3';
-const DYNAMIC_CACHE = 'cornucopia-dynamic-v3';
+const CACHE_NAME = 'cornucopia-v4';
+const STATIC_CACHE = 'cornucopia-static-v4';
+const DYNAMIC_CACHE = 'cornucopia-dynamic-v4';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -16,13 +16,9 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
-      console.log('[SW] Caching static assets');
       return cache.addAll(STATIC_ASSETS.filter(url => !url.includes('undefined')));
-    }).catch(err => {
-      console.error('[SW] Failed to cache static assets:', err);
     })
   );
   self.skipWaiting();
@@ -30,13 +26,11 @@ self.addEventListener('install', (event) => {
 
 // Activate event - cleanup old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-            console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -58,6 +52,12 @@ self.addEventListener('fetch', (event) => {
 
   // Skip chrome extensions
   if (url.protocol === 'chrome-extension:') {
+    return;
+  }
+
+  // Skip third-party requests (Google Maps, fonts, analytics, etc.)
+  // Let the browser handle these directly to avoid CSP connect-src issues
+  if (url.origin !== self.location.origin) {
     return;
   }
 

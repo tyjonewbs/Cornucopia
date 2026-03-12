@@ -6,12 +6,8 @@ import prisma from '@/lib/db';
 
 export default async function CompleteProfilePage() {
   const user = await getUser();
-  
-  console.log('[Complete Profile] Starting page load');
-  console.log('[Complete Profile] User from auth:', user ? { id: user.id, email: user.email } : 'null');
 
   if (!user) {
-    console.log('[Complete Profile] No user, redirecting to login');
     redirect('/auth/login');
   }
 
@@ -27,14 +23,10 @@ export default async function CompleteProfilePage() {
       username: true,
     },
   });
-  
-  console.log('[Complete Profile] User data from DB:', userData);
-  console.log('[Complete Profile] profileComplete:', userData?.profileComplete);
-  console.log('[Complete Profile] username:', userData?.username);
+
 
   // If profile is already complete, redirect to dashboard
   if (userData?.profileComplete) {
-    console.log('[Complete Profile] Profile already complete, redirecting to dashboard');
     redirect('/dashboard/analytics');
   }
 

@@ -2,9 +2,19 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface ReviewModerationActionsProps {
   reviewId: string
@@ -12,12 +22,14 @@ interface ReviewModerationActionsProps {
   isVisible: boolean
 }
 
-export function ReviewModerationActions({ 
-  reviewId, 
-  reviewType, 
-  isVisible 
+export function ReviewModerationActions({
+  reviewId,
+  reviewType,
+  isVisible
 }: ReviewModerationActionsProps) {
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const router = useRouter()
 
   async function handleToggleVisibility() {
@@ -26,7 +38,7 @@ export function ReviewModerationActions({
       const response = await fetch(`/api/admin/review/visibility`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           id: reviewId,
           type: reviewType,
           isVisible: !isVisible
@@ -47,23 +59,87 @@ export function ReviewModerationActions({
     }
   }
 
+  async function handleDelete() {
+    setIsDeleting(true)
+    try {
+      const response = await fetch('/api/admin/review/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: reviewId,
+          type: reviewType
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete review')
+      }
+
+      toast.success('Review deleted successfully')
+      router.refresh()
+    } catch (error) {
+      toast.error('Failed to delete review')
+      console.error('Review delete error:', error)
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        size="sm"
-        variant={isVisible ? 'outline' : 'default'}
-        onClick={handleToggleVisibility}
-        disabled={isUpdating}
-      >
-        {isUpdating ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isVisible ? (
-          <EyeOff className="h-4 w-4" />
-        ) : (
-          <Eye className="h-4 w-4" />
-        )}
-        <span className="ml-1">{isVisible ? 'Hide' : 'Show'}</span>
-      </Button>
-    </div>
+    <>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant={isVisible ? 'outline' : 'default'}
+          onClick={handleToggleVisibility}
+          disabled={isUpdating}
+        >
+          {isUpdating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isVisible ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+          <span className="ml-1">{isVisible ? 'Hide' : 'Show'}</span>
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={() => setShowDeleteDialog(true)}
+          disabled={isDeleting}
+        >
+          {isDeleting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+          <span className="ml-1">Delete</span>
+        </Button>
+      </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Review</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this review and update the item&apos;s rating.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Review'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

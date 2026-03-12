@@ -16,6 +16,14 @@ export type AdminDeliveryZone = {
   suspensionReason: string | null
   suspendedAt: Date | null
   createdAt: Date
+  deliveryDays: string[]
+  deliveryFee: number
+  freeDeliveryThreshold: number | null
+  minimumOrder: number | null
+  zipCodes: string[]
+  cities: string[]
+  states: string[]
+  deliveryType: string
   user: {
     id: string
     email: string
@@ -83,6 +91,61 @@ export const columns: ColumnDef<AdminDeliveryZone>[] = [
     cell: ({ row }) => {
       const count = row.original._count.products
       return <div className="text-sm">{count}</div>
+    },
+  },
+  {
+    id: "schedule",
+    header: "Schedule & Fees",
+    cell: ({ row }) => {
+      const zone = row.original
+      return (
+        <div className="text-sm space-y-1">
+          {zone.deliveryDays.length > 0 && (
+            <div className="text-xs">
+              <span className="font-medium">Days:</span>{' '}
+              {zone.deliveryDays.map(d => d.slice(0, 3)).join(', ')}
+            </div>
+          )}
+          <div className="text-xs">
+            <span className="font-medium">Fee:</span>{' '}
+            {zone.deliveryFee === 0 ? 'Free' : `$${(zone.deliveryFee / 100).toFixed(2)}`}
+          </div>
+          {zone.minimumOrder && (
+            <div className="text-xs text-gray-500">
+              Min: ${(zone.minimumOrder / 100).toFixed(2)}
+            </div>
+          )}
+          {zone.freeDeliveryThreshold && (
+            <div className="text-xs text-gray-500">
+              Free over ${(zone.freeDeliveryThreshold / 100).toFixed(2)}
+            </div>
+          )}
+          <Badge variant="outline" className="text-xs mt-1">
+            {zone.deliveryType.replace('_', ' ').toLowerCase()}
+          </Badge>
+        </div>
+      )
+    },
+  },
+  {
+    id: "coverage",
+    header: "Coverage",
+    cell: ({ row }) => {
+      const zone = row.original
+      const areas: string[] = []
+      if (zone.cities.length > 0) areas.push(...zone.cities.slice(0, 3))
+      if (zone.states.length > 0) areas.push(...zone.states)
+      if (zone.zipCodes.length > 0) areas.push(`${zone.zipCodes.length} zip codes`)
+
+      if (areas.length === 0) return <span className="text-xs text-gray-400">Not specified</span>
+
+      return (
+        <div className="text-xs space-y-0.5">
+          {areas.map((area, i) => (
+            <div key={i}>{area}</div>
+          ))}
+        </div>
+      )
     },
   },
   {

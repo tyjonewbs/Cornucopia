@@ -47,14 +47,6 @@ export async function GET(request: Request) {
       }
     } as any)
 
-    // Log for debugging
-    console.log('Auth callback - User data:', { 
-      id: session.user.id, 
-      email: session.user.email,
-      profileComplete: user.profileComplete,
-      username: user.username 
-    })
-
     // Update user metadata with role
     if (user && session) {
       const adminClient = createClient(
@@ -89,13 +81,6 @@ export async function GET(request: Request) {
     const redirectUrl = needsProfileCompletion
       ? '/auth/complete-profile'
       : '/dashboard/analytics';
-    
-    console.log('Auth callback - Redirect decision:', {
-      needsProfileCompletion,
-      redirectUrl,
-      profileComplete: user.profileComplete,
-      hasUsername: !!user.username
-    })
     
     const response = NextResponse.redirect(new URL(redirectUrl, requestUrl.origin))
 

@@ -9,14 +9,15 @@ interface AdminNavProps {
 }
 
 export function AdminNav({ isSuperAdmin }: AdminNavProps) {
-  const pathname = usePathname()
-
   return (
     <nav className="hidden sm:ml-6 sm:flex sm:space-x-8" aria-label="Global">
       <NavLink href="/admin">Dashboard</NavLink>
+      <NavLink href="/admin/products">Products</NavLink>
+      <NavLink href="/admin/market-stands">Stands</NavLink>
       <NavLink href="/admin/orders">Orders</NavLink>
-      <NavLink href="/admin/messages">Messages</NavLink>
+      <NavLink href="/admin/reviews">Reviews</NavLink>
       <NavLink href="/admin/delivery-zones">Delivery Zones</NavLink>
+      <NavLink href="/admin/messages">Messages</NavLink>
       <NavLink href="/admin/analytics">Analytics</NavLink>
       <NavLink href="/admin/users">Users</NavLink>
       {isSuperAdmin && (

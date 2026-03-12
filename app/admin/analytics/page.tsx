@@ -4,6 +4,7 @@ import prisma from '@/lib/db'
 import { LineChart } from '@/components/ui/line-chart'
 import { DataTable } from '@/components/ui/data-table'
 import { columns } from './columns'
+import { producerColumns } from './producer-columns'
 
 // Force dynamic rendering - don't statically generate this page at build time
 export const dynamic = 'force-dynamic'
@@ -18,19 +19,26 @@ async function getAdminAnalyticsData() {
     totalProducts,
     pendingBusinesses,
     activeUsers,
-    totalReviews
+    totalReviews,
+    totalOrders,
+    totalRevenue
   ] = await Promise.all([
     prisma.marketStand.count({ where: { isActive: true } }),
     prisma.user.count({ where: { role: 'USER' } }),
     prisma.user.count(),
     prisma.product.count({ where: { isActive: true } }),
     prisma.marketStand.count({ where: { status: 'PENDING' } }),
-    prisma.user.count({ 
-      where: { 
+    prisma.user.count({
+      where: {
         sessions: { some: { endTime: { gt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } }
-      } 
+      }
     }),
-    prisma.productReview.count()
+    prisma.productReview.count(),
+    prisma.order.count(),
+    prisma.order.aggregate({
+      where: { status: { in: ['COMPLETED', 'DELIVERED'] } },
+      _sum: { totalAmount: true }
+    })
   ])
 
   // Get platform metrics
@@ -62,6 +70,48 @@ async function getAdminAnalyticsData() {
       }
     }
   })
+
+  // Get per-producer performance breakdown
+  const producerPerformance = await prisma.marketStand.findMany({
+    where: { isActive: true, status: 'APPROVED' },
+    select: {
+      id: true,
+      name: true,
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true
+        }
+      },
+      totalReviews: true,
+      averageRating: true,
+      _count: {
+        select: {
+          products: true,
+          orders: true
+        }
+      },
+      orders: {
+        where: { status: { in: ['COMPLETED', 'DELIVERED'] } },
+        select: { totalAmount: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  })
+
+  const producerStats = producerPerformance.map(stand => ({
+    id: stand.id,
+    standName: stand.name,
+    ownerName: stand.user.firstName && stand.user.lastName
+      ? `${stand.user.firstName} ${stand.user.lastName}`
+      : stand.user.email,
+    products: stand._count.products,
+    totalOrders: stand._count.orders,
+    revenue: stand.orders.reduce((sum, o) => sum + o.totalAmount, 0),
+    averageRating: stand.averageRating,
+    totalReviews: stand.totalReviews
+  })).sort((a, b) => b.revenue - a.revenue)
 
   // Get recent activity
   const recentActivity = await prisma.product.findMany({
@@ -102,8 +152,11 @@ async function getAdminAnalyticsData() {
     pendingBusinesses,
     activeUsers,
     totalReviews,
+    totalOrders,
+    totalRevenue: totalRevenue._sum.totalAmount || 0,
     orderMetrics,
     userGrowth,
+    producerStats,
     recentActivity
   }
 }
@@ -117,8 +170,11 @@ export default async function AdminAnalyticsDashboard() {
     pendingBusinesses,
     activeUsers,
     totalReviews,
+    totalOrders,
+    totalRevenue,
     orderMetrics,
     userGrowth,
+    producerStats,
     recentActivity
   } = await getAdminAnalyticsData()
 
@@ -148,7 +204,7 @@ export default async function AdminAnalyticsDashboard() {
       </div>
       
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Businesses</CardTitle>
@@ -174,6 +230,23 @@ export default async function AdminAnalyticsDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{totalProducts}</div>
             <p className="text-xs text-gray-500">Reviews: {totalReviews}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalOrders}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">${(totalRevenue / 100).toFixed(2)}</div>
+            <p className="text-xs text-gray-500">From completed orders</p>
           </CardContent>
         </Card>
         <Card>
@@ -217,6 +290,18 @@ export default async function AdminAnalyticsDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Producer Performance */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Producer Performance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<div>Loading...</div>}>
+            <DataTable columns={producerColumns} data={producerStats} />
+          </Suspense>
+        </CardContent>
+      </Card>
 
       {/* Recent Activity Table */}
       <Card>

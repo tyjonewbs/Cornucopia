@@ -39,7 +39,7 @@ export const env: EnvVars = {
   // Public variables (required)
   SUPABASE_URL: getEnvVar('NEXT_PUBLIC_SUPABASE_URL'),
   SUPABASE_ANON_KEY: getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-  APP_URL: getEnvVarWithDefault('NEXT_PUBLIC_APP_URL', 'http://localhost:3002'),
+  APP_URL: getEnvVar('NEXT_PUBLIC_APP_URL'),
   
   // System variables
   NODE_ENV: getEnvVarWithDefault('NODE_ENV', 'development'),
