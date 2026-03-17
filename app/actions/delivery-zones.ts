@@ -212,6 +212,9 @@ export async function updateDeliveryZone(id: string, formData: FormData) {
     if (validated.deliveryTimeWindows !== undefined) {
       updateData.deliveryTimeWindows = validated.deliveryTimeWindows || Prisma.JsonNull;
     }
+    if ((validated as any).scheduledDates !== undefined) {
+      updateData.scheduledDates = (validated as any).scheduledDates || Prisma.JsonNull;
+    }
 
     // Update delivery zone
     const zone = await prisma.deliveryZone.update({

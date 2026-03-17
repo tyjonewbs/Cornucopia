@@ -47,6 +47,9 @@ model User {
   standStatusChanges    StandStatusHistory[]
   engagement            UserEngagement?
   sessions              VisitorSession[]
+  organizedEvents       Event[]                  @relation("OrganizedEvents")
+  eventVendorships      EventVendor[]            @relation("EventVendorParticipations")
+  eventStatusChanges    EventStatusHistory[]     @relation("EventStatusChanges")
 
   @@index([email], map: "user_email_idx")
   @@index([username], map: "user_username_idx")
@@ -694,6 +697,107 @@ model PendingCheckout {
   @@index([expiresAt])
 }
 
+model Event {
+  id                     String                @id @default(uuid())
+  name                   String                @db.VarChar(255)
+  slug                   String?               @unique @db.VarChar(255)
+  description            String
+  shortDescription       String?               @db.VarChar(500)
+  images                 String[]
+  tags                   String[]              @db.VarChar(50)
+  eventType              EventType             @default(FARMERS_MARKET)
+  startDate              DateTime
+  endDate                DateTime
+  isRecurring            Boolean               @default(false)
+  recurringSchedule      Json?
+  latitude               Float
+  longitude              Float
+  locationName           String                @db.VarChar(255)
+  locationGuide          String
+  streetAddress          String?               @db.VarChar(255)
+  city                   String?               @db.VarChar(100)
+  state                  String?               @db.VarChar(50)
+  zipCode                String?               @db.VarChar(10)
+  location               Unsupported("geography")?
+  maxVendors             Int?
+  maxAttendees           Int?
+  vendorFee              Int?
+  isVendorApplicationOpen Boolean              @default(true)
+  website                String?
+  socialMedia            String[]
+  contactEmail           String?               @db.VarChar(255)
+  contactPhone           String?               @db.VarChar(20)
+  status                 EventStatus           @default(PENDING)
+  isActive               Boolean               @default(true)
+  organizerId            String
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  organizer              User                  @relation("OrganizedEvents", fields: [organizerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vendors                EventVendor[]
+  metrics                EventMetrics?
+  statusHistory          EventStatusHistory[]
+
+  @@index([organizerId], map: "event_organizer_idx")
+  @@index([startDate], map: "event_start_date_idx")
+  @@index([endDate], map: "event_end_date_idx")
+  @@index([status], map: "event_status_idx")
+  @@index([isActive], map: "event_active_idx")
+  @@index([eventType], map: "event_type_idx")
+  @@index([latitude, longitude], map: "event_location_idx")
+  @@index([location], map: "event_location_geo_idx", type: Gist)
+  @@index([slug], map: "event_slug_idx")
+}
+
+model EventVendor {
+  id             String            @id @default(uuid())
+  eventId        String
+  vendorId       String
+  status         EventVendorStatus @default(PENDING)
+  requestedAt    DateTime          @default(now())
+  requestMessage String?
+  respondedAt    DateTime?
+  responseNote   String?
+  boothNumber    String?           @db.VarChar(50)
+  boothLocation  String?
+  specialNotes   String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  event          Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  vendor         User              @relation("EventVendorParticipations", fields: [vendorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([eventId, vendorId])
+  @@index([eventId], map: "event_vendor_event_idx")
+  @@index([vendorId], map: "event_vendor_vendor_idx")
+  @@index([status], map: "event_vendor_status_idx")
+}
+
+model EventMetrics {
+  id                 String @id @default(uuid())
+  eventId            String @unique
+  views              Int    @default(0)
+  uniqueViews        Int    @default(0)
+  vendorApplications Int    @default(0)
+  approvedVendors    Int    @default(0)
+  event              Event  @relation(fields: [eventId], references: [id])
+
+  @@index([eventId], map: "event_metrics_event_idx")
+}
+
+model EventStatusHistory {
+  id          String      @id @default(uuid())
+  eventId     String
+  oldStatus   EventStatus
+  newStatus   EventStatus
+  changedById String
+  note        String
+  createdAt   DateTime    @default(now())
+  changedBy   User        @relation("EventStatusChanges", fields: [changedById], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  event       Event       @relation(fields: [eventId], references: [id])
+
+  @@index([eventId], map: "event_status_history_event_idx")
+  @@index([changedById], map: "event_status_history_user_idx")
+}
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model spatial_ref_sys {
   srid      Int     @id
@@ -815,4 +919,31 @@ enum ContactPriority {
   LOW
   MEDIUM
   HIGH
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum EventType {
+  FARMERS_MARKET
+  FARM_TOUR
+  WORKSHOP
+  FESTIVAL
+  POP_UP
+  SEASONAL
+  OTHER
+}
+
+enum EventVendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  WITHDRAWN
 }

@@ -3,7 +3,7 @@ import { getDeliveriesForZone } from "@/app/actions/deliveries";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import DeliveryClient from "./delivery-client";
-import { addDays } from "date-fns";
+import { addDays, startOfDay } from "date-fns";
 
 export default async function DeliveryZonesPage() {
   const supabase = await getSupabaseServer();
@@ -25,7 +25,17 @@ export default async function DeliveryZonesPage() {
     );
   }
 
-  const zones = result.zones || [];
+  const allZones = result.zones || [];
+
+  // Filter out ONE_TIME zones whose scheduled dates have all passed
+  const today = startOfDay(new Date());
+  const zones = allZones.filter((zone) => {
+    if (zone.deliveryType === 'ONE_TIME' && zone.scheduledDates) {
+      const scheduledDates = zone.scheduledDates as Array<{ date: string }>;
+      return scheduledDates.some((sd) => new Date(sd.date) >= today);
+    }
+    return true;
+  });
 
   // Fetch products, deliveries, and zone product status for ALL zones
   const zonesWithProducts = await Promise.all(

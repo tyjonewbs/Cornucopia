@@ -16,6 +16,7 @@ import {
   MapPin,
   Package,
   Truck,
+  Calendar,
   Menu,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -39,6 +40,7 @@ const producerMenuItems: MenuItem[] = [
   { name: "My Products", icon: Package, href: "/dashboard/products", producerOnly: true },
   { name: "Delivery", icon: Truck, href: "/dashboard/delivery-zones", producerOnly: true },
   { name: "Market Stand Setup", icon: MapPin, href: "/dashboard/market-stand", producerOnly: true },
+  { name: "Events", icon: Calendar, href: "/dashboard/events", producerOnly: true },
   { name: "Orders & Sales", icon: ShoppingCart, href: "/dashboard/orders", producerOnly: true },
   { name: "Analytics & Reports", icon: BarChart2, href: "/dashboard/analytics", producerOnly: true },
 ];

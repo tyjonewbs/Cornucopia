@@ -45,15 +45,17 @@ export default function SearchClient({ results, zipCode, searchQuery = '' }: Sea
       allResults = [...farms];
     }
 
-    // Apply category filter
+    // Apply category filter - normalize hyphens/special chars for matching
     if (filters.categories.length > 0) {
+      const normalize = (s: string) => s.toLowerCase().replace(/[-&]/g, ' ').replace(/\s+/g, ' ').trim();
       allResults = allResults.filter((result) => {
         // Only products and market stands have tags, farms don't
         if (result.resultType === 'farm') return false;
-        const tags = result.tags?.map((t: string) => t.toLowerCase()) || [];
-        return filters.categories.some((cat) =>
-          tags.some((tag: string) => tag.includes(cat) || cat.includes(tag))
-        );
+        const tags = result.tags?.map((t: string) => normalize(t)) || [];
+        return filters.categories.some((cat) => {
+          const normalizedCat = normalize(cat);
+          return tags.some((tag: string) => tag.includes(normalizedCat) || normalizedCat.includes(tag));
+        });
       });
     }
 

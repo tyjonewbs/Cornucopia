@@ -77,12 +77,14 @@ export default function HomeClient({ initialData }: HomeClientProps) {
   // Apply client-side filters to products
   const filteredData = useMemo(() => {
     const filteredProducts = data.products.filter((product) => {
-      // Category filter
+      // Category filter - normalize hyphens/special chars for matching
       if (filters.categories.length > 0) {
-        const productTags = product.tags.map((t) => t.toLowerCase());
-        const hasMatchingCategory = filters.categories.some((cat) =>
-          productTags.some((tag) => tag.includes(cat) || cat.includes(tag))
-        );
+        const normalize = (s: string) => s.toLowerCase().replace(/[-&]/g, ' ').replace(/\s+/g, ' ').trim();
+        const productTags = product.tags.map((t) => normalize(t));
+        const hasMatchingCategory = filters.categories.some((cat) => {
+          const normalizedCat = normalize(cat);
+          return productTags.some((tag) => tag.includes(normalizedCat) || normalizedCat.includes(tag));
+        });
         if (!hasMatchingCategory) return false;
       }
 

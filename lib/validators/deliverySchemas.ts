@@ -163,10 +163,16 @@ const baseDeliveryZoneSchema = z.object({
     "Sunday"
   ])).min(0),
   
+  deliveryType: z.enum(["RECURRING", "ONE_TIME"]).default("ONE_TIME"),
+
   deliveryTimeWindows: z.array(deliveryTimeWindowSchema)
     .optional()
     .nullable(),
-  
+
+  scheduledDates: z.array(scheduledDateSchema)
+    .optional()
+    .nullable(),
+
   isActive: z.boolean().default(true),
 });
 
