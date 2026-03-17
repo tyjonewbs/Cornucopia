@@ -56,7 +56,7 @@ export function FarmPageClient({ farms }: FarmPageClientProps) {
 
   if (farms.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
+      <div className="max-w-7xl mx-auto py-12">
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-4">No Farm Page Yet</h2>
           <p className="text-muted-foreground mb-6">
@@ -93,7 +93,7 @@ export function FarmPageClient({ farms }: FarmPageClientProps) {
     .slice(0, 8);
 
   return (
-    <div className="max-w-7xl mx-auto px-3 md:px-8 py-4 md:py-8">
+    <div className="max-w-7xl mx-auto py-2 md:py-4">
       {/* Image Gallery */}
       <div className="mb-6 md:mb-8">
         <ImageGalleryGrid images={selectedFarm.images} farmName={selectedFarm.name} />
