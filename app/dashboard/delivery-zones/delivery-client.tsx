@@ -275,17 +275,17 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
   };
 
   return (
-    <div className="flex-1 p-8">
+    <div className="flex-1 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Delivery Zone Inventory</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Delivery Zone Inventory</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Manage product availability and inventory for each delivery zone
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <Button
               onClick={handleRefresh}
               disabled={isRefreshing}
@@ -306,8 +306,16 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
 
         {/* Upcoming Delivery Dates */}
         {(() => {
-          const hasAnyActiveDeliveries = upcomingDeliveryDates.some(({ dayName }) =>
-            zonesWithProducts.some(zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(dayName))
+          const hasAnyActiveDeliveries = upcomingDeliveryDates.some(({ dayName, dateKey }) =>
+            zonesWithProducts.some(zwp => {
+              if (!zwp.zone.isActive) return false;
+              if (zwp.zone.deliveryDays?.includes(dayName)) return true;
+              if (zwp.zone.deliveryType === 'ONE_TIME' && zwp.zone.scheduledDates) {
+                const scheduledDates = zwp.zone.scheduledDates as Array<{ date: string }>;
+                return scheduledDates.some(sd => sd.date === dateKey);
+              }
+              return false;
+            })
           );
 
           // Build a map of deliveries by date for quick lookup
@@ -324,7 +332,17 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
             <>
               {upcomingDeliveryDates.map(({ date, dayName, dateKey }) => {
                 const dayZones = zonesWithProducts.filter(
-                  zwp => zwp.zone.isActive && zwp.zone.deliveryDays.includes(dayName)
+                  zwp => {
+                    if (!zwp.zone.isActive) return false;
+                    // Recurring zones: match by day of week
+                    if (zwp.zone.deliveryDays?.includes(dayName)) return true;
+                    // One-time zones: match by scheduled date
+                    if (zwp.zone.deliveryType === 'ONE_TIME' && zwp.zone.scheduledDates) {
+                      const scheduledDates = zwp.zone.scheduledDates as Array<{ date: string }>;
+                      return scheduledDates.some(sd => sd.date === dateKey);
+                    }
+                    return false;
+                  }
                 );
                 const dayDeliveries = deliveriesByDate.get(dateKey) || [];
 
@@ -333,11 +351,11 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                 return (
             <Card key={dateKey} className="overflow-hidden">
               <CardHeader className="bg-blue-50">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  {format(date, 'EEEE, MMMM d, yyyy')}
+                <CardTitle className="flex flex-wrap items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  <span className="text-base sm:text-lg">{format(date, 'EEEE, MMMM d, yyyy')}</span>
                   {dayDeliveries.length > 0 && (
-                    <div className="flex gap-1 ml-2">
+                    <div className="flex flex-wrap gap-1">
                       {dayDeliveries.map(dd => (
                         <Badge
                           key={dd.delivery.id}
@@ -395,7 +413,7 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                           </div>
                           
                           {/* Zone Summary */}
-                          <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                             <div>
                               <span className="text-gray-600">Products:</span>
                               <span className="font-semibold ml-2">{dayProducts.length}</span>
@@ -420,10 +438,10 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                                   key={listing.id} 
                                   className="border rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors"
                                 >
-                                  <div className="flex items-start gap-4">
+                                  <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
                                     {/* Product Image */}
                                     {listing.product.images && listing.product.images.length > 0 && (
-                                      <div className="relative w-16 h-16 flex-shrink-0">
+                                      <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
                                         <Image
                                           src={listing.product.images[0]}
                                           alt={listing.product.name}
@@ -460,7 +478,7 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                                       </div>
 
                                       {/* Inventory Stats */}
-                                      <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
+                                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-4 mb-3 text-sm">
                                         <div>
                                           <span className="text-gray-600">Available:</span>
                                           <span className="font-semibold ml-1">{listing.inventory}</span>
@@ -476,7 +494,7 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                                       </div>
 
                                       {/* Inventory Controls */}
-                                      <div className="flex items-center gap-3">
+                                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                         <div className="flex items-center gap-2">
                                           <Button
                                             size="sm"
@@ -495,7 +513,7 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                                                 handleUpdateInventory(listing.id, val);
                                               }
                                             }}
-                                            className="w-20 text-center"
+                                            className="w-16 sm:w-20 text-center"
                                             min="0"
                                             disabled={isPending}
                                           />
@@ -593,6 +611,9 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                               {!zone.isActive && (
                                 <Badge variant="secondary">Inactive</Badge>
                               )}
+                              {zone.deliveryType === 'ONE_TIME' && zone.scheduledDates && (zone.scheduledDates as any[]).every((d: any) => new Date(d.date) < startOfDay(new Date())) && (
+                                <Badge variant="destructive">Past</Badge>
+                              )}
                             </div>
                             <div className="text-sm text-gray-600 ml-7">
                               {zone.deliveryDays && zone.deliveryDays.length > 0 ? (
@@ -600,7 +621,7 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                               ) : zone.deliveryType === 'ONE_TIME' && zone.scheduledDates && (zone.scheduledDates as any[]).length > 0 ? (
                                 <span>Scheduled dates: {(zone.scheduledDates as any[]).map((d: any) => format(new Date(d.date), 'MMM d, yyyy')).join(', ')}</span>
                               ) : (
-                                <span className="text-orange-600">⚠️ No delivery days configured</span>
+                                <span className="text-orange-600">No delivery days configured</span>
                               )}
                             </div>
                           </div>

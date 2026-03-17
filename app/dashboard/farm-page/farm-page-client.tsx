@@ -93,19 +93,19 @@ export function FarmPageClient({ farms }: FarmPageClientProps) {
     .slice(0, 8);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-3 md:px-8 py-4 md:py-8">
       {/* Image Gallery */}
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <ImageGalleryGrid images={selectedFarm.images} farmName={selectedFarm.name} />
       </div>
 
       {/* Main Content */}
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
         {/* Left Column - Main Info */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-5 md:space-y-6">
           {/* Farm Name and Address */}
           <div>
-            <h1 className="text-3xl font-bold mb-3">{selectedFarm.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-3">{selectedFarm.name}</h1>
             <div className="flex items-start gap-2 text-muted-foreground mb-4">
               <MapPin className="h-5 w-5 mt-0.5 flex-shrink-0" />
               <div>
@@ -222,7 +222,7 @@ export function FarmPageClient({ farms }: FarmPageClientProps) {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Link href={`/dashboard/local/setup/edit/${selectedFarm.id}`} className="flex-1">
               <Button variant="outline" className="w-full">
                 <Pencil className="h-4 w-4 mr-2" />

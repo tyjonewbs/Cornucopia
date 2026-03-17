@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -39,13 +39,19 @@ export function ProductInventoryRow({
   onInventoryChange,
 }: ProductInventoryRowProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isUpdating, setIsUpdating] = useState(false);
   const [localInventory, setLocalInventory] = useState(initialInventory);
 
-  const handleInventoryChange = (newValue: number) => {
-    if (newValue < 0) return;
+  // Sync local state when server data changes (after router.refresh())
+  useEffect(() => {
+    setLocalInventory(initialInventory);
+  }, [initialInventory]);
+
+  const handleInventoryChange = useCallback(async (newValue: number) => {
+    if (newValue < 0 || isUpdating) return;
     setLocalInventory(newValue);
-    startTransition(async () => {
+    setIsUpdating(true);
+    try {
       const result = await onInventoryChange(product.id, newValue);
       if (result.success) {
         router.refresh();
@@ -53,18 +59,23 @@ export function ProductInventoryRow({
         setLocalInventory(initialInventory);
         toast.error(result.error || "Failed to update inventory");
       }
-    });
-  };
+    } catch {
+      setLocalInventory(initialInventory);
+      toast.error("Failed to update inventory");
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [isUpdating, onInventoryChange, product.id, initialInventory, router]);
 
   const isActive = localInventory > 0;
 
   return (
     <div
-      className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
+      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 rounded-lg border p-3 transition-colors ${
         isActive ? "border-green-200 bg-green-50" : "bg-white"
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         {product.images?.[0] ? (
           <div className="relative h-10 w-10 flex-shrink-0">
             <Image
@@ -76,31 +87,31 @@ export function ProductInventoryRow({
             />
           </div>
         ) : (
-          <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+          <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0">
             <Package className="h-4 w-4" />
           </div>
         )}
-        <div>
-          <p className="text-sm font-medium">{product.name}</p>
-          <div className="flex items-center gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">{product.name}</p>
+          <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs text-muted-foreground">
               {formatPrice(product.price)}
             </p>
             {lastRestocked && (
               <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-                Last Restocked: {formatLastRestocked(lastRestocked)}
+                Restocked: {formatLastRestocked(lastRestocked)}
               </span>
             )}
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
         <Button
           size="sm"
           variant="outline"
           className="h-8 w-8 p-0"
           onClick={() => handleInventoryChange(localInventory - 1)}
-          disabled={isPending || localInventory <= 0}
+          disabled={isUpdating || localInventory <= 0}
         >
           <Minus className="h-3 w-3" />
         </Button>
@@ -113,14 +124,14 @@ export function ProductInventoryRow({
           }}
           className="h-8 w-16 text-center text-sm"
           min="0"
-          disabled={isPending}
+          disabled={isUpdating}
         />
         <Button
           size="sm"
           variant="outline"
           className="h-8 w-8 p-0"
           onClick={() => handleInventoryChange(localInventory + 1)}
-          disabled={isPending}
+          disabled={isUpdating}
         >
           <Plus className="h-3 w-3" />
         </Button>
