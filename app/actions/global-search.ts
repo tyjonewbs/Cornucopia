@@ -295,6 +295,104 @@ export const globalSearch = cache(async (zipCode: string, searchQuery: string = 
     );
     products.push(...eligibleDeliveryProducts);
 
+    // Also fetch stand-linked products that deliver to the searched zip
+    // (these have marketStandId set so they appear in geo search by location,
+    // but we also want to show them when searching by their delivery zip)
+    const standLinkedDeliveryProducts = await db.product.findMany({
+      where: {
+        isActive: true,
+        status: "APPROVED",
+        marketStandId: { not: null },
+        deliveryAvailable: true,
+        deliveryZone: {
+          zipCodes: { has: zipCode }
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        images: true,
+        inventory: true,
+        tags: true,
+        updatedAt: true,
+        createdAt: true,
+        availableDate: true,
+        availableUntil: true,
+        deliveryAvailable: true,
+        inventoryUpdatedAt: true,
+        deliveryZone: {
+          select: {
+            id: true,
+            name: true,
+            deliveryFee: true,
+            minimumOrder: true,
+            freeDeliveryThreshold: true,
+            zipCodes: true,
+            cities: true,
+            states: true,
+            deliveryDays: true,
+            deliveryType: true,
+          }
+        }
+      }
+    });
+
+    // Transform and add stand-linked delivery products (avoid duplicates)
+    const existingIds = new Set(products.map(p => p.id));
+    for (const product of standLinkedDeliveryProducts) {
+      if (existingIds.has(product.id)) continue; // already in results via geo search
+      const badge = calculateProductBadge({
+        availableDate: product.availableDate,
+        availableUntil: product.availableUntil,
+        totalInventory: product.inventory,
+        inventoryUpdatedAt: product.inventoryUpdatedAt,
+        updatedAt: product.updatedAt,
+        hasMarketStand: true,
+        hasDelivery: true,
+        isMarketStandOpen: undefined,
+        deliveryDays: product.deliveryZone?.deliveryDays || [],
+      });
+      products.push({
+        resultType: 'product',
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        images: product.images,
+        inventory: product.inventory,
+        inventoryUpdatedAt: product.inventoryUpdatedAt?.toISOString() || null,
+        status: 'ACTIVE',
+        userId: '',
+        marketStandId: null,
+        deliveryZoneId: product.deliveryZone?.id || null,
+        tags: product.tags,
+        isActive: true,
+        deliveryAvailable: true,
+        availableDate: product.availableDate?.toISOString() || null,
+        availableUntil: product.availableUntil?.toISOString() || null,
+        createdAt: product.createdAt.toISOString(),
+        updatedAt: product.updatedAt.toISOString(),
+        totalReviews: 0,
+        averageRating: null,
+        distance: 0, // eligible for delivery to this zip
+        locationName: product.deliveryZone?.name || 'Delivery',
+        marketStand: null,
+        availableAt: [],
+        deliveryInfo: product.deliveryZone ? {
+          isAvailable: true,
+          zoneId: product.deliveryZone.id,
+          zoneName: product.deliveryZone.name,
+          deliveryFee: product.deliveryZone.deliveryFee,
+          minimumOrder: product.deliveryZone.minimumOrder,
+          freeDeliveryThreshold: product.deliveryZone.freeDeliveryThreshold,
+          deliveryDays: product.deliveryZone.deliveryDays,
+        } : null,
+        badge,
+      } as SearchResultProduct);
+    }
+
     // Fetch market stands within radius
     const marketStandsData = await db.marketStand.findMany({
       where: {
