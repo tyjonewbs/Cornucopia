@@ -76,17 +76,17 @@ export function ProductImageHeader({ images, productName }: ProductImageHeaderPr
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all" />
           </div>
 
-          {/* 2x2 Image Grid (Right) */}
+          {/* 2x2 Image Grid (Right) — only on desktop, only if multiple images exist */}
           {gridImages.length > 0 && (
-            <div className="grid grid-cols-2 grid-rows-2 gap-3 h-[400px] lg:h-[500px]">
+            <div className="hidden lg:grid grid-cols-2 grid-rows-2 gap-3 h-[400px] lg:h-[500px]">
               {[...Array(4)].map((_, idx) => {
                 const img = gridImages[idx];
                 if (!img) {
-                  // Empty placeholder
+                  // Empty placeholder — only show if at least one real image exists in grid
                   return (
                     <div
                       key={idx}
-                      className="relative w-full h-full rounded-lg bg-gray-100"
+                      className="relative w-full h-full rounded-lg bg-gray-100 hidden"
                     />
                   );
                 }
