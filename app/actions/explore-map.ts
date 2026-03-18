@@ -6,7 +6,7 @@ import { handleDatabaseError } from "@/lib/error-handler";
 import type { Local, MarketStand } from '@prisma/client';
 
 // Types for map items
-export type MapItemType = 'market-stand' | 'local' | 'event';
+export type MapItemType = 'market-stand' | 'local' | 'event' | 'delivery';
 
 export interface MapItem {
   id: string;
@@ -24,12 +24,19 @@ export interface MapItem {
   eventTime?: string;
   // Local-specific fields
   farmName?: string;
+  // Delivery-specific fields
+  deliveryFee?: number;
+  deliveryDays?: string[];
+  deliveryCoverage?: string;
+  nextDeliveryDate?: string;
+  ownerName?: string;
 }
 
 export interface ExploreMapData {
   marketStands: MapItem[];
   locals: MapItem[];
   events: MapItem[];
+  deliveries: MapItem[];
 }
 
 // Event structure expected in Local.events JSON field
@@ -45,33 +52,83 @@ interface LocalEvent {
   longitude?: number;
 }
 
+// Build a human-readable coverage string from zone data
+function formatDeliveryCoverage(cities: string[], states: string[], zipCodes: string[]): string {
+  const parts: string[] = [];
+  if (cities.length > 0) parts.push(cities.slice(0, 3).join(', ') + (cities.length > 3 ? ` +${cities.length - 3} more` : ''));
+  if (states.length > 0) parts.push(states.join(', '));
+  if (zipCodes.length > 0 && parts.length === 0) parts.push(zipCodes.slice(0, 3).join(', ') + (zipCodes.length > 3 ? ` +${zipCodes.length - 3} more` : ''));
+  return parts.join(' · ') || 'Local delivery';
+}
+
 export const getExploreMapData = cache(async (): Promise<ExploreMapData> => {
   try {
-    // Fetch market stands
-    const marketStands = await db.marketStand.findMany({
-      where: {
-        isActive: true,
-        status: 'APPROVED'
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        latitude: true,
-        longitude: true,
-        locationName: true,
-        images: true,
-        tags: true,
-      }
-    });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // Fetch locals (farms) - select all fields since we need slug and tagline which are optional
-    const locals = await db.local.findMany({
-      where: {
-        isActive: true,
-        status: 'APPROVED'
-      },
-    }) as Local[];
+    // Fetch market stands, locals, and delivery zones in parallel
+    const [marketStands, locals, deliveryZones] = await Promise.all([
+      db.marketStand.findMany({
+        where: {
+          isActive: true,
+          status: 'APPROVED'
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          latitude: true,
+          longitude: true,
+          locationName: true,
+          images: true,
+          tags: true,
+        }
+      }),
+
+      db.local.findMany({
+        where: {
+          isActive: true,
+          status: 'APPROVED'
+        },
+      }) as Promise<Local[]>,
+
+      db.deliveryZone.findMany({
+        where: {
+          isActive: true,
+          isSuspended: false,
+          deliveries: {
+            some: {
+              date: { gte: today },
+              status: { in: ['SCHEDULED', 'OPEN'] },
+            },
+          },
+        },
+        include: {
+          user: {
+            include: {
+              marketStands: {
+                where: { isActive: true, status: 'APPROVED' },
+                take: 1,
+                select: { id: true, name: true, latitude: true, longitude: true, locationName: true, images: true },
+              },
+              locals: {
+                where: { isActive: true, status: 'APPROVED' },
+                take: 1,
+                select: { id: true, name: true, slug: true, latitude: true, longitude: true, locationName: true, images: true },
+              },
+            },
+          },
+          deliveries: {
+            where: {
+              date: { gte: today },
+              status: { in: ['SCHEDULED', 'OPEN'] },
+            },
+            orderBy: { date: 'asc' as const },
+            take: 1,
+          },
+        },
+      }),
+    ]);
 
     // Transform market stands
     const marketStandItems: MapItem[] = marketStands.map(stand => ({
@@ -111,16 +168,16 @@ export const getExploreMapData = cache(async (): Promise<ExploreMapData> => {
       if (local.events && typeof local.events === 'object') {
         // Handle events as an object with array of events or as direct array
         const eventsData = local.events as any;
-        const eventList: LocalEvent[] = Array.isArray(eventsData) 
-          ? eventsData 
+        const eventList: LocalEvent[] = Array.isArray(eventsData)
+          ? eventsData
           : (eventsData.events || eventsData.upcoming || []);
-        
+
         for (const event of eventList) {
           if (event && event.name) {
             // Use event-specific location if provided, otherwise use local's location
             const eventLat = event.latitude ?? local.latitude;
             const eventLng = event.longitude ?? local.longitude;
-            
+
             eventItems.push({
               id: event.id || `${local.id}-event-${eventItems.length}`,
               type: 'event' as MapItemType,
@@ -141,19 +198,53 @@ export const getExploreMapData = cache(async (): Promise<ExploreMapData> => {
       }
     }
 
+    // Transform delivery zones - resolve lat/lng from owner's stand or farm
+    const deliveryItems: MapItem[] = [];
+    for (const zone of deliveryZones) {
+      // Prefer market stand location, fall back to farm
+      const stand = zone.user.marketStands[0];
+      const local = zone.user.locals[0];
+      const source = stand || local;
+
+      // Skip if the owner has no mappable location
+      if (!source) continue;
+
+      const nextDelivery = zone.deliveries[0];
+
+      deliveryItems.push({
+        id: zone.id,
+        type: 'delivery' as MapItemType,
+        name: zone.name,
+        description: zone.description || null,
+        latitude: source.latitude,
+        longitude: source.longitude,
+        image: source.images?.[0] || null,
+        href: stand ? `/market-stand/${stand.id}` : `/local/${(local as any).slug || local!.id}`,
+        locationName: source.locationName,
+        tags: [],
+        deliveryFee: zone.deliveryFee,
+        deliveryDays: zone.deliveryDays,
+        deliveryCoverage: formatDeliveryCoverage(zone.cities, zone.states, zone.zipCodes),
+        nextDeliveryDate: nextDelivery ? nextDelivery.date.toISOString() : undefined,
+        ownerName: source.name,
+      });
+    }
+
     return {
       marketStands: marketStandItems,
       locals: localItems,
       events: eventItems,
+      deliveries: deliveryItems,
     };
   } catch (error) {
     const errorData = handleDatabaseError(error, "Failed to fetch explore map data");
     console.error('Error fetching explore map data:', errorData);
-    
+
     return {
       marketStands: [],
       locals: [],
       events: [],
+      deliveries: [],
     };
   }
 });

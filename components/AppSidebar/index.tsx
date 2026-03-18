@@ -37,11 +37,11 @@ export function AppSidebar({
               <span className="sr-only">Open filters</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0">
-            <SheetHeader className="p-4 border-b">
+          <SheetContent side="left" className="w-80 p-0 flex flex-col">
+            <SheetHeader className="p-4 border-b flex-shrink-0">
               <SheetTitle>Filters</SheetTitle>
             </SheetHeader>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               {children}
             </div>
           </SheetContent>

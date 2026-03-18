@@ -18,6 +18,8 @@ export interface GeoProductResult {
   product_images: string[];
   product_inventory: number;
   product_tags: string[];
+  product_admin_tags: string[];
+  product_inventory_updated_at: Date | null;
   product_is_active: boolean;
   product_delivery_available: boolean;
   product_available_date: Date | null;
@@ -46,6 +48,8 @@ export interface GeoSerializedProduct {
   images: string[];
   inventory: number;
   tags: string[];
+  adminTags: string[];
+  inventoryUpdatedAt: string | null;
   isActive: boolean;
   deliveryAvailable: boolean;
   availableDate: string | null;
@@ -223,6 +227,8 @@ export class GeoProductRepository {
       images: row.product_images || [],
       inventory: row.product_inventory,
       tags: row.product_tags || [],
+      adminTags: row.product_admin_tags || [],
+      inventoryUpdatedAt: row.product_inventory_updated_at?.toISOString() || null,
       isActive: row.product_is_active,
       deliveryAvailable: row.product_delivery_available,
       availableDate: row.product_available_date?.toISOString() || null,

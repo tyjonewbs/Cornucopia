@@ -36,6 +36,7 @@ export function NavbarLinks() {
         <Link
           href={item.href}
           key={item.id}
+          aria-current={location === item.href ? "page" : undefined}
           className={cn(
             location === item.href
               ? "text-white font-medium"

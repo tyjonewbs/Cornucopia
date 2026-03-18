@@ -77,13 +77,13 @@ export default function ProductsClient({
   };
 
   return (
-    <div className="flex-1 p-8">
+    <div className="flex-1">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Products</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Products</h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
             </p>
           </div>
@@ -124,11 +124,11 @@ export default function ProductsClient({
                       key={product.id}
                       className="p-4 hover:bg-gray-50 transition-colors"
                     >
-                      <div className="flex items-start gap-4">
+                      <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
                         {/* Product Image & Info */}
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 w-full sm:w-auto">
                           {/* Image */}
-                          <div className="relative w-16 h-16 flex-shrink-0">
+                          <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
                             {product.images[0] ? (
                               <Image
                                 src={product.images[0]}
@@ -149,28 +149,41 @@ export default function ProductsClient({
                             <h3 className="font-semibold text-gray-900 truncate">
                               {product.name}
                             </h3>
-                            <p className="text-lg font-bold text-[#8B4513]">
+                            <p className="text-base sm:text-lg font-bold text-[#8B4513]">
                               {formatPrice(product.price / 100)}
                             </p>
+                          </div>
+
+                          {/* Edit Button - inline on mobile */}
+                          <div className="flex-shrink-0 sm:hidden">
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                            >
+                              <Link href={`/product/${product.id}/edit`}>
+                                <Edit className="h-4 w-4" />
+                              </Link>
+                            </Button>
                           </div>
                         </div>
 
                         {/* Available At */}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-gray-500 mb-2">Available at:</div>
+                        <div className="flex-1 min-w-0 w-full sm:w-auto">
+                          <div className="text-sm text-gray-500 mb-1 sm:mb-2">Available at:</div>
                           {locations.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2">
                               {locations.map((location, idx) => (
                                 <div
                                   key={idx}
-                                  className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-full text-sm"
+                                  className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 bg-gray-100 rounded-full text-xs sm:text-sm"
                                 >
                                   {location.type === 'stand' ? (
-                                    <MapPin className="h-3 w-3 text-gray-600" />
+                                    <MapPin className="h-3 w-3 text-gray-600 flex-shrink-0" />
                                   ) : (
-                                    <Truck className="h-3 w-3 text-blue-600" />
+                                    <Truck className="h-3 w-3 text-blue-600 flex-shrink-0" />
                                   )}
-                                  <span className="text-gray-700">
+                                  <span className="text-gray-700 truncate max-w-[150px] sm:max-w-none">
                                     {location.name}
                                   </span>
                                   <span className="text-gray-500">
@@ -184,13 +197,13 @@ export default function ProductsClient({
                               No fulfillment options set
                             </div>
                           )}
-                          <div className="text-xs text-gray-500 mt-2">
+                          <div className="text-xs text-gray-500 mt-1 sm:mt-2">
                             Total inventory: {totalInventory}
                           </div>
                         </div>
 
-                        {/* Edit Button */}
-                        <div className="flex-shrink-0">
+                        {/* Edit Button - desktop only */}
+                        <div className="flex-shrink-0 hidden sm:block">
                           <Button
                             asChild
                             variant="outline"

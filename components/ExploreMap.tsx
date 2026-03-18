@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Libraries } from '@react-google-maps/api';
 import Link from 'next/link';
-import { Store, Wheat, Calendar, MapPin, Navigation, Menu, Filter } from 'lucide-react';
+import { Store, Wheat, Calendar, Truck, MapPin, Navigation, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -64,25 +64,76 @@ const mapOptions: google.maps.MapOptions = {
   ]
 };
 
-// Marker icons by type
-const getMarkerIcon = (type: MapItemType, isSelected: boolean): google.maps.Symbol => {
-  const colors = {
-    'market-stand': { fill: '#10B981', stroke: '#059669' }, // emerald
-    'local': { fill: '#F59E0B', stroke: '#D97706' }, // amber
-    'event': { fill: '#8B5CF6', stroke: '#7C3AED' }, // violet
+// Max distance in miles for "nearby" geofence
+const NEARBY_RADIUS_MILES = 30;
+
+// SVG data URI marker icons with a white circle + crisp icon inside a colored pin
+const createMarkerSvg = (type: MapItemType, isSelected: boolean): string => {
+  const colors: Record<MapItemType, { fill: string; stroke: string }> = {
+    'market-stand': { fill: '#10B981', stroke: '#059669' },
+    'local': { fill: '#F59E0B', stroke: '#D97706' },
+    'event': { fill: '#8B5CF6', stroke: '#7C3AED' },
+    'delivery': { fill: '#F43F5E', stroke: '#E11D48' },
   };
-  
+
   const { fill, stroke } = colors[type];
-  const scale = isSelected ? 1.3 : 1;
-  
+
+  // Icons drawn at center (24, 19) inside a white circle, using simple strokes
+  // viewBox is 48x62 so we have plenty of resolution
+  const iconPaths: Record<MapItemType, string> = {
+    // Store: awning roof + building body
+    'market-stand': `
+      <path d="M16 16h16v2.5c0 1-0.8 1.8-1.8 1.8s-1.8-0.8-1.8-1.8h0c0 1-0.8 1.8-1.8 1.8s-1.8-0.8-1.8-1.8h0c0 1-0.8 1.8-1.8 1.8s-1.8-0.8-1.8-1.8h0c0 1-0.8 1.8-1.8 1.8s-1.8-0.8-1.8-1.8h0c0 1-0.8 1.8-1.8 1.8S16 19.5 16 18.5z" fill="${fill}" opacity="0.9"/>
+      <rect x="17" y="21" width="14" height="7" rx="0.5" fill="none" stroke="${fill}" stroke-width="1.5"/>
+      <rect x="21" y="23" width="6" height="5" rx="0.3" fill="${fill}" opacity="0.3"/>`,
+    // Farm: leaf shape
+    'local': `
+      <path d="M24 13c-5 0-9 4-9 9c3 0 6-1 8-3c-1 2-1 4-1 6" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M24 13c5 0 9 4 9 9c-3 0-6-1-8-3" fill="none" stroke="${fill}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    // Event: calendar
+    'event': `
+      <rect x="17" y="15" width="14" height="12" rx="2" fill="none" stroke="${fill}" stroke-width="1.5"/>
+      <line x1="17" y1="20" x2="31" y2="20" stroke="${fill}" stroke-width="1.5"/>
+      <line x1="21" y1="13" x2="21" y2="17" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="27" y1="13" x2="27" y2="17" stroke="${fill}" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="21.5" cy="23.5" r="1" fill="${fill}"/>
+      <circle cx="26.5" cy="23.5" r="1" fill="${fill}"/>`,
+    // Delivery: truck
+    'delivery': `
+      <rect x="14" y="16" width="13" height="9" rx="1" fill="none" stroke="${fill}" stroke-width="1.5"/>
+      <path d="M27 19h4l3 3.5V25h-7z" fill="none" stroke="${fill}" stroke-width="1.5" stroke-linejoin="round"/>
+      <circle cx="19" cy="26.5" r="2" fill="none" stroke="${fill}" stroke-width="1.3"/>
+      <circle cx="31" cy="26.5" r="2" fill="none" stroke="${fill}" stroke-width="1.3"/>
+      <line x1="21" y1="26.5" x2="29" y2="26.5" stroke="${fill}" stroke-width="1.3"/>`,
+  };
+
+  const w = isSelected ? 48 : 40;
+  const h = isSelected ? 62 : 52;
+  const scale = isSelected ? 1 : 0.833;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 48 62">
+    <defs>
+      <filter id="s" x="-20%" y="-10%" width="140%" height="130%">
+        <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000" flood-opacity="0.25"/>
+      </filter>
+    </defs>
+    <g transform="scale(${scale})" transform-origin="24 31" filter="url(#s)">
+      <path d="M24 2C14.6 2 7 9.6 7 19c0 11.5 17 28 17 28s17-16.5 17-28C41 9.6 33.4 2 24 2z" fill="${fill}" stroke="${stroke}" stroke-width="2"/>
+      <circle cx="24" cy="19" r="13" fill="white"/>
+      ${iconPaths[type]}
+    </g>
+  </svg>`;
+
+  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+};
+
+const getMarkerIcon = (type: MapItemType, isSelected: boolean): google.maps.Icon => {
+  const w = isSelected ? 48 : 40;
+  const h = isSelected ? 62 : 52;
   return {
-    path: 'M12 0C7.31 0 3.5 3.81 3.5 8.5C3.5 14.88 12 24 12 24S20.5 14.88 20.5 8.5C20.5 3.81 16.69 0 12 0ZM12 11.5C10.34 11.5 9 10.16 9 8.5C9 6.84 10.34 5.5 12 5.5C13.66 5.5 15 6.84 15 8.5C15 10.16 13.66 11.5 12 11.5Z',
-    fillColor: fill,
-    fillOpacity: 1,
-    strokeWeight: 2,
-    strokeColor: stroke,
-    scale: scale,
-    anchor: new google.maps.Point(12, 24),
+    url: createMarkerSvg(type, isSelected),
+    scaledSize: new google.maps.Size(w, h),
+    anchor: new google.maps.Point(w / 2, h),
   };
 };
 
@@ -95,6 +146,8 @@ const TypeIcon = ({ type, className }: { type: MapItemType; className?: string }
       return <Wheat className={cn("h-4 w-4", className)} />;
     case 'event':
       return <Calendar className={cn("h-4 w-4", className)} />;
+    case 'delivery':
+      return <Truck className={cn("h-4 w-4", className)} />;
   }
 };
 
@@ -103,12 +156,14 @@ const typeColors: Record<MapItemType, string> = {
   'market-stand': 'bg-emerald-100 text-emerald-800 border-emerald-200',
   'local': 'bg-amber-100 text-amber-800 border-amber-200',
   'event': 'bg-violet-100 text-violet-800 border-violet-200',
+  'delivery': 'bg-rose-100 text-rose-800 border-rose-200',
 };
 
 const typeLabels: Record<MapItemType, string> = {
   'market-stand': 'Market Stand',
   'local': 'Farm',
   'event': 'Event',
+  'delivery': 'Delivery',
 };
 
 export default function ExploreMap({ 
@@ -120,9 +175,10 @@ export default function ExploreMap({
 }: ExploreMapProps) {
   const [selectedItem, setSelectedItem] = useState<MapItem | null>(null);
   const [activeFilters, setActiveFilters] = useState<Set<MapItemType>>(
-    () => new Set<MapItemType>(['market-stand', 'local', 'event'])
+    () => new Set<MapItemType>(['market-stand', 'local', 'event', 'delivery'])
   );
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [showAllPlaces, setShowAllPlaces] = useState(false);
   
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   
@@ -138,6 +194,7 @@ export default function ExploreMap({
       ...data.marketStands,
       ...data.locals,
       ...data.events,
+      ...data.deliveries,
     ];
     return items.filter(item => activeFilters.has(item.type));
   }, [data, activeFilters]);
@@ -152,6 +209,17 @@ export default function ExploreMap({
     });
   }, [allItems, userLocation]);
 
+  // Geofenced nearby items (within radius)
+  const nearbyItems = useMemo(() => {
+    if (!userLocation || showAllPlaces) return sortedItems;
+    return sortedItems.filter(item => {
+      const distMiles = kmToMiles(calculateDistance(
+        userLocation.lat, userLocation.lng, item.latitude, item.longitude
+      ));
+      return distMiles <= NEARBY_RADIUS_MILES;
+    });
+  }, [sortedItems, userLocation, showAllPlaces]);
+
   // Default center (US center) or user location
   const center = useMemo(() => {
     if (userLocation) return userLocation;
@@ -163,17 +231,45 @@ export default function ExploreMap({
 
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-    
+
     if (allItems.length === 0) return;
-    
-    const bounds = new google.maps.LatLngBounds();
-    allItems.forEach(item => {
-      bounds.extend({ lat: item.latitude, lng: item.longitude });
-    });
+
     if (userLocation) {
-      bounds.extend(userLocation);
+      // When we have user location, zoom in close to them and only fit nearby items
+      const nearbyForBounds = allItems.filter(item => {
+        const distMiles = kmToMiles(calculateDistance(
+          userLocation.lat, userLocation.lng, item.latitude, item.longitude
+        ));
+        return distMiles <= NEARBY_RADIUS_MILES;
+      });
+
+      if (nearbyForBounds.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(userLocation);
+        nearbyForBounds.forEach(item => {
+          bounds.extend({ lat: item.latitude, lng: item.longitude });
+        });
+        mapInstance.fitBounds(bounds, 50);
+        // Ensure we don't zoom out too far even with spread-out nearby items
+        google.maps.event.addListenerOnce(mapInstance, 'idle', () => {
+          const zoom = mapInstance.getZoom();
+          if (zoom && zoom < 10) {
+            mapInstance.setZoom(10);
+          }
+        });
+      } else {
+        // No nearby items, just center on user at city level
+        mapInstance.setCenter(userLocation);
+        mapInstance.setZoom(12);
+      }
+    } else {
+      // No user location - fit all items
+      const bounds = new google.maps.LatLngBounds();
+      allItems.forEach(item => {
+        bounds.extend({ lat: item.latitude, lng: item.longitude });
+      });
+      mapInstance.fitBounds(bounds, 50);
     }
-    mapInstance.fitBounds(bounds, 50);
   }, [allItems, userLocation]);
 
   const toggleFilter = (type: MapItemType) => {
@@ -207,6 +303,7 @@ export default function ExploreMap({
     'market-stand': data.marketStands.length,
     'local': data.locals.length,
     'event': data.events.length,
+    'delivery': data.deliveries.length,
   }), [data]);
 
   if (!isLoaded) {
@@ -225,7 +322,7 @@ export default function ExploreMap({
       {/* Desktop Filter Pills - Fixed at top, hidden on mobile */}
       <div className="absolute top-4 left-0 right-0 z-10 px-4 hidden md:block">
         <div className="flex gap-2">
-          {(['market-stand', 'local', 'event'] as MapItemType[]).map(type => (
+          {(['market-stand', 'local', 'event', 'delivery'] as MapItemType[]).map(type => (
             <button
               key={type}
               onClick={() => toggleFilter(type)}
@@ -269,7 +366,7 @@ export default function ExploreMap({
                   Show on Map
                 </p>
                 <div className="space-y-2">
-                  {(['market-stand', 'local', 'event'] as MapItemType[]).map(type => (
+                  {(['market-stand', 'local', 'event', 'delivery'] as MapItemType[]).map(type => (
                     <button
                       key={type}
                       onClick={() => toggleFilter(type)}
@@ -292,11 +389,21 @@ export default function ExploreMap({
               
               {/* List of places */}
               <div className="flex-1 overflow-y-auto p-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  {sortedItems.length} Places Nearby
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {nearbyItems.length} Places {userLocation && !showAllPlaces ? `Within ${NEARBY_RADIUS_MILES} mi` : 'Nearby'}
+                  </p>
+                  {userLocation && sortedItems.length !== nearbyItems.length && (
+                    <button
+                      onClick={() => setShowAllPlaces(!showAllPlaces)}
+                      className="text-xs text-primary font-medium hover:underline"
+                    >
+                      {showAllPlaces ? 'Show nearby' : `Show all (${sortedItems.length})`}
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-2">
-                  {sortedItems.map(item => (
+                  {nearbyItems.map(item => (
                     <SheetClose asChild key={`${item.type}-${item.id}`}>
                       <button
                         onClick={() => handleMarkerClick(item)}
@@ -314,12 +421,14 @@ export default function ExploreMap({
                             item.type === 'market-stand' && "bg-emerald-100",
                             item.type === 'local' && "bg-amber-100",
                             item.type === 'event' && "bg-violet-100",
+                            item.type === 'delivery' && "bg-rose-100",
                           )}>
                             <TypeIcon type={item.type} className={cn(
                               "h-5 w-5",
                               item.type === 'market-stand' && "text-emerald-600",
                               item.type === 'local' && "text-amber-600",
                               item.type === 'event' && "text-violet-600",
+                              item.type === 'delivery' && "text-rose-600",
                             )} />
                           </div>
                         )}
@@ -346,6 +455,17 @@ export default function ExploreMap({
                             <p className="text-xs text-violet-700 font-medium mt-0.5">
                               <Calendar className="h-3 w-3 inline mr-1" />
                               {item.eventDate}
+                            </p>
+                          )}
+                          {item.type === 'delivery' && item.nextDeliveryDate && (
+                            <p className="text-xs text-rose-700 font-medium mt-0.5">
+                              <Truck className="h-3 w-3 inline mr-1" />
+                              Next: {new Date(item.nextDeliveryDate).toLocaleDateString()}
+                            </p>
+                          )}
+                          {item.type === 'delivery' && item.deliveryCoverage && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                              Delivers to: {item.deliveryCoverage}
                             </p>
                           )}
                         </div>
@@ -420,6 +540,36 @@ export default function ExploreMap({
                   {selectedItem.eventTime && ` at ${selectedItem.eventTime}`}
                 </p>
               )}
+              {selectedItem.type === 'delivery' && (
+                <div className="text-sm space-y-1 mb-2">
+                  {selectedItem.ownerName && (
+                    <p className="text-gray-600 font-medium">From: {selectedItem.ownerName}</p>
+                  )}
+                  {selectedItem.deliveryCoverage && (
+                    <p className="text-gray-600">
+                      <MapPin className="h-3 w-3 inline mr-1" />
+                      Delivers to: {selectedItem.deliveryCoverage}
+                    </p>
+                  )}
+                  {selectedItem.deliveryDays && selectedItem.deliveryDays.length > 0 && (
+                    <p className="text-gray-600">
+                      Days: {selectedItem.deliveryDays.join(', ')}
+                    </p>
+                  )}
+                  {selectedItem.deliveryFee !== undefined && (
+                    <p className="text-rose-700 font-medium">
+                      {selectedItem.deliveryFee === 0
+                        ? 'Free delivery'
+                        : `Delivery: $${(selectedItem.deliveryFee / 100).toFixed(2)}`}
+                    </p>
+                  )}
+                  {selectedItem.nextDeliveryDate && (
+                    <p className="text-rose-700 font-medium">
+                      Next delivery: {new Date(selectedItem.nextDeliveryDate).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              )}
               {userLocation && (
                 <p className="text-sm text-primary font-medium mb-3">
                   {kmToMiles(calculateDistance(
@@ -473,10 +623,22 @@ export default function ExploreMap({
       {/* Desktop Sidebar - hidden on mobile */}
       <div className="hidden md:block absolute top-20 right-4 bottom-4 w-80 bg-white rounded-lg shadow-lg overflow-hidden z-10">
         <div className="p-4 border-b">
-          <h3 className="font-semibold">{sortedItems.length} places nearby</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">
+              {nearbyItems.length} places {userLocation && !showAllPlaces ? `within ${NEARBY_RADIUS_MILES} mi` : 'nearby'}
+            </h3>
+            {userLocation && sortedItems.length !== nearbyItems.length && (
+              <button
+                onClick={() => setShowAllPlaces(!showAllPlaces)}
+                className="text-xs text-primary font-medium hover:underline"
+              >
+                {showAllPlaces ? 'Show nearby' : `All (${sortedItems.length})`}
+              </button>
+            )}
+          </div>
         </div>
         <div className="overflow-y-auto h-[calc(100%-60px)]">
-          {sortedItems.map(item => (
+          {nearbyItems.map(item => (
             <button
               key={`${item.type}-${item.id}`}
               onClick={() => handleMarkerClick(item)}
@@ -497,12 +659,14 @@ export default function ExploreMap({
                   item.type === 'market-stand' && "bg-emerald-100",
                   item.type === 'local' && "bg-amber-100",
                   item.type === 'event' && "bg-violet-100",
+                  item.type === 'delivery' && "bg-rose-100",
                 )}>
                   <TypeIcon type={item.type} className={cn(
                     "h-6 w-6",
                     item.type === 'market-stand' && "text-emerald-600",
                     item.type === 'local' && "text-amber-600",
                     item.type === 'event' && "text-violet-600",
+                    item.type === 'delivery' && "text-rose-600",
                   )} />
                 </div>
               )}
@@ -532,6 +696,17 @@ export default function ExploreMap({
                   <p className="text-xs text-violet-700 font-medium mt-1">
                     <Calendar className="h-3 w-3 inline mr-1" />
                     {item.eventDate}
+                  </p>
+                )}
+                {item.type === 'delivery' && item.nextDeliveryDate && (
+                  <p className="text-xs text-rose-700 font-medium mt-1">
+                    <Truck className="h-3 w-3 inline mr-1" />
+                    Next: {new Date(item.nextDeliveryDate).toLocaleDateString()}
+                  </p>
+                )}
+                {item.type === 'delivery' && item.deliveryCoverage && (
+                  <p className="text-xs text-muted-foreground truncate mt-1">
+                    Delivers to: {item.deliveryCoverage}
                   </p>
                 )}
               </div>

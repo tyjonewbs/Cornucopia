@@ -112,7 +112,7 @@ export function ProductCard({
                 className="flex items-start gap-1 text-sm hover:text-primary transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
-                <span className="text-gray-500 mt-0.5">📍</span>
+                <span className="text-gray-500 mt-0.5" aria-hidden="true">📍</span>
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{availableAt[0].name}</p>
                   <p className="text-xs text-gray-600">
@@ -158,7 +158,7 @@ export function ProductCard({
                       {deliveryTimings.map((timing, index) => (
                         <div key={index} className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
-                            <span className="text-gray-500">🚚</span>
+                            <span className="text-gray-500" aria-hidden="true">🚚</span>
                             <p className="text-gray-600 text-sm font-medium">Delivery Only</p>
                           </div>
                           <p className="text-sm text-primary font-medium">{timing}</p>
@@ -167,7 +167,7 @@ export function ProductCard({
                     </div>
                   ) : (
                     <div className="flex items-center gap-1">
-                      <span className="text-gray-500">🚚</span>
+                      <span className="text-gray-500" aria-hidden="true">🚚</span>
                       <p className="text-gray-600 text-sm font-medium">Delivery Only</p>
                     </div>
                   );
@@ -180,7 +180,7 @@ export function ProductCard({
           {deliveryInfo?.isAvailable && (
             <div className="mt-2 bg-green-50 border border-green-200 rounded-md p-2">
               <div className="flex items-start gap-1 text-sm">
-                <span className="text-green-600 mt-0.5">🚚</span>
+                <span className="text-green-600 mt-0.5" aria-hidden="true">🚚</span>
                 <div className="flex-1">
                   <p className="font-medium text-green-900">
                     {deliveryInfo.zoneName || 'Delivery Available'}

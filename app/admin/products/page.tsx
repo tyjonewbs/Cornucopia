@@ -19,6 +19,8 @@ async function getProductsData() {
       totalReviews: true,
       deliveryAvailable: true,
       tags: true,
+      adminTags: true,
+      inventoryUpdatedAt: true,
       user: {
         select: {
           firstName: true,

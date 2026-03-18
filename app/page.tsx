@@ -38,12 +38,12 @@ async function HomeDataLoader() {
     }
     
     // Query timed out - render empty state
-    return <HomeClient initialData={{ products: [], stands: [], farms: [] }} />;
+    return <HomeClient initialData={{ products: [], stands: [], farms: [], events: [], deliveryZones: [] }} />;
   } catch (error: unknown) {
     console.error('Failed to load home data:', error);
     
     // Complete failure - render empty state
-    return <HomeClient initialData={{ products: [], stands: [], farms: [] }} />;
+    return <HomeClient initialData={{ products: [], stands: [], farms: [], events: [], deliveryZones: [] }} />;
   }
 }
 

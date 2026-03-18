@@ -24,7 +24,7 @@ export function CartView({ cart }: CartViewProps) {
   if (!cart || cart.items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
+        <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" aria-hidden="true" />
         <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
         <p className="text-muted-foreground mb-6">
           Browse products and add items to get started.
@@ -178,7 +178,7 @@ function CartGroupCard({
       <div className="bg-muted/50 px-4 py-3 flex items-center gap-2 border-b">
         {isDelivery ? (
           <>
-            <Truck className="h-4 w-4 text-muted-foreground" />
+            <Truck className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <span className="text-sm font-medium">
               Delivery {group.deliveryZone ? `- ${group.deliveryZone.name}` : ""}
             </span>
@@ -190,7 +190,7 @@ function CartGroupCard({
           </>
         ) : (
           <>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <span className="text-sm font-medium">
               Pickup {group.marketStand ? `- ${group.marketStand.name}` : ""}
             </span>
@@ -241,12 +241,13 @@ function CartGroupCard({
                     variant="outline"
                     size="icon"
                     className="h-7 w-7"
+                    aria-label={`Decrease quantity of ${item.product.name}`}
                     disabled={isUpdating || item.quantity <= 1}
                     onClick={() =>
                       onUpdateQuantity(item.id, item.quantity - 1)
                     }
                   >
-                    <Minus className="h-3 w-3" />
+                    <Minus className="h-3 w-3" aria-hidden="true" />
                   </Button>
                   <span className="text-sm font-medium w-8 text-center">
                     {isUpdating ? (
@@ -259,6 +260,7 @@ function CartGroupCard({
                     variant="outline"
                     size="icon"
                     className="h-7 w-7"
+                    aria-label={`Increase quantity of ${item.product.name}`}
                     disabled={
                       isUpdating || item.quantity >= item.product.inventory
                     }
@@ -266,17 +268,18 @@ function CartGroupCard({
                       onUpdateQuantity(item.id, item.quantity + 1)
                     }
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus className="h-3 w-3" aria-hidden="true" />
                   </Button>
 
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive hover:text-destructive ml-auto"
+                    aria-label={`Remove ${item.product.name} from cart`}
                     disabled={isUpdating}
                     onClick={() => onRemoveItem(item.id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   </Button>
                 </div>
               </div>

@@ -118,7 +118,7 @@ export function UserNav() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="relative h-8 w-8">
+          <Button variant="ghost" size="sm" className="relative h-8 w-8" aria-label="User menu">
             <Avatar>
               <AvatarImage
                 src={profileImage || user?.user_metadata?.avatar_url || ''}

@@ -54,21 +54,21 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-start space-x-3">
-                  <Mail className="h-5 w-5 text-green-600 mt-0.5" />
+                  <Mail className="h-5 w-5 text-green-600 mt-0.5" aria-hidden="true" />
                   <div>
                     <p className="font-medium text-gray-900">Email</p>
                     <p className="text-sm text-gray-600">support@cornucopia.com</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <Phone className="h-5 w-5 text-green-600 mt-0.5" />
+                  <Phone className="h-5 w-5 text-green-600 mt-0.5" aria-hidden="true" />
                   <div>
                     <p className="font-medium text-gray-900">Phone</p>
                     <p className="text-sm text-gray-600">(555) 123-4567</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <MapPin className="h-5 w-5 text-green-600 mt-0.5" />
+                  <MapPin className="h-5 w-5 text-green-600 mt-0.5" aria-hidden="true" />
                   <div>
                     <p className="font-medium text-gray-900">Address</p>
                     <p className="text-sm text-gray-600">123 Farm Lane<br />Agricultural District</p>
@@ -80,7 +80,7 @@ export default function ContactPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-green-600" />
+                  <MessageSquare className="h-5 w-5 text-green-600" aria-hidden="true" />
                   Response Time
                 </CardTitle>
               </CardHeader>
@@ -118,7 +118,7 @@ export default function ContactPage() {
                       </SelectContent>
                     </Select>
                     {state.errors?.category && (
-                      <p className="text-sm text-red-500">{state.errors.category[0]}</p>
+                      <p role="alert" className="text-sm text-red-500">{state.errors.category[0]}</p>
                     )}
                   </div>
 
@@ -133,7 +133,7 @@ export default function ContactPage() {
                       required
                     />
                     {state.errors?.name && (
-                      <p className="text-sm text-red-500">{state.errors.name[0]}</p>
+                      <p role="alert" className="text-sm text-red-500">{state.errors.name[0]}</p>
                     )}
                   </div>
 
@@ -148,7 +148,7 @@ export default function ContactPage() {
                       required
                     />
                     {state.errors?.email && (
-                      <p className="text-sm text-red-500">{state.errors.email[0]}</p>
+                      <p role="alert" className="text-sm text-red-500">{state.errors.email[0]}</p>
                     )}
                   </div>
 
@@ -163,7 +163,7 @@ export default function ContactPage() {
                       required
                     />
                     {state.errors?.subject && (
-                      <p className="text-sm text-red-500">{state.errors.subject[0]}</p>
+                      <p role="alert" className="text-sm text-red-500">{state.errors.subject[0]}</p>
                     )}
                   </div>
 
@@ -178,7 +178,7 @@ export default function ContactPage() {
                       required
                     />
                     {state.errors?.message && (
-                      <p className="text-sm text-red-500">{state.errors.message[0]}</p>
+                      <p role="alert" className="text-sm text-red-500">{state.errors.message[0]}</p>
                     )}
                   </div>
 

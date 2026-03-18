@@ -110,12 +110,12 @@ export function SearchFilters({
     }
   }, [zipCode, setLocationZipCode]);
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
+  const toggleSection = useCallback((section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
-  };
+  }, []);
   
   const handleZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 5);
@@ -326,6 +326,7 @@ export function SearchFilters({
         {/* Result Type Section */}
         <div className="border-t border-gray-200 pt-4">
           <button
+            type="button"
             onClick={() => toggleSection("resultType")}
             className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2"
           >
@@ -344,6 +345,7 @@ export function SearchFilters({
                 const isActive = filters.resultType === type.value;
                 return (
                   <button
+                    type="button"
                     key={type.value}
                     onClick={() => handleResultTypeChange(type.value)}
                     className={`flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -369,6 +371,7 @@ export function SearchFilters({
         {/* Categories Section */}
         <div className="border-t border-gray-200 pt-4">
           <button
+            type="button"
             onClick={() => toggleSection("categories")}
             className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2"
           >
@@ -405,6 +408,7 @@ export function SearchFilters({
         {/* Distance Section */}
         <div className="border-t border-gray-200 pt-4">
           <button
+            type="button"
             onClick={() => toggleSection("distance")}
             className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2"
           >
@@ -432,6 +436,7 @@ export function SearchFilters({
               <div className="flex flex-wrap gap-2">
                 {DISTANCE_PRESETS.map((preset) => (
                   <button
+                    type="button"
                     key={preset.value}
                     onClick={() => handleDistanceChange([preset.value])}
                     className={`px-2 py-1 text-xs rounded-full border transition-colors ${
@@ -451,6 +456,7 @@ export function SearchFilters({
         {/* Price Range Section */}
         <div className="border-t border-gray-200 pt-4">
           <button
+            type="button"
             onClick={() => toggleSection("price")}
             className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2"
           >
@@ -509,6 +515,7 @@ export function SearchFilters({
         {/* Fulfillment Section */}
         <div className="border-t border-gray-200 pt-4">
           <button
+            type="button"
             onClick={() => toggleSection("fulfillment")}
             className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2"
           >

@@ -124,19 +124,19 @@ export function HoursInput({ value, onChange }: HoursInputProps) {
           {value[day].isOpen && (
             <div className="pl-4 space-y-4">
               {value[day].timeSlots.map((timeSlot, index) => (
-                <div key={index} className="flex items-center gap-4">
+                <div key={index} className="flex flex-wrap items-center gap-2 sm:gap-4">
                   <Input
                     type="time"
                     value={timeSlot.open}
                     onChange={(e) => updateTimeSlot(day, index, 'open', e.target.value)}
-                    className="w-32"
+                    className="w-[7.5rem] sm:w-32"
                   />
-                  <span>to</span>
+                  <span className="text-sm">to</span>
                   <Input
                     type="time"
                     value={timeSlot.close}
                     onChange={(e) => updateTimeSlot(day, index, 'close', e.target.value)}
-                    className="w-32"
+                    className="w-[7.5rem] sm:w-32"
                   />
                   <Button
                     type="button"
