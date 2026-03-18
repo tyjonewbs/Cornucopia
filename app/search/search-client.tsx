@@ -220,7 +220,7 @@ export default function SearchClient({ results, zipCode, searchQuery = '' }: Sea
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
             {filteredResults.map((result) => {
               if (result.resultType === 'product') {
                 // Cast to any to bypass type checking - the data is correct at runtime

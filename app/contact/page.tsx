@@ -48,8 +48,8 @@ export default function ContactPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl">Get in Touch</CardTitle>
-                <CardDescription>
-                  We're here to help and answer any questions you might have
+                <CardDescription className="text-gray-600">
+                  We're here to help and answer any questions you might have.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -80,7 +80,9 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600">
-                  We typically respond to all inquiries within 24-48 hours during business days.
+                  We typically respond to all inquiries within{' '}
+                  <span className="whitespace-nowrap">24-48 hours</span>{' '}
+                  during business days.
                 </p>
               </CardContent>
             </Card>
