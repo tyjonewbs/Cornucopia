@@ -6,11 +6,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, X, Search, Package, Store, Sprout, MapPin } from "lucide-react";
+import { ChevronDown, ChevronUp, X, Search, Package, Store, Sprout, MapPin, Calendar } from "lucide-react";
 import { useLocation } from "@/components/providers/LocationProvider";
 import { useRouter } from "next/navigation";
 
-export type ResultType = 'all' | 'products' | 'stands' | 'farms';
+export type ResultType = 'all' | 'products' | 'stands' | 'farms' | 'events';
 
 export interface SearchFilterState {
   resultType: ResultType;
@@ -32,6 +32,7 @@ export interface SearchFiltersProps {
     products: number;
     stands: number;
     farms: number;
+    events: number;
   };
 }
 
@@ -61,6 +62,7 @@ const RESULT_TYPES: { value: ResultType; label: string; icon: typeof Package }[]
   { value: "products", label: "Products", icon: Package },
   { value: "stands", label: "Market Stands", icon: Store },
   { value: "farms", label: "Farms", icon: Sprout },
+  { value: "events", label: "Events", icon: Calendar },
 ];
 
 export const DEFAULT_SEARCH_FILTERS: SearchFilterState = {

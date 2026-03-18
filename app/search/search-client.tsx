@@ -2,12 +2,15 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
 import { ProductCard } from '@/components/ProductCard';
 import { MarketStandCard } from '@/components/MarketStandCard';
 import { LocalCard } from '@/components/LocalCard';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SearchFilters, SearchFilterState, DEFAULT_SEARCH_FILTERS } from '@/components/SearchFilters';
-import type { GlobalSearchResults, SearchResult } from '@/app/actions/global-search';
+import type { GlobalSearchResults, SearchResult, SearchResultEvent } from '@/app/actions/global-search';
+import Link from 'next/link';
+import Image from 'next/image';
 
 interface SearchClientProps {
   results: GlobalSearchResults;
@@ -15,11 +18,59 @@ interface SearchClientProps {
   searchQuery?: string;
 }
 
+// Event card component for search results
+function EventSearchCard({ event, formatDistance }: { event: SearchResultEvent; formatDistance: (distance: number | null) => string }) {
+  const startDate = new Date(event.startDate);
+  const endDate = new Date(event.endDate);
+  const isSameDay = format(startDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+
+  const dateDisplay = isSameDay
+    ? format(startDate, 'MMM d, yyyy')
+    : `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;
+
+  return (
+    <Link href={event.href} className="block group">
+      <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+        {event.images.length > 0 ? (
+          <Image
+            src={event.images[0]}
+            alt={event.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-200"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        )}
+        {event.distance !== null && (
+          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium">
+            {formatDistance(event.distance)}
+          </div>
+        )}
+      </div>
+      <div className="mt-2">
+        <h3 className="font-semibold text-sm md:text-base line-clamp-2 group-hover:text-[#E07A2D] transition-colors">
+          {event.name}
+        </h3>
+        <p className="text-xs md:text-sm text-muted-foreground mt-1">
+          {dateDisplay}
+        </p>
+        <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">
+          {event.locationName}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
 export default function SearchClient({ results, zipCode, searchQuery = '' }: SearchClientProps) {
   const router = useRouter();
   const [filters, setFilters] = useState<SearchFilterState>(DEFAULT_SEARCH_FILTERS);
 
-  const { products, marketStands, farms, location } = results;
+  const { products, marketStands, farms, events, location } = results;
 
   // Format distance for display
   const formatDistance = (distanceKm: number | null): string => {
@@ -36,20 +87,22 @@ export default function SearchClient({ results, zipCode, searchQuery = '' }: Sea
 
     // Filter by result type
     if (filters.resultType === 'all') {
-      allResults = [...products, ...marketStands, ...farms];
+      allResults = [...products, ...marketStands, ...farms, ...events];
     } else if (filters.resultType === 'products') {
       allResults = [...products];
     } else if (filters.resultType === 'stands') {
       allResults = [...marketStands];
     } else if (filters.resultType === 'farms') {
       allResults = [...farms];
+    } else if (filters.resultType === 'events') {
+      allResults = [...events];
     }
 
     // Apply category filter - normalize hyphens/special chars for matching
     if (filters.categories.length > 0) {
       const normalize = (s: string) => s.toLowerCase().replace(/[-&]/g, ' ').replace(/\s+/g, ' ').trim();
       allResults = allResults.filter((result) => {
-        // Only products and market stands have tags, farms don't
+        // Only products, market stands, and events have tags; farms don't
         if (result.resultType === 'farm') return false;
         const tags = result.tags?.map((t: string) => normalize(t)) || [];
         return filters.categories.some((cat) => {
@@ -103,7 +156,7 @@ export default function SearchClient({ results, zipCode, searchQuery = '' }: Sea
       const distB = b.distance ?? Infinity;
       return distA - distB;
     });
-  }, [products, marketStands, farms, filters]);
+  }, [products, marketStands, farms, events, filters]);
 
   const handleSearchClear = useCallback(() => {
     // Navigate back to search page without query parameter
@@ -116,11 +169,12 @@ export default function SearchClient({ results, zipCode, searchQuery = '' }: Sea
 
   // Calculate counts for sidebar
   const counts = useMemo(() => ({
-    all: products.length + marketStands.length + farms.length,
+    all: products.length + marketStands.length + farms.length + events.length,
     products: products.length,
     stands: marketStands.length,
     farms: farms.length,
-  }), [products.length, marketStands.length, farms.length]);
+    events: events.length,
+  }), [products.length, marketStands.length, farms.length, events.length]);
 
   if (!location) {
     return (
@@ -191,6 +245,14 @@ export default function SearchClient({ results, zipCode, searchQuery = '' }: Sea
                       </div>
                     )}
                   </div>
+                );
+              } else if (result.resultType === 'event') {
+                return (
+                  <EventSearchCard
+                    key={`event-${result.id}`}
+                    event={result}
+                    formatDistance={formatDistance}
+                  />
                 );
               } else {
                 return (

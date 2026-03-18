@@ -2,6 +2,7 @@ import prisma from "@/lib/db";
 import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
 import { MapPin, Package, Clock, Navigation, Globe, Twitter, Instagram, Facebook, Youtube, Linkedin } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { WeeklyHours, DAYS_OF_WEEK } from "@/types/hours";
 import { ProductCard } from "@/components/ProductCard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -189,20 +190,42 @@ export default async function MarketStandPage({
                 <span>{marketStand.products.length} products</span>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="border rounded-lg overflow-hidden divide-y divide-gray-100 mb-4">
               {marketStand.products.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  images={product.images}
-                  locationName={marketStand.locationName}
-                  updatedAt={product.updatedAt}
-                  inventory={product.inventory}
-                  isQRAccess={false}
-                  price={product.price}
-                  tags={product.tags}
-                />
+                <a key={product.id} href={`/product/${encodeURIComponent(product.id)}`} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group">
+                  {/* Thumbnail */}
+                  <div className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                    {product.images?.[0] ? (
+                      <Image src={product.images[0]} alt={product.name} fill className="object-cover" sizes="56px" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-xl">🌿</div>
+                    )}
+                    {product.inventory > 0 && product.inventory <= 10 && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] text-center py-0.5 font-medium">
+                        {product.inventory} left
+                      </div>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-gray-900 text-sm truncate">{product.name}</p>
+                      <p className="font-bold text-[#0B4D2C] text-sm flex-shrink-0">${(product.price / 100).toFixed(2)}</p>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      {product.inventory <= 0 && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">Out of stock</span>
+                      )}
+                      {product.inventory > 0 && product.inventory <= 5 && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">Last few</span>
+                      )}
+                      <span className="flex items-center gap-0.5 text-[10px] text-gray-400 ml-auto">
+                        <Clock className="w-3 h-3" />
+                        {formatDistanceToNow(new Date(product.updatedAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+                </a>
               ))}
             </div>
           </div>
