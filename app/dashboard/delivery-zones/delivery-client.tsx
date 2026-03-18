@@ -385,23 +385,23 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                       <div className="border rounded-lg">
                         {/* Zone Header */}
                         <div className="p-4 bg-gray-50">
-                          <div className="flex items-center justify-between mb-3">
+                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-3">
                             <CollapsibleTrigger asChild>
-                              <Button variant="ghost" className="flex-1 justify-start hover:bg-gray-100">
-                                <Truck className="h-4 w-4 mr-2 text-blue-600" />
-                                <span className="font-semibold">{zone.name}</span>
-                                <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                              <Button variant="ghost" className="flex-1 justify-start hover:bg-gray-100 w-full md:w-auto">
+                                <Truck className="h-4 w-4 mr-2 text-blue-600 flex-shrink-0" />
+                                <span className="font-semibold truncate">{zone.name}</span>
+                                <ChevronDown className={`h-4 w-4 ml-2 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                               </Button>
                             </CollapsibleTrigger>
-                            
-                            <div className="flex items-center gap-2">
+
+                            <div className="flex items-center gap-2 justify-end">
                               <Button variant="outline" size="sm" asChild>
                                 <Link href={`/dashboard/delivery-zones/${zone.id}/edit`}>
                                   <Edit className="h-4 w-4" />
                                 </Link>
                               </Button>
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteZone(zone.id, zone.name)}
                                 disabled={isPending}

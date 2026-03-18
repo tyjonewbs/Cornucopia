@@ -130,7 +130,7 @@ export function MobileBottomNav() {
                 <SheetTitle>Dashboard Menu</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col flex-1 overflow-hidden">
-                <SidebarContent isProducer={isProducer} />
+                <SidebarContent isProducer={isProducer} onNavigate={() => setMenuOpen(false)} />
               </div>
             </SheetContent>
           </Sheet>

@@ -219,14 +219,14 @@ export function EventsDashboardClient({
     <div className="flex-1">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Events</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900">Events</h1>
+            <p className="text-sm text-gray-600 mt-1">
               Organize events and manage vendor applications
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-shrink-0">
             <Button
               onClick={handleRefresh}
               disabled={isRefreshing}
@@ -290,36 +290,36 @@ export function EventsDashboardClient({
                     onOpenChange={() => toggleEvent(event.id)}
                   >
                     <CardHeader className="bg-amber-50">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <CollapsibleTrigger asChild>
                           <Button
                             variant="ghost"
-                            className="flex-1 justify-start hover:bg-amber-100"
+                            className="flex-1 justify-start hover:bg-amber-100 w-full md:w-auto"
                           >
-                            <Calendar className="h-5 w-5 mr-2 text-amber-700" />
-                            <span className="font-semibold text-lg">
+                            <Calendar className="h-5 w-5 mr-2 text-amber-700 flex-shrink-0" />
+                            <span className="font-semibold text-base sm:text-lg truncate">
                               {event.name}
                             </span>
                             <span
-                              className={`ml-3 px-2 py-0.5 rounded-full text-xs font-medium ${
+                              className={`ml-2 sm:ml-3 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
                                 STATUS_COLORS[event.status]
                               }`}
                             >
                               {event.status}
                             </span>
                             {pendingVendors.length > 0 && (
-                              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 flex-shrink-0">
                                 {pendingVendors.length} pending
                               </span>
                             )}
                             <ChevronDown
-                              className={`h-4 w-4 ml-2 transition-transform ${
+                              className={`h-4 w-4 ml-2 flex-shrink-0 transition-transform ${
                                 isExpanded ? "rotate-180" : ""
                               }`}
                             />
                           </Button>
                         </CollapsibleTrigger>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-end">
                           <Button variant="outline" size="sm" asChild>
                             <Link
                               href={`/dashboard/events/setup/edit/${event.id}`}
@@ -339,21 +339,21 @@ export function EventsDashboardClient({
                       </div>
 
                       {/* Event Summary */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-2 ml-7">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 text-sm mt-2 ml-0 sm:ml-7">
                         <div className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5 text-gray-500" />
-                          <span className="text-gray-600">
+                          <Clock className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
+                          <span className="text-gray-600 truncate">
                             {formatDate(event.startDate)}
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5 text-gray-500" />
-                          <span className="text-gray-600">
+                          <MapPin className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
+                          <span className="text-gray-600 truncate">
                             {event.locationName}
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Users className="h-3.5 w-3.5 text-gray-500" />
+                          <Users className="h-3.5 w-3.5 text-gray-500 flex-shrink-0" />
                           <span className="text-gray-600">
                             {event.approvedVendorCount} vendor
                             {event.approvedVendorCount !== 1 ? "s" : ""}
@@ -383,35 +383,35 @@ export function EventsDashboardClient({
                               {pendingVendors.map((vendor) => (
                                 <div
                                   key={vendor.id}
-                                  className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100"
+                                  className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-100"
                                 >
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
                                     {vendor.vendor.profileImage ? (
                                       <Image
                                         src={vendor.vendor.profileImage}
                                         alt=""
                                         width={32}
                                         height={32}
-                                        className="rounded-full"
+                                        className="rounded-full flex-shrink-0"
                                       />
                                     ) : (
-                                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
+                                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium flex-shrink-0">
                                         {vendor.vendor.firstName?.[0] || "?"}
                                       </div>
                                     )}
-                                    <div>
-                                      <p className="font-medium text-sm">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium text-sm truncate">
                                         {vendor.vendor.firstName}{" "}
                                         {vendor.vendor.lastName}
                                       </p>
                                       {vendor.requestMessage && (
-                                        <p className="text-xs text-gray-500 mt-0.5">
+                                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
                                           &ldquo;{vendor.requestMessage}&rdquo;
                                         </p>
                                       )}
                                     </div>
                                   </div>
-                                  <div className="flex gap-2">
+                                  <div className="flex gap-2 justify-end">
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -542,35 +542,38 @@ export function EventsDashboardClient({
               <div className="space-y-3">
                 {vendorEvents.map((vendorship) => (
                   <Card key={vendorship.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Link
                               href={`/events/${vendorship.event.id}`}
-                              className="font-semibold text-lg hover:underline"
+                              className="font-semibold text-base sm:text-lg hover:underline truncate"
                             >
                               {vendorship.event.name}
                             </Link>
                             <span
-                              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
                                 VENDOR_STATUS_COLORS[vendorship.status]
                               }`}
                             >
                               {vendorship.status}
                             </span>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 flex-shrink-0 sm:hidden">
+                              {EVENT_TYPE_LABELS[vendorship.event.eventType]}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                          <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-600">
                             <span className="flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5" />
-                              {formatDate(vendorship.event.startDate)}
+                              <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span className="truncate">{formatDate(vendorship.event.startDate)}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              <MapPin className="h-3.5 w-3.5" />
-                              {vendorship.event.locationName}
+                              <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span className="truncate">{vendorship.event.locationName}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              <Users className="h-3.5 w-3.5" />
+                              <Users className="h-3.5 w-3.5 flex-shrink-0" />
                               {vendorship.event.approvedVendorCount} vendors
                             </span>
                           </div>
@@ -585,7 +588,7 @@ export function EventsDashboardClient({
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
                           <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
                             {EVENT_TYPE_LABELS[vendorship.event.eventType]}
                           </span>

@@ -53,9 +53,10 @@ const bottomMenuItems = [
 
 interface SidebarProps {
   isProducer: boolean;
+  onNavigate?: () => void;
 }
 
-export function SidebarContent({ isProducer }: SidebarProps) {
+export function SidebarContent({ isProducer, onNavigate }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
@@ -70,6 +71,7 @@ export function SidebarContent({ isProducer }: SidebarProps) {
               key={item.name}
               href={item.href}
               aria-current={isActive(item.href) ? "page" : undefined}
+              onClick={onNavigate}
               className={`flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive(item.href)
                   ? "bg-[#8B4513] text-white"
@@ -90,6 +92,7 @@ export function SidebarContent({ isProducer }: SidebarProps) {
                   key={item.name}
                   href={item.href}
                   aria-current={isActive(item.href) ? "page" : undefined}
+              onClick={onNavigate}
                   className={`flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.href)
                       ? "bg-[#8B4513] text-white"
@@ -121,6 +124,7 @@ export function SidebarContent({ isProducer }: SidebarProps) {
               key={item.name}
               href={item.href}
               aria-current={isActive(item.href) ? "page" : undefined}
+              onClick={onNavigate}
               className={`flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive(item.href)
                   ? "bg-[#8B4513] text-white"
