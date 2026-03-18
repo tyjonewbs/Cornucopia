@@ -18,6 +18,7 @@ async function getData(id: string) {
       updatedAt: true,
       id: true,
       userId: true,
+      status: true,
       inventory: true,
       inventoryUpdatedAt: true,
       tags: true,
@@ -156,6 +157,14 @@ export default async function ProductPage({
 
   if (!data) {
     notFound();
+  }
+
+  // Don't show PENDING/REJECTED products to public (owners can still see via dashboard)
+  if (data.status === 'PENDING' || data.status === 'REJECTED' || data.status === 'SUSPENDED') {
+    const user = await getUser().catch(() => null);
+    if (!user || user.id !== data.userId) {
+      notFound();
+    }
   }
 
   // Fetch nearby products and saved status in parallel

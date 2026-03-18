@@ -52,6 +52,8 @@ export class ProductRepository {
           cursor: cursor ? { id: cursor } : undefined,
           where: {
             isActive,
+            // Only filter by APPROVED for public queries (not owner's own products)
+            ...(!userId && { status: 'APPROVED' }),
             ...(userId && { userId }),
             ...(marketStandId && { marketStandId }),
           },
