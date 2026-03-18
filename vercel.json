@@ -12,11 +12,5 @@
   },
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://www.cornucopialocal.com"
-  },
-  "crons": [
-    {
-      "path": "/api/health/warmup",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  }
 }
