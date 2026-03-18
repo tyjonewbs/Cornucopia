@@ -1,9 +1,19 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import { getUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 // Disable body parsing, as we'll handle raw body ourselves for file uploads
 export const dynamic = 'force-dynamic';
+
+// Rate limiter: 10 requests per minute for uploads
+const rateLimiter = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, "60s"),
+  analytics: true,
+  prefix: "@upstash/ratelimit/upload",
+});
 
 export async function POST(req: Request) {
   try {
@@ -12,10 +22,22 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Apply rate limiting
+    const { success } = await rateLimiter.limit(user.id);
+    if (!success) {
+      return new NextResponse("Too many requests", { status: 429 });
+    }
+
     const formData = await req.formData();
     const file = formData.get('file') as File;
     if (!file) {
       return new NextResponse("No file provided", { status: 400 });
+    }
+
+    // Check file size - 5MB limit
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      return new NextResponse("File too large. Maximum size is 5MB.", { status: 413 });
     }
 
     const supabase = await createServerSupabaseClient();

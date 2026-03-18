@@ -67,7 +67,8 @@ export async function getProductSavedStatus(
     });
 
     return !!existing;
-  } catch {
+  } catch (error) {
+    console.error("[getProductSavedStatus] Error checking saved status:", error);
     return false;
   }
 }
