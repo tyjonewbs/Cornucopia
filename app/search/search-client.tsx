@@ -190,7 +190,7 @@ export default function SearchClient({ results, zipCode, searchQuery = '' }: Sea
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-56px-64px)] md:min-h-[calc(100vh-80px)]">
+    <div className="flex min-h-[calc(100vh-56px-64px)] md:min-h-[calc(100vh-80px)] overflow-x-hidden w-full">
       <AppSidebar showHeader={false}>
         <SearchFilters
           searchQuery={searchQuery}
@@ -201,7 +201,7 @@ export default function SearchClient({ results, zipCode, searchQuery = '' }: Sea
           counts={counts}
         />
       </AppSidebar>
-      <main className="flex-1 px-3 md:px-8 py-4 md:py-8">
+      <main className="flex-1 min-w-0 px-3 md:px-8 py-4 md:py-8 overflow-x-hidden">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">

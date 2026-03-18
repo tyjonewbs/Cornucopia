@@ -134,14 +134,14 @@ export default function HomeClient({ initialData }: HomeClientProps) {
   }, []);
 
   return (
-    <div className="flex min-h-[calc(100vh-56px-64px)] md:min-h-[calc(100vh-80px)]">
+    <div className="flex min-h-[calc(100vh-56px-64px)] md:min-h-[calc(100vh-80px)] overflow-x-hidden w-full">
       <AppSidebar showHeader={false}>
         <ProductFilters
           filters={filters}
           onFiltersChange={handleFiltersChange}
         />
       </AppSidebar>
-      <main id="main-content" className="flex-1 px-3 md:px-8 py-4 md:py-8">
+      <main id="main-content" className="flex-1 min-w-0 px-3 md:px-8 py-4 md:py-8 overflow-x-hidden">
       {error && (
         <div className="mb-6">
           <div className="bg-red-50 border-l-4 border-red-400 p-4">
