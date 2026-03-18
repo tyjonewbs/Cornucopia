@@ -5,6 +5,16 @@ import { NextResponse } from "next/server";
 import { calculatePlatformFee, calculateSellerTransfers } from "@/lib/stripe/fees";
 import { groupCartItems, calculateCartTotals } from "@/lib/cart/calculations";
 import type { Cart } from "@/types/cart";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+// Rate limiter: 5 requests per minute for checkout
+const rateLimiter = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(5, "60s"),
+  analytics: true,
+  prefix: "@upstash/ratelimit/checkout",
+});
 
 export async function POST() {
   try {
@@ -12,6 +22,12 @@ export async function POST() {
     const user = await getUser();
     if (!user || !user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Apply rate limiting
+    const { success } = await rateLimiter.limit(user.id);
+    if (!success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
     // 2. Fetch cart with all items and relations

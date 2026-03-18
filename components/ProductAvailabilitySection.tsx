@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { MapPin, Clock, ExternalLink, Navigation } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { MarketStandHours } from "@/components/MarketStandHours";
+import { MapPin, Navigation } from "lucide-react";
 
 interface MarketStand {
   id: string;
@@ -27,81 +24,54 @@ export function ProductAvailabilitySection({ stands, productName }: ProductAvail
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
-        <h3 className="text-xl font-bold mb-2">Also Available At</h3>
+        <h3 className="text-lg font-semibold">Also Available At</h3>
         <p className="text-sm text-muted-foreground">
           You can find {productName} at {stands.length} other {stands.length === 1 ? 'location' : 'locations'}
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="border rounded-lg overflow-hidden divide-y divide-gray-100">
         {stands.map((stand) => (
-          <Card key={stand.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                {/* Stand Name and Location */}
-                <div>
-                  <Link 
-                    href={`/market-stand/${stand.id}`}
-                    className="text-lg font-semibold text-gray-900 hover:text-primary transition-colors"
-                  >
-                    {stand.name}
-                  </Link>
-                  <div className="flex items-start gap-1 mt-1 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p>{stand.locationName}</p>
-                      {stand.streetAddress && (
-                        <p className="text-xs">{stand.streetAddress}</p>
-                      )}
-                      {(stand.city || stand.zipCode) && (
-                        <p className="text-xs">
-                          {[stand.city, stand.zipCode].filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          <div key={stand.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+            {/* Map pin icon */}
+            <div className="w-10 h-10 rounded-lg bg-[#0B4D2C]/10 flex items-center justify-center flex-shrink-0">
+              <MapPin className="h-5 w-5 text-[#0B4D2C]" />
+            </div>
 
-                {/* Hours */}
-                {stand.hours && (
-                  <div className="border-t pt-3">
-                    <div className="flex items-center gap-1 mb-2 text-sm font-medium">
-                      <Clock className="h-4 w-4" />
-                      <span>Hours</span>
-                    </div>
-                    <div className="text-sm">
-                      <MarketStandHours hours={stand.hours} />
-                    </div>
-                  </div>
-                )}
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <Link
+                href={`/market-stand/${stand.id}`}
+                className="font-semibold text-sm text-gray-900 hover:text-[#0B4D2C] transition-colors truncate block"
+              >
+                {stand.name}
+              </Link>
+              <p className="text-xs text-muted-foreground truncate">{stand.locationName}</p>
+            </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2 pt-2">
-                  <Link href={`/market-stand/${stand.id}`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      View Stand
-                    </Button>
-                  </Link>
-                  {stand.latitude && stand.longitude && (
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${stand.latitude},${stand.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1"
-                    >
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Navigation className="h-4 w-4 mr-2" />
-                        Directions
-                      </Button>
-                    </a>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link
+                href={`/market-stand/${stand.id}`}
+                className="text-xs font-medium text-[#0B4D2C] border border-[#0B4D2C]/30 rounded-full px-3 py-1 hover:bg-[#0B4D2C]/5 transition-colors"
+              >
+                View
+              </Link>
+              {stand.latitude && stand.longitude && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${stand.latitude},${stand.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-gray-600 border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-50 transition-colors flex items-center gap-1"
+                >
+                  <Navigation className="h-3 w-3" />
+                  Go
+                </a>
+              )}
+            </div>
+          </div>
         ))}
       </div>
     </div>

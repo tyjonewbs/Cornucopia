@@ -98,8 +98,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   try {
     items = checkout.items as typeof items;
     transfers = checkout.transfers as typeof transfers;
-  } catch {
-    console.error("Failed to parse checkout data for session:", sessionId);
+  } catch (error) {
+    console.error("Failed to parse checkout data for session:", sessionId, error);
     return;
   }
 

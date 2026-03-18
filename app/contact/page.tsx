@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Mail, MessageSquare, Phone, MapPin } from "lucide-react";
+import { Mail, MessageSquare, Phone } from "lucide-react";
 
 const initialState: ContactState = {
   status: undefined,
@@ -57,23 +57,17 @@ export default function ContactPage() {
                   <Mail className="h-5 w-5 text-green-600 mt-0.5" aria-hidden="true" />
                   <div>
                     <p className="font-medium text-gray-900">Email</p>
-                    <p className="text-sm text-gray-600">support@cornucopia.com</p>
+                    <a href="mailto:support@cornucopialocal.com" className="text-sm text-gray-600 hover:text-green-600">support@cornucopialocal.com</a>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Phone className="h-5 w-5 text-green-600 mt-0.5" aria-hidden="true" />
                   <div>
                     <p className="font-medium text-gray-900">Phone</p>
-                    <p className="text-sm text-gray-600">(555) 123-4567</p>
+                    <a href="tel:+17755250128" className="text-sm text-gray-600 hover:text-green-600">(775) 525-0128</a>
                   </div>
                 </div>
-                <div className="flex items-start space-x-3">
-                  <MapPin className="h-5 w-5 text-green-600 mt-0.5" aria-hidden="true" />
-                  <div>
-                    <p className="font-medium text-gray-900">Address</p>
-                    <p className="text-sm text-gray-600">123 Farm Lane<br />Agricultural District</p>
-                  </div>
-                </div>
+
               </CardContent>
             </Card>
 

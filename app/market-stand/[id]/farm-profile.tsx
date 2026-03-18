@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import MapView from '@/components/MapView';
-import { ProductGrid } from '@/components/ProductGrid';
+import { ProductHamburgerRow } from '@/components/tiles/ProductHamburgerRow';
 import { getMarketStandProducts, type SerializedProduct } from '@/app/actions/market-stand-products';
 import type { MarketStand } from '@prisma/client';
 
@@ -82,12 +82,19 @@ export default function FarmProfile({ marketStand }: FarmProfileProps) {
         </TabsContent>
 
         <TabsContent value="products">
-          <Card className="p-6">
-            <h2 className="text-2xl font-semibold mb-4">Our Products</h2>
-            <ProductGrid 
-              initialProducts={products} 
-              userLocation={null}
-            />
+          <Card className="overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <h2 className="text-lg font-semibold">Available Products</h2>
+            </div>
+            {products.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-8">No products available right now.</p>
+            ) : (
+              <div>
+                {products.map((product) => (
+                  <ProductHamburgerRow key={product.id} product={product} />
+                ))}
+              </div>
+            )}
           </Card>
         </TabsContent>
 

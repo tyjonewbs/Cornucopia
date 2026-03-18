@@ -111,7 +111,7 @@ export function PWAInstallPrompt() {
   return (
     <>
       {/* Main Install Banner */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white border-t shadow-lg md:bottom-4 md:left-4 md:right-auto md:max-w-sm md:rounded-lg md:border animate-in slide-in-from-bottom duration-300">
+      <div className="fixed bottom-16 left-0 right-0 z-50 p-4 bg-white border-t shadow-lg md:bottom-4 md:left-4 md:right-auto md:max-w-sm md:rounded-lg md:border animate-in slide-in-from-bottom duration-300">
         <button
           onClick={handleDismiss}
           className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"

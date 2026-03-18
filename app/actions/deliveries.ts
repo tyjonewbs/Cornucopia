@@ -703,7 +703,8 @@ export async function generateDeliveriesForZone(zoneId: string, weeksAhead: numb
           }
 
           created.push(delivery.id);
-        } catch {
+        } catch (error) {
+          console.error("[generateDeliveriesForZone] Failed to create delivery:", error);
           // Skip duplicates or conflicts
           continue;
         }
@@ -777,7 +778,8 @@ export async function generateOneTimeDeliveries(
         });
 
         created.push(delivery.id);
-      } catch {
+      } catch (error) {
+        console.error("[generateOneTimeDeliveries] Failed to create delivery:", error);
         continue;
       }
     }

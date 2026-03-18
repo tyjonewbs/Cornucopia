@@ -11,15 +11,24 @@ export function Navbar() {
   return (
     <nav aria-label="Main navigation" className="sticky top-0 z-50 bg-[#0B4D2C] shadow-md">
       <div className="flex h-14 md:h-20 items-center px-3 md:px-4 max-w-7xl mx-auto gap-2 md:gap-4">
-        {/* Logo - hidden on mobile, visible on desktop, fixed to left */}
-        <Link href="/" className="hidden md:flex items-center flex-shrink-0">
-          <div className="relative w-[180px] h-[45px]">
+        {/* Logo - icon on mobile, full wordmark on desktop */}
+        <Link href="/" className="flex items-center flex-shrink-0">
+          {/* Mobile: icon only */}
+          <div className="relative w-[44px] h-[44px] md:hidden">
+            <Image
+              src="/logos/cornucopia-mountain-tree.svg"
+              alt="Cornucopia"
+              fill
+              priority
+            />
+          </div>
+          {/* Desktop: full wordmark */}
+          <div className="relative hidden md:block w-[110px] h-[74px]">
             <Image
               src="/logos/cornucopia-dark.svg"
               alt="Cornucopia"
               fill
               priority
-              className="brightness-0 invert"
             />
           </div>
         </Link>

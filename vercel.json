@@ -11,6 +11,6 @@
     }
   },
   "env": {
-    "NEXT_PUBLIC_APP_URL": "https://cornucopialocal.com"
+    "NEXT_PUBLIC_APP_URL": "https://www.cornucopialocal.com"
   }
 }
