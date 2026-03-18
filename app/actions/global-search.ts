@@ -289,8 +289,11 @@ export const globalSearch = cache(async (zipCode: string, searchQuery: string = 
       };
     });
 
-    // Merge delivery-only products with stand-linked products
-    products.push(...deliveryOnlyProducts);
+    // Only include delivery-only products that serve the searched zip code
+    const eligibleDeliveryProducts = deliveryOnlyProducts.filter(p => 
+      p.deliveryInfo?.isAvailable && p.distance === 0
+    );
+    products.push(...eligibleDeliveryProducts);
 
     // Fetch market stands within radius
     const marketStandsData = await db.marketStand.findMany({
