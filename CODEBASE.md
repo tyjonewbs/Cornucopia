@@ -883,3 +883,45 @@ Be careful with:
 
 **End of CODEBASE.md**
 *This file is living documentation. Update it when making architectural changes.*
+
+---
+
+## 9. Corrections & Additions from Live Development (2026-03-18)
+
+### Producer Detection Logic
+- `isUserProducer()` in `lib/utils/user.ts` now checks **both** products AND market stands
+- Previously only checked products — caused "Become a Producer" to show for users who had a stand but no approved products
+- `MobileBottomNav.tsx` has same dual-check via Supabase client query
+- **Files:** `lib/utils/user.ts`, `components/MobileBottomNav.tsx`
+
+### Delivery-Only Products in Search
+- Products with `marketStandId: null` but `deliveryAvailable: true` now appear in search
+- **Eligibility gate:** Only shown if `deliveryZone.zipCodes` includes the searched zip
+- Previously showed all delivery products regardless of zone — now filtered correctly
+- **File:** `app/actions/global-search.ts`
+
+### Dev DB vs Prod DB
+- Dev DB products have `marketStandId: null` with products linked via `ProductStandListing` only
+- Prod DB products have `marketStandId` set correctly
+- Running the backfill script (`node -e "..."` via Prisma) fixed dev DB — prod was already correct
+
+### Vercel Cron Job
+- `/api/health/warmup` now runs every 5 minutes via Vercel built-in cron (added to `vercel.json`)
+- No external service needed (cron-job.org, QStash, etc.)
+
+### Screen/Power Management (Linux KDE/Wayland)
+- Suspend disabled: `sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target`
+- Lid close: `HandleLidSwitch=ignore` in `/etc/systemd/logind.conf`
+- KDE power config: `/home/tyler/.config/powerdevilrc`
+- Screen wake (Wayland): `sudo -u tyler WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 qdbus org.kde.screensaver /ScreenSaver SimulateUserActivity`
+- DPMS/xset commands don't work on Wayland — use qdbus instead
+
+### Supabase Auth Config
+- Site URL: `https://www.cornucopialocal.com` (no trailing slash)
+- Redirect URLs include both www. and non-www. versions
+- Fixed via Supabase Management API (not dashboard)
+
+### Contact Info
+- Phone: (775) 525-0128 (Google Voice forwarding)
+- Email: support@cornucopialocal.com (Cloudflare Email Routing → personal)
+- Gmail "send as" NOT yet configured — can receive but not send from support@
