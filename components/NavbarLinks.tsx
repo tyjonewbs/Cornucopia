@@ -25,6 +25,11 @@ export const navbarLinks = [
     name: "Our Mission",
     href: "/our-mission",
   },
+  {
+    id: 4,
+    name: "Contact",
+    href: "/contact",
+  },
 ];
 
 export function NavbarLinks() {

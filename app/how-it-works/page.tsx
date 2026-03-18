@@ -1,4 +1,3 @@
-import Image from "next/image";
 
 export default function HowItWorks() {
   return (
@@ -86,15 +85,11 @@ export default function HowItWorks() {
                 </p>
               </div>
             </div>
-            <div className="relative h-[400px] rounded-lg overflow-hidden">
-              <Image
-                src="https://swhinhgrtcowjmpstozh.supabase.co/storage/v1/object/public/images/pexels-wildlittlethingsphoto-841303.jpg?t=2025-01-21T16%3A44%3A16.245Z"
-                alt="Customer browsing local produce"
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority
-              />
+            <div className="relative h-[400px] rounded-lg overflow-hidden bg-[#0B4D2C] flex items-center justify-center">
+              <div className="text-center px-8">
+                <div className="text-6xl mb-4">🛒</div>
+                <p className="text-white/90 text-lg font-medium">Fresh local products, right in your community</p>
+              </div>
             </div>
           </div>
         </div>
@@ -104,15 +99,11 @@ export default function HowItWorks() {
       <section className="w-full bg-[#F0F0F0] py-16">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div className="relative h-[400px] rounded-lg overflow-hidden order-2 md:order-1">
-              <Image
-                src="https://swhinhgrtcowjmpstozh.supabase.co/storage/v1/object/public/images/pexels-pixabay-235725.jpg"
-                alt="Local farmer with fresh produce"
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority
-              />
+            <div className="relative h-[400px] rounded-lg overflow-hidden order-2 md:order-1 bg-[#0B4D2C] flex items-center justify-center">
+              <div className="text-center px-8">
+                <div className="text-6xl mb-4">🌱</div>
+                <p className="text-white/90 text-lg font-medium">Grow your reach, connect with your community</p>
+              </div>
             </div>
             <div className="order-1 md:order-2">
               <h2 className="text-3xl font-semibold mb-6 flex items-center gap-3">

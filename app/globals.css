@@ -72,6 +72,17 @@
   }
 }
 
+/* Mobile content wrapper: adds bottom padding to clear the fixed bottom nav */
+.mobile-content-wrapper {
+  padding-bottom: 96px; /* nav height (64px) + breathing room */
+}
+
+@media (min-width: 768px) {
+  .mobile-content-wrapper {
+    padding-bottom: 0;
+  }
+}
+
 /* Hide number input spin buttons globally and center text */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {

@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     icon: [
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
-      { url: "/logos/cornucopia-mountain-tree.svg", type: "image/svg+xml" },
+      { url: "/logos/cornucopia-mountain-tree.svg", type: "image/svg+xml", rel: "icon" },
     ],
     apple: [
       { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
@@ -94,7 +94,7 @@ export default function RootLayout({
                 <ProductCacheProvider>
                   <LocationProvider>
                     <Navbar />
-                    <div className="pb-16 md:pb-0">
+                    <div className="mobile-content-wrapper">
                       {children}
                     </div>
                     <div className="hidden md:block">

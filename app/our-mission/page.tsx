@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Heart, Sprout, Users, DollarSign } from "lucide-react";
@@ -30,15 +29,8 @@ export default function OurMissionPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
       {/* Hero Section */}
-      <div className="relative h-[400px] rounded-xl overflow-hidden mb-16">
-        <Image
-          src="/images/how-it-works/seller.jpg"
-          alt="Local farmer in their field"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+      <div className="relative h-[400px] rounded-xl overflow-hidden mb-16 bg-[#0B4D2C]">
+        <div className="absolute inset-0 flex items-center justify-center">
           <div className="max-w-3xl text-center px-4">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">Our Mission</h1>
             <p className="text-lg md:text-xl text-white/90 leading-relaxed">
