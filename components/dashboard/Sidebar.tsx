@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -17,10 +16,7 @@ import {
   Package,
   Truck,
   Calendar,
-  Menu,
 } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 
 interface MenuItem {
   name: string;
@@ -59,31 +55,32 @@ interface SidebarProps {
   isProducer: boolean;
 }
 
-function SidebarContent({ isProducer }: SidebarProps) {
+export function SidebarContent({ isProducer }: SidebarProps) {
   const pathname = usePathname();
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
 
   return (
     <>
-      <nav className="flex-1 px-3 pt-3 pb-4 overflow-y-auto">
+      <nav aria-label="Dashboard navigation" className="flex-1 px-3 pt-3 pb-4 overflow-y-auto">
         <div className="space-y-1">
           {/* Common menu items */}
           {menuItems.map((item) => (
             <Link
               key={item.name}
               href={item.href}
+              aria-current={isActive(item.href) ? "page" : undefined}
               className={`flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive(item.href)
                   ? "bg-[#8B4513] text-white"
                   : "text-gray-700 hover:bg-gray-100 active:bg-gray-200"
               }`}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-5 w-5" aria-hidden="true" />
               <span>{item.name}</span>
             </Link>
           ))}
-          
+
           {/* Producer-only section with divider */}
           {isProducer ? (
             <>
@@ -92,13 +89,14 @@ function SidebarContent({ isProducer }: SidebarProps) {
                 <Link
                   key={item.name}
                   href={item.href}
+                  aria-current={isActive(item.href) ? "page" : undefined}
                   className={`flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.href)
                       ? "bg-[#8B4513] text-white"
                       : "text-gray-700 hover:bg-gray-100 active:bg-gray-200"
                   }`}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className="h-5 w-5" aria-hidden="true" />
                   <span>{item.name}</span>
                 </Link>
               ))}
@@ -122,13 +120,14 @@ function SidebarContent({ isProducer }: SidebarProps) {
             <Link
               key={item.name}
               href={item.href}
+              aria-current={isActive(item.href) ? "page" : undefined}
               className={`flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive(item.href)
                   ? "bg-[#8B4513] text-white"
                   : "text-gray-700 hover:bg-gray-100 active:bg-gray-200"
               }`}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-5 w-5" aria-hidden="true" />
               <span>{item.name}</span>
             </Link>
           ))}
@@ -152,37 +151,9 @@ function SidebarContent({ isProducer }: SidebarProps) {
 }
 
 export function Sidebar({ isProducer }: SidebarProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   return (
-    <>
-      {/* Desktop Sidebar - hidden on mobile */}
-      <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col flex-shrink-0">
-        <SidebarContent isProducer={isProducer} />
-      </aside>
-
-      {/* Mobile Menu Button - fixed above bottom nav */}
-      <div className="md:hidden fixed bottom-20 right-4 z-40">
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button
-              size="lg"
-              className="rounded-full shadow-lg bg-[#8B4513] hover:bg-[#8B4513]/90 h-14 w-14"
-            >
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Open menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0 flex flex-col">
-            <SheetHeader className="p-4 border-b">
-              <SheetTitle>Dashboard Menu</SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <SidebarContent isProducer={isProducer} />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-    </>
+    <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col flex-shrink-0">
+      <SidebarContent isProducer={isProducer} />
+    </aside>
   );
 }

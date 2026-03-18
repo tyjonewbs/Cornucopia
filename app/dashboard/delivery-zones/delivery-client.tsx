@@ -346,7 +346,7 @@ export default function DeliveryClient({ zonesWithProducts }: DeliveryClientProp
                 );
                 const dayDeliveries = deliveriesByDate.get(dateKey) || [];
 
-                if (dayZones.length === 0 && dayDeliveries.length === 0) return null;
+                if (dayZones.length === 0) return null;
 
                 return (
             <Card key={dateKey} className="overflow-hidden">

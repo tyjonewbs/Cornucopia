@@ -127,17 +127,19 @@ export function ProductFilters({
           <button
             type="button"
             onClick={() => toggleSection("categories")}
+            aria-expanded={expandedSections.categories}
+            aria-controls="filter-categories"
             className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2"
           >
             <span>Categories</span>
             {expandedSections.categories ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
             )}
           </button>
           {expandedSections.categories && (
-            <div className="space-y-2">
+            <div id="filter-categories" className="space-y-2">
               {CATEGORIES.map((category) => (
                 <div key={category.id} className="flex items-center space-x-2">
                   <Checkbox
@@ -164,17 +166,19 @@ export function ProductFilters({
           <button
             type="button"
             onClick={() => toggleSection("distance")}
+            aria-expanded={expandedSections.distance}
+            aria-controls="filter-distance"
             className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2"
           >
             <span>Distance</span>
             {expandedSections.distance ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
             )}
           </button>
           {expandedSections.distance && (
-            <div className="space-y-3">
+            <div id="filter-distance" className="space-y-3">
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Within</span>
                 <span className="font-medium">{filters.distance} miles</span>
@@ -212,17 +216,19 @@ export function ProductFilters({
           <button
             type="button"
             onClick={() => toggleSection("price")}
+            aria-expanded={expandedSections.price}
+            aria-controls="filter-price"
             className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2"
           >
             <span>Price Range</span>
             {expandedSections.price ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
             )}
           </button>
           {expandedSections.price && (
-            <div className="flex items-center gap-2">
+            <div id="filter-price" className="flex items-center gap-2">
               <div className="flex-1">
                 <Label htmlFor="price-min" className="sr-only">
                   Minimum price
@@ -271,17 +277,19 @@ export function ProductFilters({
           <button
             type="button"
             onClick={() => toggleSection("fulfillment")}
+            aria-expanded={expandedSections.fulfillment}
+            aria-controls="filter-fulfillment"
             className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 mb-2"
           >
             <span>Fulfillment</span>
             {expandedSections.fulfillment ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
             )}
           </button>
           {expandedSections.fulfillment && (
-            <div className="space-y-2">
+            <div id="filter-fulfillment" className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="fulfillment-pickup"

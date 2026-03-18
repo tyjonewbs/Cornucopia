@@ -43,7 +43,7 @@ export default async function DeliveryZonesPage() {
       const [productsResult, deliveriesResult, zoneProductsResult] = await Promise.all([
         getDeliveryZoneProducts(zone.id),
         getDeliveriesForZone(zone.id, {
-          from: new Date(),
+          from: startOfDay(new Date()),
           to: addDays(new Date(), 28),
           statuses: ['SCHEDULED', 'OPEN', 'CLOSED'],
         }),

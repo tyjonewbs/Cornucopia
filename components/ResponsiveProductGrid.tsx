@@ -1,25 +1,14 @@
 'use client';
 
 import React from "react";
-import { ProductCard } from "@/components/ProductCard";
-import { PromoBanner } from "@/components/PromoBanner";
+import { ProductTile } from "@/components/tiles/ProductTile";
+import { MarketStandTile } from "@/components/tiles/MarketStandTile";
+import { EventTile } from "@/components/tiles/EventTile";
+import { DeliveryTile } from "@/components/tiles/DeliveryTile";
+import type { MarketStandTileData } from "@/components/tiles/MarketStandTile";
+import type { EventTileData } from "@/components/tiles/EventTile";
+import type { DeliveryTileData } from "@/components/tiles/DeliveryTile";
 import type { GeoSerializedProduct } from "@/lib/repositories/geoProductRepository";
-
-interface MarketStand {
-  id: string;
-  name: string;
-  description: string | null;
-  latitude: number;
-  longitude: number;
-  locationName: string;
-  locationGuide: string;
-  images: string[];
-  tags: string[];
-  distance: number | null;
-  _count?: {
-    products: number;
-  };
-}
 
 interface Farm {
   id: string;
@@ -39,89 +28,82 @@ interface Farm {
 
 interface ResponsiveProductGridProps {
   products: GeoSerializedProduct[];
-  stands?: MarketStand[];
+  stands?: MarketStandTileData[];
   farms?: Farm[];
+  events?: EventTileData[];
+  deliveryZones?: DeliveryTileData[];
   showPromoBanners?: boolean;
   userId?: string;
 }
 
+/**
+ * Mixed-type grid that interleaves products with market stands, events, and delivery zone tiles.
+ * Products are the primary content. Other tile types are inserted at strategic intervals
+ * to create visual variety and surface different content types.
+ *
+ * Layout pattern (every 6 products):
+ * - After product 3: insert a market stand or farm tile
+ * - After product 6: insert an event or delivery zone tile
+ * This creates a rhythm where non-product tiles appear roughly every 3 items.
+ */
 export function ResponsiveProductGrid({
   products,
   stands = [],
   farms = [],
+  events = [],
+  deliveryZones = [],
   showPromoBanners = true,
 }: ResponsiveProductGridProps) {
-  // Create a mixed array with products and promotional banners
   const gridItems: React.JSX.Element[] = [];
-  
-  // Insert products with occasional promotional banners
+
+  // Build a queue of non-product tiles to intersperse
+  const specialTiles: React.JSX.Element[] = [];
+
+  if (showPromoBanners) {
+    // Interleave: stand, event, delivery, stand, event, delivery...
+    const standTiles = stands.map(stand => (
+      <MarketStandTile key={`stand-${stand.id}`} stand={stand} />
+    ));
+
+    const eventTiles = events.map(event => (
+      <EventTile key={`event-${event.id}`} event={event} />
+    ));
+
+    const deliveryTiles = deliveryZones.map(zone => (
+      <DeliveryTile key={`delivery-${zone.id}`} zone={zone} />
+    ));
+
+    // Round-robin merge the special tiles for variety
+    const maxLen = Math.max(standTiles.length, eventTiles.length, deliveryTiles.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < standTiles.length) specialTiles.push(standTiles[i]);
+      if (i < eventTiles.length) specialTiles.push(eventTiles[i]);
+      if (i < deliveryTiles.length) specialTiles.push(deliveryTiles[i]);
+    }
+  }
+
+  let specialIndex = 0;
+  const INSERT_INTERVAL = 4; // Insert a special tile every N products
+
   products.forEach((product, index) => {
-    // Add product card
+    // Add product tile
     gridItems.push(
-      <ProductCard
-        key={`product-${product.id}`}
-        id={product.id}
-        name={product.name}
-        images={product.images}
-        locationName={product.marketStand?.locationName || 'Delivery Only'}
-        updatedAt={product.updatedAt}
-        price={product.price}
-        tags={product.tags}
-        distance={product.distance}
-        availableDate={product.availableDate}
-        availableUntil={product.availableUntil}
-        deliveryAvailable={product.deliveryAvailable}
-        deliveryInfo={product.deliveryInfo}
-        inventory={product.inventory}
-      />
+      <ProductTile key={`product-${product.id}`} product={product} />
     );
 
-    // Insert promotional banners strategically
-    if (showPromoBanners) {
-      // After every 4 products on mobile (2 rows), show a promo banner
-      const shouldShowBanner = (index + 1) % 4 === 0;
-      
-      if (shouldShowBanner) {
-        // Alternate between stands and farms
-        const bannerIndex = Math.floor((index + 1) / 4) - 1;
-        
-        // Show market stand banner
-        if (bannerIndex % 2 === 0 && stands.length > 0) {
-          const stand = stands[bannerIndex % stands.length];
-          gridItems.push(
-            <PromoBanner
-              key={`banner-stand-${stand.id}-${index}`}
-              type="stand"
-              title={stand.name}
-              subtitle={stand.description || `${stand._count?.products || 0} products available`}
-              description={stand.locationName}
-              image={stand.images[0]}
-              href={`/market-stand/${stand.id}`}
-              distance={stand.distance}
-              location={stand.locationName}
-            />
-          );
-        }
-        // Show farm banner
-        else if (farms.length > 0) {
-          const farm = farms[Math.floor(bannerIndex / 2) % farms.length];
-          gridItems.push(
-            <PromoBanner
-              key={`banner-farm-${farm.id}-${index}`}
-              type="product"
-              title={farm.name}
-              subtitle={farm.tagline || farm.description || `${farm._count.products} products`}
-              description={farm.locationName}
-              image={farm.images[0]}
-              href={farm.slug ? `/local/${farm.slug}` : `/local/${farm.id}`}
-              distance={farm.distance}
-              location={farm.locationName}
-            />
-          );
-        }
-      }
+    // Insert a special tile after every INSERT_INTERVAL products
+    if (showPromoBanners && (index + 1) % INSERT_INTERVAL === 0 && specialIndex < specialTiles.length) {
+      gridItems.push(specialTiles[specialIndex]);
+      specialIndex++;
     }
   });
+
+  // If there are remaining special tiles and few products, append them
+  if (products.length < 4 && specialTiles.length > 0) {
+    for (let i = specialIndex; i < Math.min(specialIndex + 3, specialTiles.length); i++) {
+      gridItems.push(specialTiles[i]);
+    }
+  }
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">

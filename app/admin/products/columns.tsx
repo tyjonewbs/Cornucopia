@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Status } from '@prisma/client'
 import { formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Tag, X, Check } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +50,8 @@ type ProductWithRelations = {
   totalReviews: number
   deliveryAvailable: boolean
   tags: string[]
+  adminTags: string[]
+  inventoryUpdatedAt: Date | null
   user: {
     firstName: string | null
     lastName: string | null
@@ -232,6 +234,117 @@ function ProductStatusHistory({ product }: { product: ProductWithRelations }) {
   )
 }
 
+const AVAILABLE_ADMIN_TAGS = [
+  { value: 'fresh-today', label: 'Fresh Today', color: 'bg-emerald-500' },
+  { value: 'fresh-this-hour', label: 'Fresh This Hour', color: 'bg-green-400' },
+  { value: 'limited-stock', label: 'Limited Stock', color: 'bg-amber-500' },
+  { value: 'last-few', label: 'Last Few!', color: 'bg-red-500' },
+  { value: 'new-arrival', label: 'New Arrival', color: 'bg-blue-500' },
+  { value: 'pre-order', label: 'Pre-Order', color: 'bg-indigo-500' },
+  { value: 'seasonal', label: 'Seasonal', color: 'bg-orange-400' },
+  { value: 'back-in-stock', label: 'Back in Stock', color: 'bg-teal-500' },
+  { value: 'popular', label: 'Popular', color: 'bg-pink-500' },
+  { value: 'vendor-verified', label: 'Verified Fresh', color: 'bg-emerald-600' },
+] as const
+
+function ProductBadgePicker({ product }: { product: ProductWithRelations }) {
+  const router = useRouter()
+  const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [localTags, setLocalTags] = useState<string[]>(product.adminTags)
+
+  const toggleTag = async (tagValue: string) => {
+    const newTags = localTags.includes(tagValue)
+      ? localTags.filter(t => t !== tagValue)
+      : [...localTags, tagValue]
+
+    setLocalTags(newTags)
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/admin/product/badges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, tags: newTags }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update badges')
+      }
+
+      toast.success('Badges updated')
+      router.refresh()
+    } catch (error: any) {
+      // Revert on error
+      setLocalTags(product.adminTags)
+      toast.error(error.message || 'Failed to update badges')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      {/* Current badges */}
+      <div className="flex flex-wrap gap-1">
+        {localTags.map(tag => {
+          const config = AVAILABLE_ADMIN_TAGS.find(t => t.value === tag)
+          return (
+            <span
+              key={tag}
+              className={`inline-flex items-center gap-0.5 text-[10px] text-white px-1.5 py-0.5 rounded-full font-medium ${config?.color || 'bg-gray-500'}`}
+            >
+              {config?.label || tag}
+              <button
+                onClick={() => toggleTag(tag)}
+                disabled={isLoading}
+                className="hover:bg-white/20 rounded-full p-0.5"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )
+        })}
+      </div>
+
+      {/* Add badge dropdown */}
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+            disabled={isLoading}
+          >
+            <Tag className="h-3 w-3" />
+            {localTags.length === 0 ? 'Add badge' : 'Edit'}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-48">
+          {AVAILABLE_ADMIN_TAGS.map(tag => {
+            const isActive = localTags.includes(tag.value)
+            return (
+              <DropdownMenuItem
+                key={tag.value}
+                onClick={(e) => {
+                  e.preventDefault()
+                  toggleTag(tag.value)
+                }}
+                className="flex items-center justify-between cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${tag.color}`} />
+                  <span className="text-sm">{tag.label}</span>
+                </div>
+                {isActive && <Check className="h-3.5 w-3.5 text-green-600" />}
+              </DropdownMenuItem>
+            )
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
 export const columns: ColumnDef<ProductWithRelations>[] = [
   {
     id: "name",
@@ -297,6 +410,14 @@ export const columns: ColumnDef<ProductWithRelations>[] = [
           </span>
         </div>
       )
+    }
+  },
+  {
+    id: "badges",
+    header: "Badges",
+    cell: ({ row }) => {
+      const product = row.original
+      return <ProductBadgePicker product={product} />
     }
   },
   {

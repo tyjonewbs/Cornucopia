@@ -76,7 +76,7 @@ export function AuthForm() {
         </div>
 
         {error && (
-          <div className="text-sm text-red-500 text-center">{error}</div>
+          <div role="alert" className="text-sm text-red-500 text-center">{error}</div>
         )}
 
         <div>

@@ -39,7 +39,14 @@ export function ImageGalleryGrid({ images, farmName }: ImageGalleryGridProps) {
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 h-[250px] md:h-[400px]">
         {/* Hero Image - Takes up full width on mobile, 2 columns on desktop */}
-        <div className="col-span-2 relative rounded-lg overflow-hidden cursor-pointer group" onClick={() => setIsOpen(true)}>
+        <div
+          className="col-span-2 relative rounded-lg overflow-hidden cursor-pointer group"
+          role="button"
+          tabIndex={0}
+          onClick={() => setIsOpen(true)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsOpen(true); } }}
+          aria-label={`View ${farmName} photo gallery`}
+        >
           {!imageError[0] ? (
             <Image
               src={heroImage}
@@ -70,7 +77,11 @@ export function ImageGalleryGrid({ images, farmName }: ImageGalleryGridProps) {
             <div
               key={index}
               className="relative rounded-lg overflow-hidden cursor-pointer group"
+              role="button"
+              tabIndex={0}
               onClick={() => setIsOpen(true)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsOpen(true); } }}
+              aria-label={`View ${farmName} image ${index + 2}`}
             >
               {!imageError[index + 1] ? (
                 <Image
@@ -93,7 +104,11 @@ export function ImageGalleryGrid({ images, farmName }: ImageGalleryGridProps) {
           {thumbnails.length >= 2 && (
             <div
               className="relative rounded-lg overflow-hidden cursor-pointer group"
+              role="button"
+              tabIndex={0}
               onClick={() => setIsOpen(true)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsOpen(true); } }}
+              aria-label={`View all ${totalImages} ${farmName} photos`}
             >
               {!imageError[3] && thumbnails[2] ? (
                 <>
@@ -141,7 +156,8 @@ export function ImageGalleryGrid({ images, farmName }: ImageGalleryGridProps) {
               className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white"
               onClick={() => setIsOpen(false)}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
+              <span className="sr-only">Close gallery</span>
             </Button>
             <Carousel className="w-full">
               <CarouselContent>

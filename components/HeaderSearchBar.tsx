@@ -66,10 +66,11 @@ export function HeaderSearchBar() {
       <div className="flex items-center bg-white rounded-full shadow-lg overflow-hidden h-10 md:h-12 w-full">
         {/* Left side: Search query input */}
         <div className="flex items-center px-3 md:px-4 h-full flex-1 min-w-0">
-          <Search className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+          <Search className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" aria-hidden="true" />
           <input
             type="text"
             placeholder="Search products, stands, farms..."
+            aria-label="Search products, stands, and farms"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -85,15 +86,16 @@ export function HeaderSearchBar() {
           <button
             onClick={useMyLocation}
             className="mr-2 hover:text-[#0B4D2C] transition-colors flex-shrink-0 touch-manipulation"
-            title="Use my location"
+            aria-label="Use my location"
             disabled={isLoading}
           >
-            <MapPin className="h-4 w-4 text-gray-400 hover:text-[#0B4D2C]" />
+            <MapPin className="h-4 w-4 text-gray-400 hover:text-[#0B4D2C]" aria-hidden="true" />
           </button>
           <input
             type="text"
             inputMode="numeric"
             placeholder="Zip"
+            aria-label="Zip code"
             value={zipCode}
             onChange={handleZipChange}
             onKeyDown={handleZipKeyDown}
@@ -110,7 +112,7 @@ export function HeaderSearchBar() {
           onClick={handleSearch}
           disabled={isLoading || zipCode.length !== 5}
           className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 mr-1 rounded-full bg-[#E07A2D] hover:bg-[#C96A20] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex-shrink-0 touch-manipulation"
-          title="Search"
+          aria-label="Search"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 md:h-5 md:w-5 text-white animate-spin" />
@@ -122,7 +124,7 @@ export function HeaderSearchBar() {
       
       {/* Error message */}
       {error && (
-        <p className="text-red-500 text-xs mt-1 bg-white/90 px-2 py-0.5 rounded">
+        <p role="alert" className="text-red-500 text-xs mt-1 bg-white/90 px-2 py-0.5 rounded">
           {error}
         </p>
       )}

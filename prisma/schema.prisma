@@ -104,6 +104,7 @@ model Product {
   description        String
   images             String[]
   tags               String[]                 @db.VarChar(50)
+  adminTags          String[]                 @default([]) @db.VarChar(50)
   inventory          Int                      @default(0)
   inventoryUpdatedAt DateTime?
   status             Status                   @default(PENDING)
