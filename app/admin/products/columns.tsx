@@ -4,8 +4,9 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Status } from '@prisma/client'
 import { formatDistanceToNow } from 'date-fns'
-import { useState } from 'react'
-import { ChevronDown, ChevronRight, Tag, X, Check } from 'lucide-react'
+import { useState, ReactElement } from 'react'
+import { ChevronDown, ChevronRight, Tag, X, Check, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,13 +47,16 @@ type ProductWithRelations = {
   status: Status
   isActive: boolean
   createdAt: Date
+  updatedAt: Date
   averageRating: number | null
   totalReviews: number
   deliveryAvailable: boolean
   tags: string[]
   adminTags: string[]
   inventoryUpdatedAt: Date | null
+  images: string[]
   user: {
+    id: string
     firstName: string | null
     lastName: string | null
     email: string
@@ -60,6 +64,33 @@ type ProductWithRelations = {
   marketStand: {
     id: string
     name: string
+    locationName: string | null
+  } | null
+  standListings: {
+    marketStandId: string
+    customInventory: number | null
+    isActive: boolean
+    marketStand: {
+      id: string
+      name: string
+    }
+  }[]
+  deliveryZone: {
+    id: string
+    name: string
+    zipCodes: string[]
+    deliveryDays: string[]
+    deliveryFee: number
+  } | null
+  deliveryListings: {
+    dayOfWeek: string
+    inventory: number
+    deliveryZoneId: string
+  }[]
+  local: {
+    id: string
+    name: string
+    slug: string | null
   } | null
   statusHistory: StatusHistoryItem[]
 }
@@ -345,69 +376,172 @@ function ProductBadgePicker({ product }: { product: ProductWithRelations }) {
   )
 }
 
+function getInventoryBadgeColor(inventory: number): string {
+  if (inventory === 0) return 'bg-gray-400 text-white'
+  if (inventory < 3) return 'bg-red-500 text-white'
+  if (inventory <= 10) return 'bg-amber-500 text-white'
+  return 'bg-green-600 text-white'
+}
+
 export const columns: ColumnDef<ProductWithRelations>[] = [
   {
-    id: "name",
+    id: "product",
     header: "Product",
     cell: ({ row }) => {
       const product = row.original
+      const thumbnail = product.images?.[0]
+      return (
+        <div className="flex gap-2 min-w-0">
+          {thumbnail && (
+            <img
+              src={thumbnail}
+              alt={product.name}
+              className="w-10 h-10 rounded object-cover flex-shrink-0"
+            />
+          )}
+          <div className="flex flex-col min-w-0">
+            <span className="font-medium truncate">{product.name}</span>
+            <span className="text-sm text-gray-500">
+              ${(product.price / 100).toFixed(2)}
+            </span>
+            {product.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {product.tags.slice(0, 2).map(tag => (
+                  <span key={tag} className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                    {tag}
+                  </span>
+                ))}
+                {product.tags.length > 2 && (
+                  <span className="text-xs text-gray-400">+{product.tags.length - 2}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    }
+  },
+  {
+    id: "producer",
+    header: "Producer",
+    cell: ({ row }) => {
+      const user = row.original.user
+      const local = row.original.local
+      const displayName = user.firstName && user.lastName
+        ? `${user.firstName} ${user.lastName}`
+        : user.firstName || user.lastName || 'Unknown'
       return (
         <div className="flex flex-col">
-          <span className="font-medium">{product.name}</span>
-          <span className="text-sm text-gray-500">
-            ${(product.price / 100).toFixed(2)}
-          </span>
-          {product.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {product.tags.slice(0, 3).map(tag => (
-                <span key={tag} className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
-                  {tag}
-                </span>
-              ))}
-              {product.tags.length > 3 && (
-                <span className="text-xs text-gray-400">+{product.tags.length - 3}</span>
-              )}
-            </div>
+          <span className="font-medium text-sm">{displayName}</span>
+          <span className="text-xs text-gray-500">{user.email}</span>
+          {local && (
+            <Link
+              href={`/local/${local.slug || local.id}`}
+              target="_blank"
+              className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 mt-1"
+            >
+              🌱 {local.name} <ExternalLink className="h-2.5 w-2.5" />
+            </Link>
           )}
         </div>
       )
     }
   },
   {
-    id: "owner",
-    header: "Owner",
+    id: "locations",
+    header: "Locations",
     cell: ({ row }) => {
-      const user = row.original.user
-      const displayName = user.firstName && user.lastName
-        ? `${user.firstName} ${user.lastName}`
-        : user.firstName || user.lastName || 'Unknown'
+      const product = row.original
+      const elements: ReactElement[] = []
+
+      // Add stand listings
+      product.standListings.forEach((listing, idx) => {
+        const inventory = listing.customInventory ?? product.inventory
+        elements.push(
+          <div key={`stand-${idx}`} className="text-sm">
+            <span className="font-medium">📍 {listing.marketStand.name}</span>
+            <span className="text-gray-600 ml-1">({inventory})</span>
+          </div>
+        )
+      })
+
+      // Add delivery zone
+      if (product.deliveryAvailable && product.deliveryZone) {
+        const totalDeliveryInventory = product.deliveryListings.reduce(
+          (sum, listing) => sum + listing.inventory,
+          0
+        )
+        const days = product.deliveryZone.deliveryDays.slice(0, 2).join(', ')
+        const moreDays = product.deliveryZone.deliveryDays.length > 2
+          ? ` +${product.deliveryZone.deliveryDays.length - 2}`
+          : ''
+        const zipCount = product.deliveryZone.zipCodes.length
+        elements.push(
+          <div key="delivery" className="text-sm">
+            <span className="font-medium">🚚 {product.deliveryZone.name}</span>
+            <div className="text-xs text-gray-600">
+              {days}{moreDays} • {zipCount} zip{zipCount !== 1 ? 's' : ''} • {totalDeliveryInventory} units
+            </div>
+          </div>
+        )
+      }
+
+      if (elements.length === 0) {
+        return <span className="text-sm text-gray-400">No location</span>
+      }
+
       return (
-        <div className="flex flex-col">
-          <span className="font-medium">{displayName}</span>
-          <span className="text-sm text-gray-500">{user.email}</span>
+        <div className="flex flex-col gap-2 max-w-xs">
+          {elements}
         </div>
       )
     }
   },
   {
-    id: "stand",
-    header: "Stand",
-    cell: ({ row }) => {
-      const stand = row.original.marketStand
-      if (!stand) return <span className="text-sm text-gray-400">None</span>
-      return <span className="text-sm">{stand.name}</span>
-    }
-  },
-  {
-    id: "inventory",
+    id: "stock",
     header: "Stock",
     cell: ({ row }) => {
-      const inventory = row.original.inventory
+      const product = row.original
+
+      // Calculate stand inventory
+      let standInventory = 0
+      if (product.standListings.length > 0) {
+        standInventory = product.standListings.reduce((sum, listing) => {
+          return sum + (listing.customInventory ?? product.inventory)
+        }, 0)
+      } else {
+        standInventory = product.inventory
+      }
+
+      // Calculate delivery inventory
+      const deliveryInventory = product.deliveryListings.reduce(
+        (sum, listing) => sum + listing.inventory,
+        0
+      )
+
       return (
-        <div className="text-center">
-          <span className={`font-medium ${inventory === 0 ? 'text-red-600' : ''}`}>
-            {inventory}
-          </span>
+        <div className="flex flex-col gap-1 text-xs">
+          {standInventory > 0 && (
+            <div className="flex items-center gap-1">
+              <span className="text-gray-600">Stand:</span>
+              <Badge className={`text-xs px-1.5 py-0 ${getInventoryBadgeColor(standInventory)}`}>
+                {standInventory}
+              </Badge>
+            </div>
+          )}
+          {deliveryInventory > 0 && (
+            <div className="flex items-center gap-1">
+              <span className="text-gray-600">Delivery:</span>
+              <Badge className={`text-xs px-1.5 py-0 ${getInventoryBadgeColor(deliveryInventory)}`}>
+                {deliveryInventory}
+              </Badge>
+            </div>
+          )}
+          {standInventory === 0 && deliveryInventory === 0 && (
+            <Badge className="text-xs px-1.5 py-0 bg-gray-400 text-white">
+              Out of stock
+            </Badge>
+          )}
         </div>
       )
     }
@@ -435,31 +569,14 @@ export const columns: ColumnDef<ProductWithRelations>[] = [
     }
   },
   {
-    id: "reviews",
-    header: "Reviews",
+    id: "updatedAt",
+    header: "Last Updated",
+    accessorFn: row => row.updatedAt,
     cell: ({ row }) => {
-      const product = row.original
-      return (
-        <div className="text-center">
-          <div className="font-medium">{product.totalReviews}</div>
-          {product.averageRating !== null && product.totalReviews > 0 && (
-            <div className="text-xs text-gray-500">
-              {product.averageRating.toFixed(1)}/5
-            </div>
-          )}
-        </div>
-      )
-    }
-  },
-  {
-    id: "createdAt",
-    header: "Created",
-    accessorFn: row => row.createdAt,
-    cell: ({ row }) => {
-      const createdAt = row.getValue("createdAt") as Date
+      const updatedAt = row.getValue("updatedAt") as Date
       return (
         <span className="text-sm text-gray-600">
-          {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
+          {formatDistanceToNow(new Date(updatedAt), { addSuffix: true })}
         </span>
       )
     }

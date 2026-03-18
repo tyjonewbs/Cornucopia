@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import prisma from '@/lib/db'
 import { columns } from './columns'
+import { PendingProductCard } from '@/components/admin/PendingProductCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,14 +17,17 @@ async function getProductsData() {
       status: true,
       isActive: true,
       createdAt: true,
+      updatedAt: true,
       averageRating: true,
       totalReviews: true,
       deliveryAvailable: true,
       tags: true,
       adminTags: true,
       inventoryUpdatedAt: true,
+      images: true,
       user: {
         select: {
+          id: true,
           firstName: true,
           lastName: true,
           email: true
@@ -31,7 +36,47 @@ async function getProductsData() {
       marketStand: {
         select: {
           id: true,
-          name: true
+          name: true,
+          locationName: true
+        }
+      },
+      standListings: {
+        select: {
+          marketStandId: true,
+          customInventory: true,
+          isActive: true,
+          marketStand: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        },
+        where: {
+          isActive: true
+        }
+      },
+      deliveryZone: {
+        select: {
+          id: true,
+          name: true,
+          zipCodes: true,
+          deliveryDays: true,
+          deliveryFee: true
+        }
+      },
+      deliveryListings: {
+        select: {
+          dayOfWeek: true,
+          inventory: true,
+          deliveryZoneId: true
+        }
+      },
+      local: {
+        select: {
+          id: true,
+          name: true,
+          slug: true
         }
       },
       statusHistory: {
@@ -51,7 +96,8 @@ async function getProductsData() {
         },
         orderBy: {
           createdAt: 'desc'
-        }
+        },
+        take: 3
       }
     },
     orderBy: {
@@ -67,14 +113,19 @@ export default async function ProductsPage() {
 
   const totalProducts = products.length
   const activeProducts = products.filter(p => p.isActive && p.status === 'APPROVED').length
-  const pendingProducts = products.filter(p => p.status === 'PENDING').length
+  const pendingProducts = products.filter(p => p.status === 'PENDING')
   const suspendedProducts = products.filter(p => p.status === 'SUSPENDED').length
   const outOfStock = products.filter(p => p.isActive && p.inventory === 0).length
+
+  // Sort pending products oldest first (they have been waiting longest)
+  const sortedPendingProducts = [...pendingProducts].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  )
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">All Products</h1>
+        <h1 className="text-3xl font-bold">Product Review</h1>
         <div className="text-sm text-gray-500">
           Last updated: {new Date().toLocaleString()}
         </div>
@@ -104,7 +155,7 @@ export default async function ProductsPage() {
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{pendingProducts}</div>
+            <div className="text-2xl font-bold text-yellow-600">{pendingProducts.length}</div>
           </CardContent>
         </Card>
 
@@ -127,14 +178,39 @@ export default async function ProductsPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Products</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable columns={columns} data={products} />
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="pending" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="pending">
+            Pending Review {pendingProducts.length > 0 && `(${pendingProducts.length})`}
+          </TabsTrigger>
+          <TabsTrigger value="all">All Products</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending" className="space-y-4">
+          {sortedPendingProducts.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                No pending products to review
+              </CardContent>
+            </Card>
+          ) : (
+            sortedPendingProducts.map(product => (
+              <PendingProductCard key={product.id} product={product} />
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="all">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Products</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable columns={columns} data={products} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
