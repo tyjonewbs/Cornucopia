@@ -18,6 +18,8 @@ export interface MarketStandTileData {
   averageRating?: number | null;
   totalReviews?: number;
   hours?: Record<string, { open: string; close: string } | null> | null;
+  isOpen?: boolean;
+  lastCheckedIn?: Date | string | null;
   _count?: {
     products: number;
   };
@@ -58,7 +60,27 @@ function getOpenStatus(hours: Record<string, { open: string; close: string } | n
 }
 
 export function MarketStandTile({ stand }: MarketStandTileProps) {
-  const openStatus = getOpenStatus(stand.hours as any);
+  // Prioritize isOpen field from QR portal, fallback to hours-based calculation
+  const calculatedStatus = getOpenStatus(stand.hours as any);
+  const openStatus = stand.isOpen !== undefined
+    ? { isOpen: stand.isOpen, label: stand.isOpen ? 'Open Now' : 'Closed' }
+    : calculatedStatus;
+
+  // Format last check-in time if available
+  const getLastCheckedInText = () => {
+    if (!stand.lastCheckedIn) return null;
+    const checkedIn = new Date(stand.lastCheckedIn);
+    const now = new Date();
+    const diffMs = now.getTime() - checkedIn.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffHours < 1) return 'Checked in recently';
+    if (diffHours < 24) return `Checked in ${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `Checked in ${diffDays}d ago`;
+  };
+
+  const lastCheckedInText = getLastCheckedInText();
   const productCount = stand._count?.products ?? 0;
 
   return (
@@ -129,7 +151,7 @@ export function MarketStandTile({ stand }: MarketStandTileProps) {
             {stand.locationName}
           </p>
 
-          {/* Rating and hours row */}
+          {/* Rating and hours/check-in row */}
           <div className="flex items-center gap-2 mt-1.5">
             {stand.averageRating != null && stand.averageRating > 0 && (
               <div className="flex items-center gap-0.5 text-amber-500">
@@ -140,7 +162,13 @@ export function MarketStandTile({ stand }: MarketStandTileProps) {
                 )}
               </div>
             )}
-            {stand.hours && (
+            {lastCheckedInText && (
+              <div className="flex items-center gap-0.5 text-gray-400">
+                <Clock className="w-3 h-3" />
+                <span className="text-[10px]">{lastCheckedInText}</span>
+              </div>
+            )}
+            {!lastCheckedInText && stand.hours && (
               <div className="flex items-center gap-0.5 text-gray-400">
                 <Clock className="w-3 h-3" />
                 <span className="text-[10px]">Hours listed</span>

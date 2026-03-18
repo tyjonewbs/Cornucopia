@@ -42,6 +42,164 @@ export async function POST(req: Request) {
 }
 
 /**
+ * Handle QR Purchase checkout - simpler flow, no cart, no delivery
+ */
+async function handleQRPurchase(
+  session: Stripe.Checkout.Session,
+  checkout: {
+    userId: string;
+    transferGroup: string;
+    platformFee: number;
+    subtotal: number;
+    items: unknown;
+    transfers: unknown;
+  }
+) {
+  const standId = session.metadata?.standId;
+  if (!standId) {
+    console.error("No standId in QR purchase metadata");
+    return;
+  }
+
+  const items = checkout.items as Array<{
+    productId: string;
+    quantity: number;
+    listingId?: string;
+  }>;
+
+  const transfers = checkout.transfers as Array<{
+    sellerId: string;
+    connectedAccountId: string;
+    amount: number;
+    platformFee: number;
+    subtotal: number;
+  }>;
+
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id || null;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Generate order number
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const orderNumber = `ORD-${timestamp}-${random}`;
+
+      // Create the QR purchase order
+      await tx.order.create({
+        data: {
+          orderNumber,
+          userId: checkout.userId,
+          marketStandId: standId,
+          type: "QR_PURCHASE",
+          status: "COMPLETED",
+          paymentStatus: "PAID",
+          totalAmount: checkout.subtotal,
+          subtotal: checkout.subtotal,
+          tax: 0,
+          fees: 0,
+          platformFee: checkout.platformFee,
+          stripeSessionId: session.id,
+          stripePaymentIntentId: paymentIntentId,
+          stripeTransferGroup: checkout.transferGroup,
+          items: {
+            create: items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              priceAtTime: 0, // Will be updated from listing
+              listingId: item.listingId,
+            })),
+          },
+        },
+      });
+
+      // Decrement inventory for each item
+      for (const item of items) {
+        const listing = await tx.productStandListing.findFirst({
+          where: {
+            productId: item.productId,
+            marketStandId: standId,
+          },
+          include: {
+            product: {
+              select: {
+                inventory: true,
+                price: true,
+              },
+            },
+          },
+        });
+
+        if (!listing) continue;
+
+        const useCustomInventory = listing.customInventory !== null;
+        const currentInventory = useCustomInventory
+          ? listing.customInventory
+          : listing.product.inventory;
+
+        const decrementAmount = Math.min(item.quantity, currentInventory ?? 0);
+
+        if (decrementAmount > 0) {
+          if (useCustomInventory) {
+            await tx.productStandListing.update({
+              where: { id: listing.id },
+              data: {
+                customInventory: { decrement: decrementAmount },
+              },
+            });
+          } else {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                inventory: { decrement: decrementAmount },
+              },
+            });
+          }
+        }
+
+        // Update the order item with the actual price
+        const actualPrice = listing.customPrice ?? listing.product.price;
+        await tx.orderItem.updateMany({
+          where: {
+            order: { stripeSessionId: session.id },
+            productId: item.productId,
+          },
+          data: { priceAtTime: actualPrice },
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Failed to process QR purchase:", error);
+    return;
+  }
+
+  // Create Stripe transfers to seller
+  for (const transfer of transfers) {
+    try {
+      await stripe.transfers.create({
+        amount: transfer.amount,
+        currency: "usd",
+        destination: transfer.connectedAccountId,
+        transfer_group: checkout.transferGroup,
+      });
+    } catch (error) {
+      console.error("Failed to create transfer for QR purchase:", error);
+    }
+  }
+
+  // Clean up pending checkout
+  try {
+    await prisma.pendingCheckout.delete({
+      where: { stripeSessionId: session.id },
+    });
+  } catch (error) {
+    console.error("Failed to delete pending checkout:", error);
+  }
+}
+
+/**
  * Handle successful checkout - create orders, transfers, update inventory
  */
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
@@ -63,6 +221,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (!checkout) {
     console.error("No pending checkout found for session:", sessionId);
+    return;
+  }
+
+  // Check if this is a QR_PURCHASE order
+  const isQRPurchase = session.metadata?.orderType === "QR_PURCHASE";
+
+  if (isQRPurchase) {
+    await handleQRPurchase(session, checkout);
     return;
   }
 

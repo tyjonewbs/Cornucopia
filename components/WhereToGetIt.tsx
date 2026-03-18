@@ -430,7 +430,7 @@ export function WhereToGetIt({ data }: WhereToGetItProps) {
 
                   {data.user?.connectedAccountId && (
                     <div className="pt-2">
-                      <QRPaymentCallout standName={location.name} />
+                      <QRPaymentCallout standName={location.name} standId={location.id} />
                     </div>
                   )}
                 </div>

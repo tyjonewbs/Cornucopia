@@ -91,6 +91,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
   PICKUP: 'Pickup',
   DELIVERY: 'Delivery',
+  QR_PURCHASE: 'QR Purchase',
 };
 
 // Status colors for UI

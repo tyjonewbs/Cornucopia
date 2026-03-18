@@ -19,6 +19,8 @@ interface MarketStandCardProps {
     longitude: number;
     images: string[];
     tags: string[];
+    isOpen?: boolean;
+    lastCheckedIn?: Date | string | null;
     _count?: {
       products: number;
     };
@@ -28,10 +30,26 @@ interface MarketStandCardProps {
 
 export function MarketStandCard({ stand }: MarketStandCardProps) {
   const [imageError, setImageError] = useState(false);
-  
+
   if (!stand) {
     return null;
   }
+
+  // Format last check-in time if available
+  const getLastCheckedInText = () => {
+    if (!stand.lastCheckedIn) return null;
+    const checkedIn = new Date(stand.lastCheckedIn);
+    const now = new Date();
+    const diffMs = now.getTime() - checkedIn.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffHours < 1) return 'Checked in recently';
+    if (diffHours < 24) return `Checked in ${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `Checked in ${diffDays}d ago`;
+  };
+
+  const lastCheckedInText = getLastCheckedInText();
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -62,7 +80,27 @@ export function MarketStandCard({ stand }: MarketStandCardProps) {
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between gap-2 sm:gap-4">
               <div className="flex-1 min-w-0">
-                <CardTitle className="truncate">{stand.name}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="truncate">{stand.name}</CardTitle>
+                  {stand.isOpen !== undefined && (
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        stand.isOpen
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {stand.isOpen ? (
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-green-600 rounded-full" />
+                          Open Now
+                        </span>
+                      ) : (
+                        "Closed"
+                      )}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                   {stand.description}
                 </p>
@@ -87,7 +125,13 @@ export function MarketStandCard({ stand }: MarketStandCardProps) {
                     <Package className="h-4 w-4 flex-shrink-0" />
                     {stand._count?.products || 0} products
                   </div>
-                  {stand.lastProductUpdate && (
+                  {lastCheckedInText && (
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Clock className="h-4 w-4 flex-shrink-0" />
+                      {lastCheckedInText}
+                    </div>
+                  )}
+                  {!lastCheckedInText && stand.lastProductUpdate && (
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Clock className="h-4 w-4 flex-shrink-0" />
                       Updated {formatDistanceToNow(new Date(stand.lastProductUpdate), { addSuffix: true })}
