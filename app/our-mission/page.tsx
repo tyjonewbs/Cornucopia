@@ -27,7 +27,7 @@ export default function OurMissionPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 pb-24 md:pb-12">
       {/* Hero Section */}
       <div className="relative h-[400px] rounded-xl overflow-hidden mb-16 bg-[#0B4D2C]">
         <div className="absolute inset-0 flex items-center justify-center">

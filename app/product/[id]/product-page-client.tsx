@@ -68,6 +68,7 @@ export function ProductPageClient({ data, nearbyProducts, initialSaved = false }
           id: data.marketStand.id,
           name: data.marketStand.name,
           locationName: data.marketStand.locationName,
+          isOpen: data.marketStand.isOpen,
         } : null}
         isSaved={isSaved}
         onToggleFavorite={handleToggleFavorite}

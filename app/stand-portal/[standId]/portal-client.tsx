@@ -501,11 +501,7 @@ export default function StandPortalClient({
                           </div>
                         )}
 
-                        {!isOpen && !isOwner && (
-                          <p className="text-sm text-gray-500 mt-2">
-                            Stand is closed
-                          </p>
-                        )}
+                        {/* Stand closed message shown globally, not per-card */}
                       </div>
                     </div>
                   </CardContent>

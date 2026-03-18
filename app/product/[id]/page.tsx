@@ -59,6 +59,7 @@ async function getData(id: string) {
           zipCode: true,
           locationGuide: true,
           hours: true,
+          isOpen: true,
           averageRating: true,
           totalReviews: true,
           createdAt: true,

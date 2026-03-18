@@ -1,7 +1,7 @@
 
 export default function HowItWorks() {
   return (
-    <div>
+    <div className="pb-24 md:pb-0">
       {/* Process Section */}
       <section className="w-full bg-[#134925] py-16 mb-16">
         <div className="max-w-5xl mx-auto px-4">

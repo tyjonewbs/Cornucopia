@@ -11,6 +11,7 @@ interface ProductTitleBarProps {
     id: string;
     name: string;
     locationName?: string | null;
+    isOpen?: boolean;
   } | null;
   isSaved?: boolean;
   onToggleFavorite?: () => void;
@@ -56,7 +57,7 @@ export function ProductTitleBar({
           >
             <MapPin className="w-4 h-4 group-hover:text-primary transition-colors" />
             <span className="text-sm font-medium">{marketStand.name}</span>
-            {marketStand.locationName && (
+            {marketStand.locationName && marketStand.locationName !== marketStand.name && (
               <span className="text-sm text-muted-foreground">
                 • {marketStand.locationName}
               </span>
@@ -77,8 +78,9 @@ export function ProductTitleBar({
           size="lg"
           className="w-full font-semibold"
           onClick={onBuyNow}
+          disabled={marketStand?.isOpen === false}
         >
-          Buy Now
+          {marketStand?.isOpen === false ? 'Stand is Closed' : 'Buy Now'}
         </Button>
 
         {/* Secondary Actions */}

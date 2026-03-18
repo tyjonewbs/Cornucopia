@@ -69,7 +69,7 @@ export function HeaderSearchBar() {
           <Search className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" aria-hidden="true" />
           <input
             type="text"
-            placeholder="Search products, stands, farms..."
+            placeholder="Search..."
             aria-label="Search products, stands, and farms"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
