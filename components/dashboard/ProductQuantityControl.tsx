@@ -85,6 +85,7 @@ export function ProductQuantityControl({
           onChange={(e) => handleInputChange(e.target.value)}
           onBlur={handleInputBlur}
           onKeyDown={handleKeyDown}
+          onFocus={(e) => e.target.select()}
           className="w-16 h-8 text-center"
           autoFocus
         />

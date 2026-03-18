@@ -437,6 +437,7 @@ export default function StandPortalClient({
                                 type="number"
                                 min="0"
                                 value={currentInventory}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) =>
                                   handleInventoryEdit(
                                     product.id,
@@ -476,6 +477,7 @@ export default function StandPortalClient({
                                 min="0"
                                 max={product.inventory}
                                 value={cartItem?.quantity ?? 0}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) =>
                                   updateCartQuantity(
                                     product.id,

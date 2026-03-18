@@ -97,6 +97,7 @@ export function ProductDashboardCard({ id, name, images, inventory, inventoryUpd
               type="number"
               min="0"
               value={currentInventory}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => setCurrentInventory(Number(e.target.value))}
               className="w-24"
               aria-label={`Update inventory for ${name}`}

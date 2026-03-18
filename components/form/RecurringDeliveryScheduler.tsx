@@ -86,6 +86,7 @@ export function RecurringDeliveryScheduler({
                     type="number"
                     min="0"
                     value={inventory}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => updateInventory(day, parseInt(e.target.value) || 0)}
                     className="h-9 w-24 text-center"
                     placeholder="0"
