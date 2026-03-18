@@ -208,6 +208,8 @@ export async function SellProduct(
       }
     } else {
       // Create new product
+      const primaryStandId = standListings.length > 0 ? standListings[0].marketStandId : undefined;
+
       const product = await prisma.product.create({
         data: {
           name: validateFields.data.name,
@@ -216,6 +218,7 @@ export async function SellProduct(
           images: validateFields.data.images,
           tags: validateFields.data.tags,
           userId: user.id,
+          ...(primaryStandId ? { marketStandId: primaryStandId } : {}),
         }
       });
 
