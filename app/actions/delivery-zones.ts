@@ -842,6 +842,37 @@ export async function updateProductZoneInventory(
           deliveryAvailable: true,
         },
       });
+
+      // Also update ProductDeliveryListing.inventory for all days in this zone
+      // so the delivery dashboard summary reads correctly
+      const existingListings = await prisma.productDeliveryListing.findMany({
+        where: { productId, deliveryZoneId: zoneId }
+      });
+
+      if (existingListings.length > 0) {
+        // Update all existing day listings
+        await prisma.productDeliveryListing.updateMany({
+          where: { productId, deliveryZoneId: zoneId },
+          data: { inventory: newInventory }
+        });
+      } else {
+        // Create listings for each delivery day in the zone
+        const zoneWithDays = await prisma.deliveryZone.findUnique({
+          where: { id: zoneId },
+          select: { deliveryDays: true }
+        });
+        if (zoneWithDays?.deliveryDays?.length) {
+          await prisma.productDeliveryListing.createMany({
+            data: zoneWithDays.deliveryDays.map(day => ({
+              productId,
+              deliveryZoneId: zoneId,
+              dayOfWeek: day,
+              inventory: newInventory
+            })),
+            skipDuplicates: true
+          });
+        }
+      }
     } else {
       // Set inventory to 0 and remove from zone
       await prisma.product.update({
@@ -851,6 +882,11 @@ export async function updateProductZoneInventory(
           deliveryZoneId: null,
           deliveryAvailable: false,
         },
+      });
+      // Also zero out delivery listings
+      await prisma.productDeliveryListing.updateMany({
+        where: { productId, deliveryZoneId: zoneId },
+        data: { inventory: 0 }
       });
     }
 
