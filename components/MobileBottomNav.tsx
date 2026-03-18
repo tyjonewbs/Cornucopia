@@ -40,14 +40,21 @@ export function MobileBottomNav() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    supabase
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("userId", user.id)
-      .eq("isActive", true)
-      .then(({ count }) => {
-        setIsProducer((count ?? 0) > 0);
-      });
+    // Check products OR market stands — either makes them a producer
+    Promise.all([
+      supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("userId", user.id)
+        .eq("isActive", true),
+      supabase
+        .from("MarketStand")
+        .select("id", { count: "exact", head: true })
+        .eq("userId", user.id)
+        .eq("isActive", true),
+    ]).then(([products, stands]) => {
+      setIsProducer((products.count ?? 0) > 0 || (stands.count ?? 0) > 0);
+    });
   }, [user?.id]);
 
   const isActive = (href: string) => {
