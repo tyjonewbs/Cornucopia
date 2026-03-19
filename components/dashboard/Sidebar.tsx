@@ -109,6 +109,7 @@ export function SidebarContent({ isProducer, onNavigate }: SidebarProps) {
               <div className="my-2 border-t border-gray-200" />
               <Link
                 href="/product/new"
+                onClick={onNavigate}
                 className="flex items-center space-x-3 px-3 py-3 md:py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-[#8B4513] to-[#D2691E] text-white hover:opacity-90 transition-opacity"
               >
                 <Package className="h-5 w-5" />
