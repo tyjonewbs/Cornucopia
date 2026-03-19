@@ -193,54 +193,16 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
       }
     });
 
-    // Validate location: Either complete address OR lat/long is required
-    const hasStreetAddress = formState.values.streetAddress.trim() !== '';
-    const hasCity = formState.values.city.trim() !== '';
-    const hasZipCode = formState.values.zipCode.trim() !== '';
+    // Validate location: coordinates from map picker are required
     const hasLatitude = formState.values.latitude.trim() !== '';
     const hasLongitude = formState.values.longitude.trim() !== '';
-
-    const hasCompleteAddress = hasStreetAddress && hasCity && hasZipCode;
     const hasCoordinates = hasLatitude && hasLongitude;
 
-    // Check if we have either complete address or coordinates
-    if (!hasCompleteAddress && !hasCoordinates) {
-      newErrors.streetAddress = "Either provide a complete address (street, city, zip) OR GPS coordinates";
-      newErrors.latitude = "Either provide GPS coordinates (lat & long) OR a complete address";
-      isValid = false;
-    } else {
-      // If partial address provided, validate completeness
-      const hasPartialAddress = hasStreetAddress || hasCity || hasZipCode;
-      if (hasPartialAddress && !hasCompleteAddress) {
-        if (!hasStreetAddress) newErrors.streetAddress = "Street address is required when providing an address";
-        if (!hasCity) newErrors.city = "City is required when providing an address";
-        if (!hasZipCode) newErrors.zipCode = "Zip code is required when providing an address";
-        isValid = false;
-      }
-
-      // Validate lat/long values if provided
-      if (hasLatitude || hasLongitude) {
-        if (hasLatitude) {
-          const latError = validateField('latitude', formState.values.latitude);
-          if (latError) {
-            newErrors.latitude = latError;
-            isValid = false;
-          }
-        }
-        if (hasLongitude) {
-          const lngError = validateField('longitude', formState.values.longitude);
-          if (lngError) {
-            newErrors.longitude = lngError;
-            isValid = false;
-          }
-        }
-        // Both must be provided together
-        if ((hasLatitude && !hasLongitude) || (!hasLatitude && hasLongitude)) {
-          newErrors.latitude = "Both latitude and longitude are required";
-          newErrors.longitude = "Both latitude and longitude are required";
-          isValid = false;
-        }
-      }
+    if (hasCoordinates) {
+      const latError = validateField('latitude', formState.values.latitude);
+      if (latError) { newErrors.latitude = latError; isValid = false; }
+      const lngError = validateField('longitude', formState.values.longitude);
+      if (lngError) { newErrors.longitude = lngError; isValid = false; }
     }
 
     // Validate images
@@ -507,63 +469,11 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
         </div>
 
         <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-2">Location Information</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Provide either a complete address (street, city, zip) OR GPS coordinates. You can provide both for maximum accuracy.
-          </p>
-          
           <div className="flex flex-col gap-y-4">
-            <div className="flex flex-col gap-y-2">
-              <Label>Street Address (Optional)</Label>
-              <Input
-                name="streetAddress"
-                type="text"
-                placeholder="e.g., 123 Main Street"
-                value={formState.values.streetAddress}
-                onChange={(e) => handleFieldChange('streetAddress', e.target.value)}
-                className={formState.errors.streetAddress ? 'border-destructive' : ''}
-              />
-              {formState.errors.streetAddress && (
-                <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.streetAddress}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="flex flex-col gap-y-2">
-                <Label>City (Optional)</Label>
-                <Input
-                  name="city"
-                  type="text"
-                  placeholder="e.g., San Francisco"
-                  value={formState.values.city}
-                  onChange={(e) => handleFieldChange('city', e.target.value)}
-                  className={formState.errors.city ? 'border-destructive' : ''}
-                />
-                {formState.errors.city && (
-                  <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.city}</p>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-y-2">
-                <Label>Zip Code (Optional)</Label>
-                <Input
-                  name="zipCode"
-                  type="text"
-                  placeholder="e.g., 94102"
-                  value={formState.values.zipCode}
-                  onChange={(e) => handleFieldChange('zipCode', e.target.value)}
-                  className={formState.errors.zipCode ? 'border-destructive' : ''}
-                />
-                {formState.errors.zipCode && (
-                  <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.zipCode}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="border-t pt-4 mt-2">
-              <Label className="text-base">Pin Your Stand Location</Label>
+            <div>
+              <Label className="text-base font-semibold">Pin Your Stand Location</Label>
               <p className="text-sm text-muted-foreground mt-1 mb-3">
-                Drag the marker to your exact stand location, or search for an address.
+                Search for an address or drag the pin to your exact location.
               </p>
 
               <MapLocationPicker
