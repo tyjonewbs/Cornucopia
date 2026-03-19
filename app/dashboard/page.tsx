@@ -91,7 +91,8 @@ export default async function DashboardPage() {
         select: {
           id: true,
           name: true,
-          isOpen: true
+          isOpen: true,
+          hours: true
         }
       })
     ]);
@@ -295,6 +296,7 @@ export default async function DashboardPage() {
                 standId={firstActiveStand.id}
                 standName={firstActiveStand.name}
                 isOpen={firstActiveStand.isOpen}
+                hours={firstActiveStand.hours as any}
               />
             </div>
           )}

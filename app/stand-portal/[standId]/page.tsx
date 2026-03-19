@@ -1,4 +1,4 @@
-import { getStandPortalData } from "@/app/actions/stand-portal";
+import { getStandPortalData, autoCloseIfPastHours } from "@/app/actions/stand-portal";
 import { getUser } from "@/app/actions/auth";
 import { notFound } from "next/navigation";
 import StandPortalClient from "./portal-client";
@@ -9,6 +9,9 @@ export default async function StandPortalPage({
   params: Promise<{ standId: string }>;
 }) {
   const { standId } = await params;
+
+  // Auto-close stand if past hours (lazy enforcement)
+  await autoCloseIfPastHours(standId);
 
   // Fetch stand data
   const data = await getStandPortalData(standId);

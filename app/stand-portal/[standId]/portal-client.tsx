@@ -16,6 +16,34 @@ import {
   updateStandProductInventory,
 } from "@/app/actions/stand-portal";
 
+// Helper to get today's hours
+function getTodayHours(hours: Record<string, any> | null | undefined): { open: string; close: string } | null {
+  if (!hours) return null;
+
+  const now = new Date();
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const currentDay = dayNames[now.getDay()];
+  const todaySchedule = hours[currentDay];
+
+  if (!todaySchedule || !todaySchedule.isOpen || !todaySchedule.timeSlots || todaySchedule.timeSlots.length === 0) {
+    return null;
+  }
+
+  const firstSlot = todaySchedule.timeSlots[0];
+  return {
+    open: firstSlot.open,
+    close: firstSlot.close,
+  };
+}
+
+// Format time from 24h to 12h
+function formatTime(time: string): string {
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'pm' : 'am';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')}${period}`;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -33,6 +61,7 @@ interface Stand {
   locationName: string;
   isOpen: boolean;
   userId: string;
+  hours?: any;
 }
 
 interface Seller {
@@ -83,6 +112,8 @@ export default function StandPortalClient({
       window.history.replaceState({}, "", newUrl);
     }
   }, [searchParams]);
+
+  const todayHours = getTodayHours(stand.hours);
 
   const handleToggleOpen = async () => {
     setIsToggling(true);
@@ -289,29 +320,43 @@ export default function StandPortalClient({
               )}
             </div>
             <div className="flex items-center gap-2 ml-4">
-              <div
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  isOpen
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                {isOpen ? "Open" : "Closed"}
-              </div>
-              {isOwner && (
-                <Button
-                  onClick={handleToggleOpen}
-                  disabled={isToggling}
-                  size="sm"
-                  variant="outline"
+              <div className="flex flex-col items-end gap-1">
+                <div
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    isOpen
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
                 >
-                  {isToggling
-                    ? "Updating..."
-                    : isOpen
-                    ? "Close Stand"
-                    : "Open Stand"}
-                </Button>
-              )}
+                  {isOpen ? "Open" : "Closed"}
+                </div>
+                {isOwner && (
+                  <>
+                    <Button
+                      onClick={handleToggleOpen}
+                      disabled={isToggling}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {isToggling
+                        ? "Updating..."
+                        : isOpen
+                        ? "Close Stand"
+                        : "Open Stand"}
+                    </Button>
+                    {!isOpen && todayHours && !isToggling && (
+                      <p className="text-xs text-gray-500 text-right">
+                        Auto-closes at {formatTime(todayHours.close)}
+                      </p>
+                    )}
+                    {!isOpen && !todayHours && !isToggling && (
+                      <p className="text-xs text-gray-500 text-right">
+                        Stays open until you close it
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

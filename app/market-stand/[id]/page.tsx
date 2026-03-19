@@ -10,10 +10,14 @@ import { MarketStandHours } from "@/components/MarketStandHours";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import MapView from "@/components/MapView";
 import { Separator } from "@/components/ui/separator";
+import { autoCloseIfPastHours } from "@/app/actions/stand-portal";
 
 async function getData(encodedId: string) {
   try {
     const id = decodeURIComponent(encodedId);
+
+    // Auto-close stand if past hours (lazy enforcement)
+    await autoCloseIfPastHours(id);
 
     const marketStand = await prisma.marketStand.findUnique({
       where: { id },
@@ -32,6 +36,7 @@ async function getData(encodedId: string) {
         website: true,
         socialMedia: true,
         hours: true,
+        isOpen: true,
         productListings: {
           where: { isActive: true },
           select: {

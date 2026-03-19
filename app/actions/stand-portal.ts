@@ -5,6 +5,31 @@ import { getUser } from "@/app/actions/auth";
 import { stripe } from "@/lib/stripe";
 import { calculatePlatformFee, calculateSellerTransfers } from "@/lib/stripe/fees";
 import { OrderType, PaymentStatus, OrderStatus } from "@prisma/client";
+import { WeeklyHours } from "@/types/hours";
+
+/**
+ * Get today's hours from the WeeklyHours JSON
+ * Returns the first time slot for today, or null if no hours or today is closed
+ */
+function getTodayHours(hours: Record<string, any> | null): { open: string; close: string } | null {
+  if (!hours) return null;
+
+  const now = new Date();
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const currentDay = dayNames[now.getDay()];
+  const todaySchedule = hours[currentDay];
+
+  if (!todaySchedule || !todaySchedule.isOpen || !todaySchedule.timeSlots || todaySchedule.timeSlots.length === 0) {
+    return null;
+  }
+
+  // Return the first time slot for today
+  const firstSlot = todaySchedule.timeSlots[0];
+  return {
+    open: firstSlot.open,
+    close: firstSlot.close,
+  };
+}
 
 /**
  * Get stand data for the QR portal
@@ -15,7 +40,14 @@ export async function getStandPortalData(standId: string) {
     // Fetch stand with products
     const stand = await prisma.marketStand.findUnique({
       where: { id: standId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        locationName: true,
+        isOpen: true,
+        userId: true,
+        hours: true,
         user: {
           select: {
             id: true,
@@ -76,6 +108,7 @@ export async function getStandPortalData(standId: string) {
         locationName: stand.locationName,
         isOpen: stand.isOpen,
         userId: stand.userId,
+        hours: stand.hours,
       },
       products: productsWithInventory,
       seller: {
@@ -90,19 +123,61 @@ export async function getStandPortalData(standId: string) {
 }
 
 /**
+ * Auto-close stand if it's past scheduled hours
+ * Called lazily on page load to enforce hours-based closing
+ */
+export async function autoCloseIfPastHours(standId: string): Promise<void> {
+  try {
+    const stand = await prisma.marketStand.findUnique({
+      where: { id: standId },
+      select: { isOpen: true, hours: true },
+    });
+
+    if (!stand || !stand.isOpen) {
+      return; // Nothing to do if stand doesn't exist or is already closed
+    }
+
+    const todayHours = getTodayHours(stand.hours as Record<string, any> | null);
+    if (!todayHours) {
+      return; // No hours set, don't auto-close
+    }
+
+    // Check if current time is past closing time
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const [closeH, closeM] = todayHours.close.split(':').map(Number);
+    const closeMin = closeH * 60 + (closeM || 0);
+
+    if (currentMinutes >= closeMin) {
+      // Past closing time, auto-close the stand
+      await prisma.marketStand.update({
+        where: { id: standId },
+        data: {
+          isOpen: false,
+          closedAt: new Date(),
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error auto-closing stand:", error);
+    // Silent fail - don't disrupt page load
+  }
+}
+
+/**
  * Toggle stand open/close status (owner only)
  */
-export async function toggleStandOpen(standId: string): Promise<{ isOpen?: boolean; error?: string }> {
+export async function toggleStandOpen(standId: string): Promise<{ isOpen?: boolean; scheduledCloseTime?: string; error?: string }> {
   try {
     const user = await getUser();
     if (!user || !user.id) {
       return { error: "Unauthorized" };
     }
 
-    // Verify ownership
+    // Verify ownership and get hours
     const stand = await prisma.marketStand.findUnique({
       where: { id: standId },
-      select: { userId: true, isOpen: true },
+      select: { userId: true, isOpen: true, hours: true },
     });
 
     if (!stand) {
@@ -115,18 +190,28 @@ export async function toggleStandOpen(standId: string): Promise<{ isOpen?: boole
 
     // Toggle the stand
     const now = new Date();
+    const newIsOpen = !stand.isOpen;
     const updatedStand = await prisma.marketStand.update({
       where: { id: standId },
       data: {
-        isOpen: !stand.isOpen,
-        openedAt: !stand.isOpen ? now : undefined,
-        closedAt: stand.isOpen ? now : undefined,
+        isOpen: newIsOpen,
+        openedAt: newIsOpen ? now : undefined,
+        closedAt: !newIsOpen ? now : undefined,
         lastCheckedIn: now,
       },
       select: { isOpen: true },
     });
 
-    return { isOpen: updatedStand.isOpen };
+    // If opening and hours are set, return scheduled close time
+    let scheduledCloseTime: string | undefined;
+    if (newIsOpen) {
+      const todayHours = getTodayHours(stand.hours as Record<string, any> | null);
+      if (todayHours) {
+        scheduledCloseTime = todayHours.close;
+      }
+    }
+
+    return { isOpen: updatedStand.isOpen, scheduledCloseTime };
   } catch (error) {
     console.error("Error toggling stand:", error);
     return { error: "Failed to toggle stand" };
