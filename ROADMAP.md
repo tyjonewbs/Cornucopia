@@ -231,3 +231,27 @@ model MarketStand {
 - Producer needs to check in twice a day — morning open, evening close
 - Consumer experience should be identical whether product is cross-listed or not
 - QR portal is the physical presence gate — not geo-locked, but requires login to interact
+
+## Stand Portal vs Dashboard — Design Decision (2026-03-19)
+
+### Decision: Keep both, make purposes distinct
+
+**Dashboard `/dashboard/market-stand`** = "Management mode" (at home)
+- Bulk inventory editing
+- Stand settings/configuration
+- Historical data, last restocked times
+- Product management
+- NO open/close toggle (that belongs to portal)
+
+**QR Stand Portal `/stand-portal/[id]`** = "Market day mode" (in person)
+- Primary: Open/close toggle (checking in for the day)
+- Live product list for customers + producer
+- Cash/card purchase
+- Quick inventory updates
+- No product photos needed — you're already there, you can see the product
+- Access via QR code = physical presence confirmation
+
+### Future: Portal enhancements
+- Customer can scan QR → decrement inventory (cash purchase self-service)
+- Show "I'm here" to subscribers (notify people who follow the stand)
+- Check-in timestamp visible to customers ("Tyler opened 20 min ago")
