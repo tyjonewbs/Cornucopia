@@ -125,7 +125,12 @@ export default async function MarketStandPage({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 overflow-x-hidden">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 overflow-x-hidden">
+      {/* Back button */}
+      <a href="/market-stand/grid" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Market Stands
+      </a>
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-8">
