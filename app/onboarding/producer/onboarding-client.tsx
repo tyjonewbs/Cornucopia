@@ -626,7 +626,7 @@ export function ProducerOnboardingWizard({
               <div className="space-y-2">
                 <Label>Pin Your Stand Location</Label>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Drag the marker to your exact stand location, or search for an address.
+                  Search for an address above, or tap and hold the red pin to drag it to your exact location.
                 </p>
                 <MapLocationPicker
                   initialLat={standLatitude ? parseFloat(standLatitude) : undefined}

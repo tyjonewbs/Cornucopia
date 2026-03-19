@@ -153,7 +153,7 @@ export function MapLocationPicker({
             <input
               type="text"
               placeholder="Search for an address..."
-              className="w-full px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4D2C] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4D2C] focus:border-transparent bg-white text-gray-900 placeholder:text-gray-400"
             />
           </Autocomplete>
         )}
@@ -179,6 +179,8 @@ export function MapLocationPicker({
             streetViewControl: false,
             mapTypeControl: false,
             fullscreenControl: false,
+            gestureHandling: "greedy",
+            zoomControl: true,
           }}
         >
           <Marker
