@@ -154,46 +154,52 @@ export default async function DashboardPage() {
       {orderCount > 0 || savedProductsCount > 0 ? (
         <div>
           <h2 className="text-xl font-semibold mb-4">My Activity</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 md:gap-4">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Orders</CardTitle>
-                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="pb-2 pt-3 px-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <ShoppingBag className="h-5 w-5 text-[#0B4D2C]" />
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Orders</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-3 pb-3 text-center">
                 <div className="text-2xl font-bold">{orderCount}</div>
                 <Link href="/dashboard/purchases">
-                  <Button variant="link" className="p-0 h-auto mt-2">
-                    View purchases →
+                  <Button variant="link" className="p-0 h-auto mt-1 text-xs">
+                    View →
                   </Button>
                 </Link>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Saved</CardTitle>
-                <Heart className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="pb-2 pt-3 px-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <Heart className="h-5 w-5 text-[#0B4D2C]" />
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Saved</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-3 pb-3 text-center">
                 <div className="text-2xl font-bold">{savedProductsCount}</div>
                 <Link href="/dashboard/my-local-haul">
-                  <Button variant="link" className="p-0 h-auto mt-2">
-                    View favorites →
+                  <Button variant="link" className="p-0 h-auto mt-1 text-xs">
+                    View →
                   </Button>
                 </Link>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Following</CardTitle>
-                <Star className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="pb-2 pt-3 px-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <Star className="h-5 w-5 text-[#0B4D2C]" />
+                  <CardTitle className="text-xs font-medium text-muted-foreground">Following</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-3 pb-3 text-center">
                 <div className="text-2xl font-bold">{subscriptionCount}</div>
                 <Link href="/dashboard/my-local-haul">
-                  <Button variant="link" className="p-0 h-auto mt-2">
+                  <Button variant="link" className="p-0 h-auto mt-1 text-xs">
                     Manage →
                   </Button>
                 </Link>
