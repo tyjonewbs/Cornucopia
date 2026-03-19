@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ArrowRight, Check, Store, Truck, Package } from "lucide-react";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
+import { DEFAULT_WEEKLY_HOURS } from "@/types/hours";
 import Image from "next/image";
 import { X } from "lucide-react";
 import { SellProduct, State } from "@/app/actions";
@@ -67,6 +68,7 @@ export function ProducerOnboardingWizard({
   const [productDescription, setProductDescription] = useState("");
   const [productImages, setProductImages] = useState<string[]>([]);
   const [productTags, setProductTags] = useState<string[]>([]);
+  const [productInventory, setProductInventory] = useState("10");
   const [currentTag, setCurrentTag] = useState("");
 
   // Fulfillment selection
@@ -152,6 +154,10 @@ export function ProducerOnboardingWizard({
       toast.error("Please enter a valid price");
       return false;
     }
+    if (!productInventory || parseInt(productInventory) < 1) {
+      toast.error("Please enter how many units you have available");
+      return false;
+    }
     if (productDescription.length < 10) {
       toast.error("Please provide a detailed description (at least 10 characters)");
       return false;
@@ -172,10 +178,7 @@ export function ProducerOnboardingWizard({
       toast.error("Please provide location directions (at least 10 characters)");
       return false;
     }
-    if (standImages.length === 0) {
-      toast.error("Please upload at least one stand image");
-      return false;
-    }
+    // Images optional during onboarding — can be added later from dashboard
     return true;
   };
 
@@ -244,10 +247,10 @@ export function ProducerOnboardingWizard({
     formData.append("locationGuide", standLocationGuide);
     formData.append("latitude", standLatitude);
     formData.append("longitude", standLongitude);
-    formData.append("images", JSON.stringify(standImages));
+    formData.append("images", JSON.stringify(standImages.length > 0 ? standImages : ["https://placehold.co/800x600/0B4D2C/white?text=Market+Stand"]));
     formData.append("tags", JSON.stringify([]));
     formData.append("socialMedia", JSON.stringify([]));
-    formData.append("hours", JSON.stringify({}));
+    formData.append("hours", JSON.stringify(DEFAULT_WEEKLY_HOURS));
     formData.append("website", "");
     formData.append("streetAddress", "");
     formData.append("city", "");
@@ -306,12 +309,13 @@ export function ProducerOnboardingWizard({
     formData.append("tags", JSON.stringify(productTags));
 
     // Stand listings
-    const standListings = marketStandId ? [{ marketStandId, inventory: 100 }] : [];
+    const inventory = parseInt(productInventory) || 10;
+    const standListings = marketStandId ? [{ marketStandId, inventory }] : [];
     formData.append("standListings", JSON.stringify(standListings));
 
     // Delivery listings
     const deliveryListings = deliveryZoneId
-      ? zoneDeliveryDays.map((day) => ({ deliveryZoneId, dayOfWeek: day, inventory: 100 }))
+      ? zoneDeliveryDays.map((day) => ({ deliveryZoneId, dayOfWeek: day, inventory }))
       : [];
     formData.append("deliveryListings", JSON.stringify(deliveryListings));
 
@@ -403,6 +407,20 @@ export function ProducerOnboardingWizard({
                     className="pl-7"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="productInventory">Available Quantity *</Label>
+                <Input
+                  id="productInventory"
+                  type="number"
+                  min="1"
+                  placeholder="10"
+                  value={productInventory}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setProductInventory(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">How many units do you have ready to sell?</p>
               </div>
 
               <div className="space-y-2">
