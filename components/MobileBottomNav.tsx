@@ -100,7 +100,7 @@ export function MobileBottomNav() {
         })}
 
         {/* Menu button - replaces Account */}
-        {isAuthenticated ? (
+        {isAuthenticated || isDashboard ? (
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
               <button
