@@ -150,7 +150,7 @@ export default function ProductsClient({
                               {product.name}
                             </h3>
                             <p className="text-base sm:text-lg font-bold text-[#8B4513]">
-                              {formatPrice(product.price / 100)}
+                              {formatPrice(product.price)}
                             </p>
                           </div>
 
