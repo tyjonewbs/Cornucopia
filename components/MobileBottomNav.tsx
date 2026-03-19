@@ -3,31 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MapPin, Heart, ShoppingBag, Menu } from "lucide-react";
+import { Home, MapPin, User, LayoutDashboard, Sprout } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { SidebarContent } from "@/components/dashboard/Sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { createBrowserClient } from "@supabase/ssr";
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: typeof Home;
-}
-
-const navItems: NavItem[] = [
-  { name: "Home", href: "/", icon: Home },
-  { name: "Markets", href: "/market-stand/grid", icon: MapPin },
-  { name: "Saved", href: "/dashboard/my-local-haul", icon: Heart },
-  { name: "Purchases", href: "/dashboard/purchases", icon: ShoppingBag },
-];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { data: user, isAuthenticated } = useAuth();
   const [isProducer, setIsProducer] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.id) {
@@ -57,105 +41,138 @@ export function MobileBottomNav() {
     });
   }, [user?.id]);
 
-  const isActive = (href: string) => {
-    if (href === "/") {
-      return pathname === "/";
-    }
-    return pathname === href || pathname?.startsWith(href + "/");
-  };
+  // Tab 1: Home - active if pathname === "/"
+  const isHomeActive = pathname === "/";
 
-  const isDashboard = pathname?.startsWith("/dashboard") || pathname?.startsWith("/account") || pathname?.startsWith("/billing");
+  // Tab 2: Markets - active if pathname starts with "/market-stand"
+  const isMarketsActive = pathname?.startsWith("/market-stand");
+
+  // Tab 3: Account - active if pathname starts with "/account" OR "/dashboard/purchases" OR "/dashboard/my-local-haul"
+  const isAccountActive =
+    pathname?.startsWith("/account") ||
+    pathname?.startsWith("/dashboard/purchases") ||
+    pathname?.startsWith("/dashboard/my-local-haul");
+
+  // Tab 4: Dashboard/Sell - active if pathname starts with "/dashboard" (except purchases/haul which belong to Account)
+  const isDashboardActive =
+    pathname?.startsWith("/dashboard") &&
+    !pathname?.startsWith("/dashboard/purchases") &&
+    !pathname?.startsWith("/dashboard/my-local-haul");
 
   return (
     <nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-bottom">
       <div className="flex items-center justify-around h-16">
-        {navItems.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full px-2 transition-colors touch-manipulation",
-                active
-                  ? "text-[#0B4D2C]"
-                  : "text-gray-500 hover:text-gray-700 active:text-[#0B4D2C]"
-              )}
-            >
-              <item.icon
-                className={cn(
-                  "h-6 w-6 mb-1",
-                  active && "stroke-[2.5px]"
-                )}
-              />
-              <span className={cn(
-                "text-xs",
-                active ? "font-semibold" : "font-medium"
-              )}>
-                {item.name}
-              </span>
-            </Link>
-          );
-        })}
+        {/* Tab 1: Home */}
+        <Link
+          href="/"
+          aria-current={isHomeActive ? "page" : undefined}
+          className={cn(
+            "flex flex-col items-center justify-center flex-1 h-full px-2 transition-colors touch-manipulation min-w-0",
+            isHomeActive
+              ? "text-[#0B4D2C]"
+              : "text-gray-500 hover:text-gray-700 active:text-[#0B4D2C]"
+          )}
+        >
+          <Home
+            className={cn(
+              "h-6 w-6 mb-1",
+              isHomeActive && "stroke-[2.5px]"
+            )}
+          />
+          <span className={cn(
+            "text-xs",
+            isHomeActive ? "font-semibold" : "font-medium"
+          )}>
+            Home
+          </span>
+        </Link>
 
-        {/* Menu button - replaces Account */}
-        {isAuthenticated || isDashboard ? (
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <button
-                className={cn(
-                  "flex flex-col items-center justify-center flex-1 h-full px-2 transition-colors touch-manipulation",
-                  isDashboard
-                    ? "text-[#0B4D2C]"
-                    : "text-gray-500 hover:text-gray-700 active:text-[#0B4D2C]"
-                )}
-              >
-                <Menu
-                  className={cn(
-                    "h-6 w-6 mb-1",
-                    isDashboard && "stroke-[2.5px]"
-                  )}
-                />
-                <span className={cn(
-                  "text-xs",
-                  isDashboard ? "font-semibold" : "font-medium"
-                )}>
-                  Menu
-                </span>
-              </button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0 flex flex-col">
-              <SheetHeader className="p-4 border-b">
-                <SheetTitle>Dashboard Menu</SheetTitle>
-              </SheetHeader>
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <SidebarContent isProducer={isProducer} onNavigate={() => setMenuOpen(false)} />
-              </div>
-            </SheetContent>
-          </Sheet>
-        ) : (
+        {/* Tab 2: Markets */}
+        <Link
+          href="/market-stand"
+          aria-current={isMarketsActive ? "page" : undefined}
+          className={cn(
+            "flex flex-col items-center justify-center flex-1 h-full px-2 transition-colors touch-manipulation min-w-0",
+            isMarketsActive
+              ? "text-[#0B4D2C]"
+              : "text-gray-500 hover:text-gray-700 active:text-[#0B4D2C]"
+          )}
+        >
+          <MapPin
+            className={cn(
+              "h-6 w-6 mb-1",
+              isMarketsActive && "stroke-[2.5px]"
+            )}
+          />
+          <span className={cn(
+            "text-xs",
+            isMarketsActive ? "font-semibold" : "font-medium"
+          )}>
+            Markets
+          </span>
+        </Link>
+
+        {/* Tab 3: Account */}
+        <Link
+          href="/account"
+          aria-current={isAccountActive ? "page" : undefined}
+          className={cn(
+            "flex flex-col items-center justify-center flex-1 h-full px-2 transition-colors touch-manipulation min-w-0",
+            isAccountActive
+              ? "text-[#0B4D2C]"
+              : "text-gray-500 hover:text-gray-700 active:text-[#0B4D2C]"
+          )}
+        >
+          <User
+            className={cn(
+              "h-6 w-6 mb-1",
+              isAccountActive && "stroke-[2.5px]"
+            )}
+          />
+          <span className={cn(
+            "text-xs",
+            isAccountActive ? "font-semibold" : "font-medium"
+          )}>
+            Account
+          </span>
+        </Link>
+
+        {/* Tab 4: Dashboard/Sell */}
+        {isProducer ? (
+          // Producer: Dashboard tab with normal styling
           <Link
             href="/dashboard"
+            aria-current={isDashboardActive ? "page" : undefined}
             className={cn(
-              "flex flex-col items-center justify-center flex-1 h-full px-2 transition-colors touch-manipulation",
-              isDashboard
+              "flex flex-col items-center justify-center flex-1 h-full px-2 transition-colors touch-manipulation min-w-0",
+              isDashboardActive
                 ? "text-[#0B4D2C]"
                 : "text-gray-500 hover:text-gray-700 active:text-[#0B4D2C]"
             )}
           >
-            <Menu
+            <LayoutDashboard
               className={cn(
                 "h-6 w-6 mb-1",
-                isDashboard && "stroke-[2.5px]"
+                isDashboardActive && "stroke-[2.5px]"
               )}
             />
             <span className={cn(
               "text-xs",
-              isDashboard ? "font-semibold" : "font-medium"
+              isDashboardActive ? "font-semibold" : "font-medium"
             )}>
-              Menu
+              Dashboard
             </span>
+          </Link>
+        ) : (
+          // Non-producer: Sell CTA with green pill styling
+          <Link
+            href="/onboarding/producer"
+            className="flex flex-col items-center justify-center flex-1 h-full px-2 transition-colors touch-manipulation min-w-0 text-[#0B4D2C]"
+          >
+            <div className="bg-[#0B4D2C] rounded-full p-1.5 mb-1">
+              <Sprout className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-xs font-semibold text-[#0B4D2C]">Sell</span>
           </Link>
         )}
       </div>
