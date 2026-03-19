@@ -22,6 +22,7 @@ import {
 import { updateStandProductInventory } from "@/app/actions/product-listings";
 import { ProductInventoryRow } from "@/components/dashboard/ProductInventoryRow";
 import { toggleStandOpen } from "@/app/actions/stand-portal";
+import { formatDistanceToNow } from "date-fns";
 
 interface StandListing {
   id: string;
@@ -122,39 +123,18 @@ function StandToggle({ stand }: { stand: MarketStand }) {
   };
 
   return (
-    <div className="flex items-center gap-2 flex-shrink-0">
-      {isOpen ? (
-        <>
-          <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
-            Open
-          </span>
-          <Button
-            onClick={handleToggle}
-            disabled={isPending}
-            variant="outline"
-            size="sm"
-            className="text-xs"
-          >
-            {isPending ? "..." : "Close"}
-          </Button>
-        </>
-      ) : (
-        <>
-          <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 text-gray-800 text-xs font-medium">
-            Closed
-          </span>
-          <Button
-            onClick={handleToggle}
-            disabled={isPending}
-            variant="outline"
-            size="sm"
-            className="text-xs"
-          >
-            {isPending ? "..." : "Open"}
-          </Button>
-        </>
-      )}
-    </div>
+    <button
+      onClick={handleToggle}
+      disabled={isPending}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex-shrink-0 ${
+        isOpen
+          ? 'bg-green-600 text-white hover:bg-green-700'
+          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+      }`}
+    >
+      <span className={`w-2 h-2 rounded-full ${isOpen ? 'bg-white' : 'bg-gray-500'}`} />
+      {isPending ? '...' : isOpen ? 'Open' : 'Closed'}
+    </button>
   );
 }
 
@@ -282,19 +262,21 @@ export function MarketStandDashboardClient({
                   </div>
 
                   {/* Stand Summary */}
-                  <div className="flex flex-col gap-1 sm:grid sm:grid-cols-2 text-sm mt-2 ml-7">
-                    <div>
-                      <span className="text-gray-600">Products:</span>
-                      <span className="font-semibold ml-2">
-                        {activeListings.length}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Inventory:</span>
-                      <span className="font-semibold ml-2">
-                        {totalInventory}
-                      </span>
-                    </div>
+                  <div className="flex flex-col gap-1 text-sm mt-2 ml-7">
+                    {(() => {
+                      const lastRestocked = stand.standListings
+                        .map(l => l.updatedAt)
+                        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+                      return (
+                        <div>
+                          <span className={`font-medium ${lastRestocked ? 'text-gray-600' : 'text-amber-600'}`}>
+                            {lastRestocked
+                              ? `Last restocked ${formatDistanceToNow(new Date(lastRestocked), { addSuffix: true })}`
+                              : '⚠️ No inventory updated yet'}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </CardHeader>
 

@@ -621,8 +621,13 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
           </div>
         </div>
 
-        <div className="flex flex-col gap-y-2">
-          <Label>Operating Hours</Label>
+        <div className="flex flex-col gap-y-2 border-t pt-4">
+          <div>
+            <Label className="text-base font-semibold">Operating Hours <span className="text-gray-400 font-normal text-sm">(Optional)</span></Label>
+            <p className="text-sm text-muted-foreground mt-1">
+              Only set hours if your stand operates on a consistent weekly schedule. For irregular schedules, leave this blank and use the open/close toggle on your dashboard instead.
+            </p>
+          </div>
           <HoursInput
             value={formState.values.hours || DEFAULT_WEEKLY_HOURS}
             onChange={(hours) => {
