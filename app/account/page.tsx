@@ -1,28 +1,33 @@
-import { Card } from '@/components/ui/card';
 import prisma from '@/lib/db';
 import { getUser } from '@/lib/auth';
-import { AccountForm } from '@/components/form/AccountForm';
 import { unstable_noStore as noStore } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { isUserProducer } from '@/lib/utils/user';
+import { AccountClient } from './account-client';
 
-async function getUserData(userId: string) {
-  const data = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-    select: {
-      email: true,
-      username: true,
-      firstName: true,
-      lastName: true,
-      city: true,
-      state: true,
-      zipCode: true,
-      profileImage: true,
-      usernameLastChanged: true,
-    },
-  });
-  return data;
+async function getAccountData(userId: string) {
+  const [userData, ordersCount, savedProductsCount, isProducer] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        profileImage: true,
+      },
+    }),
+    prisma.order.count({ where: { userId } }),
+    prisma.savedProduct.count({ where: { userId } }),
+    isUserProducer(userId),
+  ]);
+
+  return {
+    userData,
+    ordersCount,
+    savedProductsCount,
+    isProducer,
+  };
 }
 
 export default async function AccountPage() {
@@ -34,17 +39,18 @@ export default async function AccountPage() {
     redirect('/auth/login');
   }
 
-  const userData = await getUserData(user.id);
+  const accountData = await getAccountData(user.id);
 
-  if (!userData) {
+  if (!accountData.userData) {
     redirect('/auth/login');
   }
 
   return (
-    <section className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-      <Card>
-        <AccountForm user={userData} />
-      </Card>
-    </section>
+    <AccountClient
+      userData={accountData.userData}
+      ordersCount={accountData.ordersCount}
+      savedProductsCount={accountData.savedProductsCount}
+      isProducer={accountData.isProducer}
+    />
   );
 }
