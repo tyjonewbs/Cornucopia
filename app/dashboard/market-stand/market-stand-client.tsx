@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Plus,
-  RefreshCw,
   Edit,
   MapPin,
   Package,
@@ -144,20 +143,10 @@ export function MarketStandDashboardClient({
   allProducts,
 }: MarketStandDashboardClientProps) {
   const router = useRouter();
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedStands, setExpandedStands] = useState<Set<string>>(
     // Auto-expand first stand
     new Set(initialMarketStands[0] ? [initialMarketStands[0].id] : [])
   );
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    router.refresh();
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast.success("Inventory refreshed");
-    }, 500);
-  };
 
   const toggleStand = (standId: string) => {
     setExpandedStands((prev) => {
@@ -184,28 +173,17 @@ export function MarketStandDashboardClient({
               Manage product availability and inventory for each market stand
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
-              />
-              Refresh
-            </Button>
+          <div className="flex gap-2 flex-shrink-0">
             <Button asChild size="sm" variant="outline">
               <Link href="/onboarding/producer">
-                <Plus className="h-4 w-4 mr-2" />
-                New Product
+                <Plus className="h-4 w-4 mr-1" />
+                Product
               </Link>
             </Button>
             <Button asChild size="sm">
               <Link href="/dashboard/market-stand/setup/new">
-                <Plus className="h-4 w-4 mr-2" />
-                New Market Stand
+                <Plus className="h-4 w-4 mr-1" />
+                New Stand
               </Link>
             </Button>
           </div>
@@ -242,7 +220,7 @@ export function MarketStandDashboardClient({
                         className="flex-1 justify-start hover:bg-amber-100 min-w-0"
                       >
                         <MapPin className="h-5 w-5 mr-2 text-amber-700 flex-shrink-0" />
-                        <span className="font-semibold text-lg truncate max-w-[200px]">
+                        <span className="font-semibold text-lg truncate min-w-0 flex-1">
                           {stand.name}
                         </span>
                         <ChevronDown
