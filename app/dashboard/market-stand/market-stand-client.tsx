@@ -126,14 +126,15 @@ function StandToggle({ stand }: { stand: MarketStand }) {
     <button
       onClick={handleToggle}
       disabled={isPending}
+      title={isOpen ? 'Tap to close stand' : 'Tap to open stand'}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex-shrink-0 ${
         isOpen
           ? 'bg-green-600 text-white hover:bg-green-700'
-          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 border border-dashed border-gray-400'
       }`}
     >
-      <span className={`w-2 h-2 rounded-full ${isOpen ? 'bg-white' : 'bg-gray-500'}`} />
-      {isPending ? '...' : isOpen ? 'Open' : 'Closed'}
+      <span className={`w-2 h-2 rounded-full ${isOpen ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
+      {isPending ? '...' : isOpen ? 'Open Now' : 'Tap to Open'}
     </button>
   );
 }
