@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Store, Truck, MapPin, Navigation, ChevronDown, ChevronUp, Clock, Check } from 'lucide-react';
+import { Store, Truck, MapPin, Navigation, ChevronDown, ChevronUp, Clock, Check, Calendar } from 'lucide-react';
 import { DeliveryOptionsCard } from '@/components/DeliveryOptionsCard';
 import { ProductLocationMap } from '@/components/ProductLocationMap';
 import { MarketStandHours } from '@/components/MarketStandHours';
@@ -60,6 +60,20 @@ interface WhereToGetItProps {
     }>;
     user?: {
       connectedAccountId?: string;
+      eventVendors?: Array<{
+        event: {
+          id: string;
+          name: string;
+          slug: string | null;
+          startDate: string;
+          endDate: string;
+          locationName: string;
+          streetAddress?: string | null;
+          city?: string | null;
+          latitude: number;
+          longitude: number;
+        };
+      }>;
     };
   };
 }
@@ -534,6 +548,78 @@ export function WhereToGetIt({ data }: WhereToGetItProps) {
             )}
           </div>
         )}
+
+        {/* Event Rows */}
+        {data.user?.eventVendors?.map((eventVendor) => {
+          const event = eventVendor.event;
+          const eventLink = event.slug ? `/events/${event.slug}` : `/events/${event.id}`;
+
+          // Format date range
+          const startDate = new Date(event.startDate);
+          const endDate = new Date(event.endDate);
+          const formatTime = (date: Date) => {
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          };
+          const formatDate = (date: Date) => {
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          };
+          const dateString = startDate.toDateString() === endDate.toDateString()
+            ? `${formatDate(startDate)} · ${formatTime(startDate)}–${formatTime(endDate)}`
+            : `${formatDate(startDate)} – ${formatDate(endDate)}`;
+
+          const distance = userCoords && event.latitude && event.longitude
+            ? calculateDistance(userCoords.lat, userCoords.lng, event.latitude, event.longitude)
+            : null;
+          const distanceMiles = distance ? kmToMiles(distance) : null;
+
+          return (
+            <Link
+              key={event.id}
+              href={eventLink}
+              className="flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 transition-colors"
+            >
+              {/* Icon */}
+              <div className="w-10 h-10 rounded-lg bg-blue-700/10 flex items-center justify-center flex-shrink-0">
+                <Calendar className="h-5 w-5 text-blue-700" />
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-sm text-gray-900">
+                    {event.name}
+                  </p>
+                  {distanceMiles !== null && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                      {distanceMiles.toFixed(1)} mi
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-600 mt-0.5">{dateString}</p>
+                <p className="text-xs text-gray-500 truncate">{event.locationName}</p>
+              </div>
+
+              {/* Action button */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-xs font-medium text-blue-700 border border-blue-700/30 rounded-full px-3 py-1 hover:bg-blue-700/5 transition-colors">
+                  View Event
+                </span>
+                {event.latitude && event.longitude && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${event.latitude},${event.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs font-medium text-gray-600 border border-gray-200 rounded-full px-3 py-1 hover:bg-gray-50 transition-colors flex items-center gap-1"
+                  >
+                    <Navigation className="h-3 w-3" />
+                    Go
+                  </a>
+                )}
+              </div>
+            </Link>
+          );
+        })}
 
       </div>
 

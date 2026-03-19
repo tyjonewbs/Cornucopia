@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Calendar, MapPin, Users, Store } from "lucide-react";
+import { Calendar, MapPin, Users, Store, ChevronDown } from "lucide-react";
+import { ProductHamburgerRow } from "./ProductHamburgerRow";
+import type { SerializedProduct } from "@/app/actions/home-products";
 
 export interface EventTileData {
   id: string;
@@ -24,6 +27,21 @@ export interface EventTileData {
   isVendorApplicationOpen: boolean;
   distance?: number | null;
   vendorCount?: number;
+  products?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    images: string[];
+    inventory: number;
+    updatedAt: string;
+    inventoryUpdatedAt?: string | null;
+    tags: string[];
+    availableDate?: string | null;
+    availableUntil?: string | null;
+    deliveryAvailable: boolean;
+    createdAt: string;
+    vendorName?: string;
+  }>;
 }
 
 interface EventTileProps {
@@ -81,18 +99,18 @@ function getTimeUntil(startDate: string): { label: string; urgent: boolean } | n
 }
 
 export function EventTile({ event }: EventTileProps) {
+  const [expanded, setExpanded] = useState(false);
+
   const typeConfig = EVENT_TYPE_LABELS[event.eventType] || EVENT_TYPE_LABELS.OTHER;
   const dateLabel = formatEventDate(event.startDate, event.endDate);
   const timeUntil = getTimeUntil(event.startDate);
   const eventLink = event.slug ? `/events/${event.slug}` : `/events/${event.id}`;
+  const hasProducts = event.products && event.products.length > 0;
 
   return (
-    <Link
-      href={eventLink}
-      className="block group"
-    >
-      <div className="rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 bg-white border-2 border-orange-100">
+    <div className="rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 bg-white border-2 border-orange-100 group">
         {/* Image / Header */}
+        <Link href={eventLink} className="block">
         <div className="relative aspect-[4/3] w-full overflow-hidden">
           {/* Event type badge */}
           <div className={`absolute top-2 left-2 z-10 ${typeConfig.color}/90 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1`}>
@@ -141,8 +159,10 @@ export function EventTile({ event }: EventTileProps) {
             </div>
           </div>
         </div>
+        </Link>
 
         {/* Content */}
+        <Link href={eventLink} className="block">
         <div className="p-2.5 bg-gradient-to-b from-white to-orange-50/30">
           <h3 className="font-bold text-sm leading-tight line-clamp-1 text-gray-900">
             {event.name}
@@ -189,7 +209,61 @@ export function EventTile({ event }: EventTileProps) {
             )}
           </div>
         </div>
+        </Link>
+
+        {/* Expand/Collapse Button */}
+        {hasProducts && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
+            className="w-full flex items-center justify-between px-3 py-2 bg-blue-50 hover:bg-blue-100 transition-colors border-t border-blue-100 text-sm text-gray-600"
+          >
+            <span>{event.products!.length} product{event.products!.length !== 1 ? 's' : ''}</span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+
+        {/* Expanded Product Rows */}
+        {expanded && hasProducts && (
+          <div className="border-t border-blue-100 overflow-hidden min-w-0">
+            {event.products!.map((product) => {
+              const serializedProduct: SerializedProduct = {
+                ...product,
+                description: '',
+                inventoryUpdatedAt: product.inventoryUpdatedAt ?? null,
+                availableDate: product.availableDate ?? null,
+                availableUntil: product.availableUntil ?? null,
+                marketStand: null as any,
+                deliveryInfo: null,
+                distance: null,
+                availableAt: [],
+                badge: null,
+                locationName: product.vendorName || 'Event vendor',
+                totalReviews: 0,
+                averageRating: null,
+                status: 'APPROVED',
+                userId: '',
+                marketStandId: null,
+                deliveryZoneId: null,
+                isActive: true,
+              };
+              return (
+                <ProductHamburgerRow
+                  key={product.id}
+                  product={serializedProduct}
+                />
+              );
+            })}
+            <Link
+              href={eventLink}
+              className="block px-4 py-2 text-center text-sm text-orange-700 hover:bg-orange-50 transition-colors font-medium"
+            >
+              View event →
+            </Link>
+          </div>
+        )}
       </div>
-    </Link>
   );
 }

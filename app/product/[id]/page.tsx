@@ -37,6 +37,37 @@ async function getData(id: string) {
           firstName: true,
           connectedAccountId: true,
           stripeConnectedLinked: true,
+          eventVendorships: {
+            where: {
+              status: 'APPROVED',
+              event: {
+                status: 'APPROVED',
+                endDate: { gte: new Date() }
+              }
+            },
+            select: {
+              event: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  startDate: true,
+                  endDate: true,
+                  locationName: true,
+                  streetAddress: true,
+                  city: true,
+                  latitude: true,
+                  longitude: true,
+                }
+              }
+            },
+            take: 3,
+            orderBy: {
+              event: {
+                startDate: 'asc'
+              }
+            }
+          }
         },
       },
       local: {
@@ -142,7 +173,17 @@ async function getData(id: string) {
       }))
     } : null,
     standListings: data.standListings,
-    deliveryZone: data.deliveryZone
+    deliveryZone: data.deliveryZone,
+    user: {
+      ...data.user,
+      eventVendors: data.user.eventVendorships?.map((ev: any) => ({
+        event: {
+          ...ev.event,
+          startDate: ev.event.startDate.toISOString(),
+          endDate: ev.event.endDate.toISOString(),
+        }
+      }))
+    }
   };
 }
 
