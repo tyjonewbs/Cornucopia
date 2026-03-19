@@ -65,7 +65,7 @@ const mapOptions: google.maps.MapOptions = {
 };
 
 // Max distance in miles for "nearby" geofence
-const NEARBY_RADIUS_MILES = 30;
+const NEARBY_RADIUS_MILES = 500;
 
 // SVG data URI marker icons with a white circle + crisp icon inside a colored pin
 const createMarkerSvg = (type: MapItemType, isSelected: boolean): string => {
@@ -715,16 +715,7 @@ export default function ExploreMap({
         </div>
       </div>
 
-      {/* Empty state */}
-      {sortedItems.length === 0 && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg text-center z-10">
-          <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="font-semibold text-lg mb-2">No places found</h3>
-          <p className="text-muted-foreground text-sm">
-            Try adjusting your filters or check back later for new listings.
-          </p>
-        </div>
-      )}
+      {/* Empty state removed — obvious from empty map */}
     </div>
   );
 }
