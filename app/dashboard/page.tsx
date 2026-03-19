@@ -7,15 +7,22 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BecomeProducerCTA } from "@/components/dashboard/BecomeProducerCTA";
+import { StandStatusCard } from "@/components/dashboard/StandStatusCard";
 
 export default async function DashboardPage() {
   const user = await getUser();
-  
+
   if (!user) {
     redirect('/');
   }
 
   const { isProducer, productCount } = await getUserProducerInfo(user.id);
+
+  // Fetch firstName from database
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { firstName: true }
+  });
 
   // Fetch consumer stats
   const [orderCount, savedProductsCount, subscriptionCount] = await Promise.all([
@@ -32,8 +39,9 @@ export default async function DashboardPage() {
 
   // Fetch producer stats if user is a producer
   let producerStats = null;
+  let firstActiveStand = null;
   if (isProducer) {
-    const [standCount, lowInventoryCount, pendingOrdersCount, totalRevenue, dbUser] = await Promise.all([
+    const [standCount, lowInventoryCount, pendingOrdersCount, totalRevenue, producerDbUser, firstStand] = await Promise.all([
       prisma.marketStand.count({
         where: {
           userId: user.id,
@@ -74,16 +82,62 @@ export default async function DashboardPage() {
       prisma.user.findUnique({
         where: { id: user.id },
         select: { stripeConnectedLinked: true }
+      }),
+      prisma.marketStand.findFirst({
+        where: {
+          userId: user.id,
+          isActive: true
+        },
+        select: {
+          id: true,
+          name: true,
+          isOpen: true
+        }
       })
     ]);
+
+    firstActiveStand = firstStand;
 
     producerStats = {
       standCount,
       lowInventoryCount,
       pendingOrdersCount,
       totalRevenue: totalRevenue._sum.totalAmount || 0,
-      stripeConnected: dbUser?.stripeConnectedLinked ?? false
+      stripeConnected: producerDbUser?.stripeConnectedLinked ?? false
     };
+  }
+
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good morning";
+    if (hour >= 12 && hour < 17) return "Good afternoon";
+    if (hour >= 17 && hour < 21) return "Good evening";
+    return "Welcome back";
+  };
+
+  // Get display name
+  const displayName = user.user_metadata?.first_name || dbUser?.firstName || user.email?.split("@")[0] || "there";
+
+  // Fetch nearby stands for empty state
+  let nearbyStands = null;
+  if (!isProducer && orderCount === 0 && savedProductsCount === 0) {
+    nearbyStands = await prisma.marketStand.findMany({
+      where: {
+        isActive: true,
+        status: "APPROVED"
+      },
+      take: 3,
+      orderBy: {
+        updatedAt: "desc"
+      },
+      select: {
+        id: true,
+        name: true,
+        locationName: true,
+        isOpen: true
+      }
+    });
   }
 
   return (
@@ -91,68 +145,160 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600 mt-2">
-          Welcome back, {user.firstName || user.email}!
+          {getGreeting()}, {displayName}!
         </p>
       </div>
 
       {/* Consumer Stats - Visible to All Users */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">My Activity</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Orders</CardTitle>
-              <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{orderCount}</div>
-              <p className="text-xs text-muted-foreground">Total orders placed</p>
-              <Link href="/dashboard/purchases">
-                <Button variant="link" className="p-0 h-auto mt-2">
-                  View all purchases →
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+      {orderCount > 0 || savedProductsCount > 0 ? (
+        <div>
+          <h2 className="text-xl font-semibold mb-4">My Activity</h2>
+          <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Orders</CardTitle>
+                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{orderCount}</div>
+                <Link href="/dashboard/purchases">
+                  <Button variant="link" className="p-0 h-auto mt-2">
+                    View purchases →
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Saved Products</CardTitle>
-              <Heart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{savedProductsCount}</div>
-              <p className="text-xs text-muted-foreground">Items in your favorites</p>
-              <Link href="/dashboard/my-local-haul">
-                <Button variant="link" className="p-0 h-auto mt-2">
-                  View favorites →
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Saved</CardTitle>
+                <Heart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{savedProductsCount}</div>
+                <Link href="/dashboard/my-local-haul">
+                  <Button variant="link" className="p-0 h-auto mt-2">
+                    View favorites →
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Following</CardTitle>
-              <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{subscriptionCount}</div>
-              <p className="text-xs text-muted-foreground">Following market stands</p>
-              <Link href="/dashboard/my-local-haul">
-                <Button variant="link" className="p-0 h-auto mt-2">
-                  Manage following →
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Following</CardTitle>
+                <Star className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{subscriptionCount}</div>
+                <Link href="/dashboard/my-local-haul">
+                  <Button variant="link" className="p-0 h-auto mt-2">
+                    Manage →
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Empty state - Nearby Stands */
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Discover what's near you</h2>
+          {nearbyStands && nearbyStands.length > 0 ? (
+            <div className="space-y-3">
+              {nearbyStands.map((stand) => (
+                <Link key={stand.id} href={`/market-stand/${stand.id}`}>
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardContent className="flex items-center justify-between p-4">
+                      <div>
+                        <h3 className="font-semibold">{stand.name}</h3>
+                        <p className="text-sm text-gray-600">{stand.locationName}</p>
+                      </div>
+                      <div>
+                        {stand.isOpen ? (
+                          <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-medium">
+                            Open
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-sm font-medium">
+                            Closed
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+              <Link href="/market-stand/grid">
+                <Button className="w-full bg-[#8B4513] hover:bg-[#6B3410]">
+                  Browse all stands
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-gray-600">No market stands available yet. Check back soon!</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Producer Stats - Only for Producers */}
       {isProducer && producerStats && (
         <div>
+          {/* Stripe Warning Banner */}
+          {!producerStats.stripeConnected && (
+            <Card className="mb-4 border-red-200 bg-red-50">
+              <CardContent className="flex items-center gap-3 p-4">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-red-900 font-medium">
+                    Payment setup incomplete — connect Stripe to receive payments
+                  </p>
+                </div>
+                <Link href="/api/stripe/connect">
+                  <Button className="bg-red-600 hover:bg-red-700 text-white">
+                    Connect Stripe
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Low Inventory Alert Banner */}
+          {producerStats.lowInventoryCount > 0 && (
+            <Card className="mb-4 border-amber-200 bg-amber-50">
+              <CardContent className="flex items-center gap-3 p-4">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-amber-900 font-medium">
+                    {producerStats.lowInventoryCount} product{producerStats.lowInventoryCount !== 1 ? 's' : ''} running low
+                  </p>
+                </div>
+                <Link href="/dashboard/products">
+                  <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100">
+                    Update now
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
           <h2 className="text-xl font-semibold mb-4">Producer Overview</h2>
+
+          {/* Stand Status Card */}
+          {firstActiveStand && (
+            <div className="mb-4">
+              <StandStatusCard
+                standId={firstActiveStand.id}
+                standName={firstActiveStand.name}
+                isOpen={firstActiveStand.isOpen}
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -186,16 +332,24 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className={producerStats.pendingOrdersCount > 0 ? "border-red-200 bg-red-50" : ""}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className={`text-sm font-medium ${producerStats.pendingOrdersCount > 0 ? "text-red-900" : ""}`}>
+                  Pending Orders
+                </CardTitle>
+                <ShoppingBag className={`h-4 w-4 ${producerStats.pendingOrdersCount > 0 ? "text-red-600" : "text-muted-foreground"}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{producerStats.pendingOrdersCount}</div>
-                <p className="text-xs text-muted-foreground">Awaiting fulfillment</p>
+                <div className={`text-2xl font-bold ${producerStats.pendingOrdersCount > 0 ? "text-red-900" : ""}`}>
+                  {producerStats.pendingOrdersCount}
+                </div>
+                {producerStats.pendingOrdersCount > 0 ? (
+                  <p className="text-xs text-red-700 font-medium">Need attention now</p>
+                ) : (
+                  <p className="text-xs text-green-700 font-medium">All caught up ✓</p>
+                )}
                 <Link href="/dashboard/orders">
-                  <Button variant="link" className="p-0 h-auto mt-2">
+                  <Button variant="link" className={`p-0 h-auto mt-2 ${producerStats.pendingOrdersCount > 0 ? "text-red-700" : ""}`}>
                     View orders →
                   </Button>
                 </Link>
@@ -236,28 +390,6 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Low Inventory Alert */}
-          {producerStats.lowInventoryCount > 0 && (
-            <Card className="mt-4 border-orange-200 bg-orange-50">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-orange-600" />
-                  <CardTitle className="text-orange-900">Low Inventory Alert</CardTitle>
-                </div>
-                <CardDescription className="text-orange-700">
-                  {producerStats.lowInventoryCount} {producerStats.lowInventoryCount === 1 ? 'product has' : 'products have'} low inventory (5 or fewer items)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/dashboard/market-stand">
-                  <Button variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
-                    Update Inventory
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
 
