@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/collapsible";
 import { updateStandProductInventory } from "@/app/actions/product-listings";
 import { ProductInventoryRow } from "@/components/dashboard/ProductInventoryRow";
+import { toggleStandOpen } from "@/app/actions/stand-portal";
 
 interface StandListing {
   id: string;
@@ -45,6 +46,9 @@ interface MarketStand {
   longitude: number;
   images: string[];
   tags: string[];
+  isOpen: boolean;
+  hours: Record<string, any> | null;
+  lastCheckedIn: Date | null;
   standListings: StandListing[];
   _count: {
     standListings: number;
@@ -61,6 +65,97 @@ interface ProductInfo {
 interface MarketStandDashboardClientProps {
   initialMarketStands: MarketStand[];
   allProducts: ProductInfo[];
+}
+
+// Helper to format time from 24h to 12h
+function formatTime(time: string): string {
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'pm' : 'am';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')}${period}`;
+}
+
+// Helper to get today's hours
+function getTodayHours(hours: Record<string, any> | null | undefined): { open: string; close: string } | null {
+  if (!hours) return null;
+
+  const now = new Date();
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const currentDay = dayNames[now.getDay()];
+  const todaySchedule = hours[currentDay];
+
+  if (!todaySchedule || !todaySchedule.isOpen || !todaySchedule.timeSlots || todaySchedule.timeSlots.length === 0) {
+    return null;
+  }
+
+  const firstSlot = todaySchedule.timeSlots[0];
+  return {
+    open: firstSlot.open,
+    close: firstSlot.close,
+  };
+}
+
+// Inline toggle component
+function StandToggle({ stand }: { stand: MarketStand }) {
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(stand.isOpen);
+
+  const todayHours = getTodayHours(stand.hours);
+
+  const handleToggle = async () => {
+    startTransition(async () => {
+      // Optimistic update
+      setIsOpen(!isOpen);
+
+      const result = await toggleStandOpen(stand.id);
+
+      if (result.error) {
+        // Revert on error
+        setIsOpen(isOpen);
+        toast.error(result.error);
+      } else {
+        toast.success(isOpen ? "Stand closed" : "Stand opened");
+        router.refresh();
+      }
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-2 flex-shrink-0">
+      {isOpen ? (
+        <>
+          <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
+            Open
+          </span>
+          <Button
+            onClick={handleToggle}
+            disabled={isPending}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            {isPending ? "..." : "Close"}
+          </Button>
+        </>
+      ) : (
+        <>
+          <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 text-gray-800 text-xs font-medium">
+            Closed
+          </span>
+          <Button
+            onClick={handleToggle}
+            disabled={isPending}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            {isPending ? "..." : "Open"}
+          </Button>
+        </>
+      )}
+    </div>
+  );
 }
 
 export function MarketStandDashboardClient({
@@ -99,7 +194,7 @@ export function MarketStandDashboardClient({
     <div className="flex-1">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               Market Stand Inventory
@@ -121,7 +216,7 @@ export function MarketStandDashboardClient({
               Refresh
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link href="/product/new">
+              <Link href="/onboarding/producer">
                 <Plus className="h-4 w-4 mr-2" />
                 New Product
               </Link>
@@ -141,7 +236,7 @@ export function MarketStandDashboardClient({
           const activeListings = stand.standListings.filter(
             (l) => (l.customInventory ?? 0) > 0
           );
-          const totalInventory = activeListings.reduce(
+          const totalInventory = stand.standListings.reduce(
             (sum, l) => sum + (l.customInventory ?? 0),
             0
           );
@@ -159,50 +254,43 @@ export function MarketStandDashboardClient({
               >
                 {/* Stand Header */}
                 <CardHeader className="bg-amber-50">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <CollapsibleTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="flex-1 justify-start hover:bg-amber-100"
+                        className="flex-1 justify-start hover:bg-amber-100 min-w-0"
                       >
-                        <MapPin className="h-5 w-5 mr-2 text-amber-700" />
-                        <span className="font-semibold text-lg">
+                        <MapPin className="h-5 w-5 mr-2 text-amber-700 flex-shrink-0" />
+                        <span className="font-semibold text-lg truncate max-w-[200px]">
                           {stand.name}
                         </span>
                         <ChevronDown
-                          className={`h-4 w-4 ml-2 transition-transform ${
+                          className={`h-4 w-4 ml-2 flex-shrink-0 transition-transform ${
                             isExpanded ? "rotate-180" : ""
                           }`}
                         />
                       </Button>
                     </CollapsibleTrigger>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link
-                          href={`/dashboard/market-stand/setup/edit/${stand.id}`}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
+                    <StandToggle stand={stand} />
+                    <Button variant="outline" size="sm" asChild>
+                      <Link
+                        href={`/dashboard/market-stand/setup/edit/${stand.id}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Link>
+                    </Button>
                   </div>
 
                   {/* Stand Summary */}
-                  <div className="grid grid-cols-3 gap-4 text-sm mt-2 ml-7">
+                  <div className="flex flex-col gap-1 sm:grid sm:grid-cols-2 text-sm mt-2 ml-7">
                     <div>
-                      <span className="text-gray-600">Location:</span>
-                      <span className="font-semibold ml-2">
-                        {stand.locationName}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Active Products:</span>
+                      <span className="text-gray-600">Products:</span>
                       <span className="font-semibold ml-2">
                         {activeListings.length}
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Total Inventory:</span>
+                      <span className="text-gray-600">Inventory:</span>
                       <span className="font-semibold ml-2">
                         {totalInventory}
                       </span>
@@ -235,7 +323,7 @@ export function MarketStandDashboardClient({
                         <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                         <p className="mb-3">No products yet</p>
                         <Button asChild size="sm">
-                          <Link href="/product/new">
+                          <Link href="/onboarding/producer">
                             <Plus className="h-4 w-4 mr-2" />
                             Create Your First Product
                           </Link>

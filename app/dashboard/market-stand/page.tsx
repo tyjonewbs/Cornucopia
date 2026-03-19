@@ -17,6 +17,9 @@ async function getMarketStandsWithProducts(userId: string) {
       longitude: true,
       images: true,
       tags: true,
+      isOpen: true,
+      hours: true,
+      lastCheckedIn: true,
       productListings: {
         where: { isActive: true },
         select: {
@@ -46,6 +49,7 @@ async function getMarketStandsWithProducts(userId: string) {
     ...stand,
     description: stand.description || null,
     tags: stand.tags || [],
+    hours: stand.hours as Record<string, any> | null,
     standListings: productListings.map((l) => ({
       ...l,
       updatedAt: l.updatedAt.toISOString(),
