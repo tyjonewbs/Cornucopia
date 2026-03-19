@@ -108,10 +108,12 @@ const validateField = (name: string, value: string | string[] | WeeklyHours): st
     case "locationGuide":
       return value.length < 10 ? "Must provide detailed directions" : undefined;
     case "latitude":
+      if (!value || value.trim() === '') return undefined; // optional field
       const lat = parseFloat(value);
       if (isNaN(lat) || lat < -90 || lat > 90) return "Must be between -90 and 90";
       return undefined;
     case "longitude":
+      if (!value || value.trim() === '') return undefined; // optional field
       const lng = parseFloat(value);
       if (isNaN(lng) || lng < -180 || lng > 180) return "Must be between -180 and 180";
       return undefined;

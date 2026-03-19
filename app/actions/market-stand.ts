@@ -47,8 +47,10 @@ export async function CreateMarketStand(
     const city = formData.get("city") as string;
     const zipCode = formData.get("zipCode") as string;
     const locationGuide = formData.get("locationGuide") as string;
-    const latitude = parseFloat(formData.get("latitude") as string);
-    const longitude = parseFloat(formData.get("longitude") as string);
+    const latRaw = formData.get("latitude") as string;
+    const latitude = latRaw && latRaw.trim() !== "" ? parseFloat(latRaw) : 0;
+    const lngRaw = formData.get("longitude") as string;
+    const longitude = lngRaw && lngRaw.trim() !== "" ? parseFloat(lngRaw) : 0;
     const website = formData.get("website") as string;
     const images = JSON.parse(formData.get("images") as string) as string[];
     const tags = JSON.parse(formData.get("tags") as string) as string[];
@@ -101,8 +103,10 @@ export async function UpdateMarketStand(
     const city = formData.get("city") as string;
     const zipCode = formData.get("zipCode") as string;
     const locationGuide = formData.get("locationGuide") as string;
-    const latitude = parseFloat(formData.get("latitude") as string);
-    const longitude = parseFloat(formData.get("longitude") as string);
+    const latRaw = formData.get("latitude") as string;
+    const latitude = latRaw && latRaw.trim() !== "" ? parseFloat(latRaw) : 0;
+    const lngRaw = formData.get("longitude") as string;
+    const longitude = lngRaw && lngRaw.trim() !== "" ? parseFloat(lngRaw) : 0;
     const website = formData.get("website") as string;
     const images = JSON.parse(formData.get("images") as string) as string[];
     const tags = JSON.parse(formData.get("tags") as string) as string[];
