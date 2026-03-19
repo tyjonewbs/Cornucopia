@@ -26,7 +26,7 @@ export function AppSidebar({
       </aside>
 
       {/* Mobile Filter Button - fixed above bottom nav */}
-      <div className="md:hidden fixed bottom-24 left-4 z-40">
+      <div className="md:hidden fixed bottom-28 left-4 z-40">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
             <Button

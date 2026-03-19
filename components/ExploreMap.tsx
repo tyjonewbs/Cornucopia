@@ -343,15 +343,16 @@ export default function ExploreMap({
         </div>
       </div>
 
-      {/* Mobile Filter/List Menu Button - Only on mobile */}
-      <div className="absolute top-4 left-4 z-10 md:hidden">
+      {/* Mobile Filter/List Menu Button - Only on mobile, matches home page FAB style */}
+      <div className="fixed bottom-28 left-4 z-40 md:hidden">
         <Sheet>
           <SheetTrigger asChild>
             <Button 
-              size="icon"
-              className="bg-white shadow-lg hover:bg-gray-50 text-gray-700"
+              size="lg"
+              className="rounded-full shadow-lg bg-[#0B4D2C] hover:bg-[#0B4D2C]/90 h-14 w-14"
             >
-              <Filter className="h-5 w-5" />
+              <Filter className="h-6 w-6" />
+              <span className="sr-only">Open filters</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-80 p-0">
