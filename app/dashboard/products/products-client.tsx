@@ -77,7 +77,7 @@ export default function ProductsClient({
   };
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 min-w-0 overflow-x-hidden w-full">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

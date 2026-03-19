@@ -93,7 +93,7 @@ export default async function Home({
               </div>
             </div>
           </aside>
-          <main className="flex-1 px-3 md:px-8 py-4 md:py-8">
+          <main className="flex-1 min-w-0 px-3 md:px-8 py-4 md:py-8 overflow-x-hidden">
             <ProductGridSkeleton count={12} />
           </main>
         </div>

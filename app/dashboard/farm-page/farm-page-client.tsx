@@ -223,7 +223,7 @@ export function FarmPageClient({ farms }: FarmPageClientProps) {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Link href={`/dashboard/local/setup/edit/${selectedFarm.id}`} className="flex-1">
+            <Link href={`/dashboard/local/setup/edit/${selectedFarm.id}`} className="flex-1 min-w-0 overflow-x-hidden w-full">
               <Button variant="outline" className="w-full">
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Farm Page

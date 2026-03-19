@@ -139,7 +139,7 @@ export default function OrderDetailClient({ order }: OrderDetailClientProps) {
   const isDelivery = order.type === "DELIVERY";
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 min-w-0 overflow-x-hidden w-full">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Back Link */}
         <Link

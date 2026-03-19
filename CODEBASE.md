@@ -925,3 +925,30 @@ Be careful with:
 - Phone: (775) 525-0128 (Google Voice forwarding)
 - Email: support@cornucopialocal.com (Cloudflare Email Routing → personal)
 - Gmail "send as" NOT yet configured — can receive but not send from support@
+
+## Layout Rule: Prevent Horizontal Overflow
+
+**Every component that is a flex child must have `min-w-0`.**
+
+Without `min-w-0`, flex children won't shrink below their content size and will overflow on mobile.
+
+### The correct pattern for dashboard/content pages:
+
+```tsx
+// Dashboard layout (app/dashboard/layout.tsx) — already correct:
+<main className="flex-1 min-w-0 p-3 md:p-6 overflow-x-hidden">
+
+// Dashboard client components — root wrapper must have:
+<div className="flex-1 min-w-0 overflow-x-hidden w-full">
+
+// Home/search pages (app/home-client.tsx, app/search/search-client.tsx):
+<main className="flex-1 min-w-0 px-3 md:px-8 overflow-x-hidden">
+```
+
+### Checklist when creating a new page/component:
+- [ ] If it's a flex child → add `min-w-0`
+- [ ] If it has a sidebar layout → outer flex div needs `overflow-x-hidden w-full`
+- [ ] All `<main>` elements need `min-w-0`
+
+### Why it keeps happening:
+Tailwind's `flex-1` doesn't include `min-w-0`. It's a CSS quirk — flex items have `min-width: auto` by default, meaning they size to their content and can overflow. `min-w-0` overrides this to allow shrinking.
