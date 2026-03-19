@@ -123,7 +123,7 @@ export function MarketStandCard({ stand }: MarketStandCardProps) {
                   </div>
                   <div className="flex items-center gap-1">
                     <Package className="h-4 w-4 flex-shrink-0" />
-                    {stand._count?.products || 0} products
+                    {stand._count?.products || 0} {(stand._count?.products || 0) === 1 ? 'product' : 'products'}
                   </div>
                   {lastCheckedInText && (
                     <div className="flex items-center gap-1 text-muted-foreground">

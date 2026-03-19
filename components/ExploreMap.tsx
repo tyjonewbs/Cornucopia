@@ -47,6 +47,9 @@ const mapContainerStyle = {
 const mapOptions: google.maps.MapOptions = {
   disableDefaultUI: true,
   zoomControl: true,
+  zoomControlOptions: {
+    position: 9, // RIGHT_TOP — keeps zoom away from bottom nav
+  },
   mapTypeControl: false,
   streetViewControl: false,
   fullscreenControl: false,

@@ -203,7 +203,7 @@ export default function SearchClient({ results, zipCode, searchQuery = '' }: Sea
       </AppSidebar>
       <main className="flex-1 min-w-0 px-3 md:px-8 py-4 md:py-8 overflow-x-hidden">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-6 pt-2">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">
             {searchQuery ? `Search Results for "${searchQuery}"` : 'Search Results'}
           </h1>
