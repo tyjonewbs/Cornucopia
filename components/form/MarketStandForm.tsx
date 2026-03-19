@@ -362,7 +362,7 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
           if (onSuccess) {
             onSuccess();
           } else {
-            router.push('/dashboard/market-stand/setup');
+            router.push('/dashboard/market-stand');
           }
         } else {
           console.error('Update failed:', result.error);
@@ -383,7 +383,7 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
           if (onSuccess) {
             onSuccess();
           } else {
-            router.push('/dashboard/market-stand/setup');
+            router.push('/dashboard/market-stand');
           }
         } else {
           console.error('Creation failed:', result.error);
