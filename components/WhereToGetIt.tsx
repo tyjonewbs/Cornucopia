@@ -189,6 +189,9 @@ export function WhereToGetIt({ data }: WhereToGetItProps) {
     // Add other stands
     if (data.standListings) {
       for (const listing of data.standListings) {
+        // Skip if this is the same as the primary stand (avoid duplicate)
+        if (data.marketStand && listing.marketStand.id === data.marketStand.id) continue;
+
         const distance = userCoords && listing.marketStand.latitude && listing.marketStand.longitude
           ? calculateDistance(
               userCoords.lat,
