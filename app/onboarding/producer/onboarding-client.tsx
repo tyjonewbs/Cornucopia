@@ -16,6 +16,7 @@ import { X } from "lucide-react";
 import { SellProduct, State } from "@/app/actions";
 import { CreateMarketStand } from "@/app/actions/market-stand";
 import { createDeliveryZone } from "@/app/actions/delivery-zones";
+import { MapLocationPicker } from "@/components/form/MapLocationPicker";
 
 interface MarketStand {
   id: string;
@@ -77,7 +78,6 @@ export function ProducerOnboardingWizard({
   // Market Stand state
   const [standName, setStandName] = useState("");
   const [standDescription, setStandDescription] = useState("");
-  const [standLocationName, setStandLocationName] = useState("");
   const [standLocationGuide, setStandLocationGuide] = useState("");
   const [standLatitude, setStandLatitude] = useState("");
   const [standLongitude, setStandLongitude] = useState("");
@@ -243,7 +243,7 @@ export function ProducerOnboardingWizard({
     const formData = new FormData();
     formData.append("name", standName);
     formData.append("description", standDescription);
-    formData.append("locationName", standLocationName || standName);
+    formData.append("locationName", standName);
     formData.append("locationGuide", standLocationGuide);
     formData.append("latitude", standLatitude);
     formData.append("longitude", standLongitude);
@@ -613,16 +613,6 @@ export function ProducerOnboardingWizard({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="standLocationName">Location Name (Optional)</Label>
-                <Input
-                  id="standLocationName"
-                  placeholder="e.g., Downtown Farmers Market"
-                  value={standLocationName}
-                  onChange={(e) => setStandLocationName(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="standLocationGuide">Directions *</Label>
                 <Textarea
                   id="standLocationGuide"
@@ -633,29 +623,19 @@ export function ProducerOnboardingWizard({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="standLatitude">Latitude (Optional)</Label>
-                  <Input
-                    id="standLatitude"
-                    type="number"
-                    step="any"
-                    placeholder="40.7128"
-                    value={standLatitude}
-                    onChange={(e) => setStandLatitude(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="standLongitude">Longitude (Optional)</Label>
-                  <Input
-                    id="standLongitude"
-                    type="number"
-                    step="any"
-                    placeholder="-74.0060"
-                    value={standLongitude}
-                    onChange={(e) => setStandLongitude(e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>Pin Your Stand Location</Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Drag the marker to your exact stand location, or search for an address.
+                </p>
+                <MapLocationPicker
+                  initialLat={standLatitude ? parseFloat(standLatitude) : undefined}
+                  initialLng={standLongitude ? parseFloat(standLongitude) : undefined}
+                  onLocationChange={(lat, lng) => {
+                    setStandLatitude(lat.toString());
+                    setStandLongitude(lng.toString());
+                  }}
+                />
               </div>
 
               <div className="space-y-2">

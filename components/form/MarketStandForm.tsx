@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { SubmitStandButton } from "./SubmitStandButton";
+import { MapLocationPicker } from "./MapLocationPicker";
 
 interface MarketStandFormProps {
   userId: string;
@@ -355,7 +356,7 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
     // Add all form values manually instead of relying on the form element
     formData.append('name', formState.values.name);
     formData.append('description', formState.values.description);
-    formData.append('locationName', formState.values.name); // Auto-populate with name
+    formData.append('locationName', formState.values.name); // Use stand name for locationName
     formData.append('streetAddress', formState.values.streetAddress);
     formData.append('city', formState.values.city);
     formData.append('zipCode', formState.values.zipCode);
@@ -560,44 +561,31 @@ export function MarketStandForm({ userId, userEmail, userFirstName, userLastName
             </div>
 
             <div className="border-t pt-4 mt-2">
-              <Label className="text-base">GPS Coordinates (Optional)</Label>
+              <Label className="text-base">Pin Your Stand Location</Label>
               <p className="text-sm text-muted-foreground mt-1 mb-3">
-                If an address doesn't accurately show where the market stand is (often in the countryside), please find the latitude/longitude and add it here.
+                Drag the marker to your exact stand location, or search for an address.
               </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                <div className="flex flex-col gap-y-2">
-                  <Label>Latitude</Label>
-                  <Input
-                    name="latitude"
-                    type="number"
-                    step="any"
-                    placeholder="e.g., 40.7128"
-                    value={formState.values.latitude}
-                    onChange={(e) => handleFieldChange('latitude', e.target.value)}
-                    className={formState.errors.latitude ? 'border-destructive' : ''}
-                  />
-                  {formState.errors.latitude && (
-                    <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.latitude}</p>
-                  )}
-                </div>
 
-                <div className="flex flex-col gap-y-2">
-                  <Label>Longitude</Label>
-                  <Input
-                    name="longitude"
-                    type="number"
-                    step="any"
-                    placeholder="e.g., -74.0060"
-                    value={formState.values.longitude}
-                    onChange={(e) => handleFieldChange('longitude', e.target.value)}
-                    className={formState.errors.longitude ? 'border-destructive' : ''}
-                  />
-                  {formState.errors.longitude && (
-                    <p className="text-sm font-medium text-destructive mt-1.5">{formState.errors.longitude}</p>
-                  )}
-                </div>
-              </div>
+              <MapLocationPicker
+                initialLat={formState.values.latitude ? parseFloat(formState.values.latitude) : undefined}
+                initialLng={formState.values.longitude ? parseFloat(formState.values.longitude) : undefined}
+                onLocationChange={(lat, lng) => {
+                  setFormState(prev => ({
+                    ...prev,
+                    values: {
+                      ...prev.values,
+                      latitude: lat.toString(),
+                      longitude: lng.toString(),
+                    },
+                  }));
+                }}
+              />
+
+              {(formState.errors.latitude || formState.errors.longitude) && (
+                <p className="text-sm font-medium text-destructive mt-2">
+                  {formState.errors.latitude || formState.errors.longitude}
+                </p>
+              )}
             </div>
           </div>
         </div>
