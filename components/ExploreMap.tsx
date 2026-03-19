@@ -64,9 +64,6 @@ const mapOptions: google.maps.MapOptions = {
   ]
 };
 
-// Max distance in miles for "nearby" geofence
-const NEARBY_RADIUS_MILES = 500;
-
 // SVG data URI marker icons with a white circle + crisp icon inside a colored pin
 const createMarkerSvg = (type: MapItemType, isSelected: boolean): string => {
   const colors: Record<MapItemType, { fill: string; stroke: string }> = {
@@ -178,7 +175,7 @@ export default function ExploreMap({
     () => new Set<MapItemType>(['market-stand', 'local', 'event', 'delivery'])
   );
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [showAllPlaces, setShowAllPlaces] = useState(false);
+  const [mapBounds, setMapBounds] = useState<google.maps.LatLngBounds | null>(null);
   
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   
@@ -209,16 +206,13 @@ export default function ExploreMap({
     });
   }, [allItems, userLocation]);
 
-  // Geofenced nearby items (within radius)
-  const nearbyItems = useMemo(() => {
-    if (!userLocation || showAllPlaces) return sortedItems;
+  // Viewport-based filtering (for sidebar only)
+  const viewportItems = useMemo(() => {
+    if (!mapBounds) return sortedItems; // show all before map loads
     return sortedItems.filter(item => {
-      const distMiles = kmToMiles(calculateDistance(
-        userLocation.lat, userLocation.lng, item.latitude, item.longitude
-      ));
-      return distMiles <= NEARBY_RADIUS_MILES;
+      return mapBounds.contains({ lat: item.latitude, lng: item.longitude });
     });
-  }, [sortedItems, userLocation, showAllPlaces]);
+  }, [sortedItems, mapBounds]);
 
   // Default center (US center) or user location
   const center = useMemo(() => {
@@ -229,39 +223,37 @@ export default function ExploreMap({
     return { lat: 39.8283, lng: -98.5795 }; // US center
   }, [userLocation, allItems]);
 
+  const handleBoundsChanged = useCallback(() => {
+    if (map) {
+      const bounds = map.getBounds();
+      if (bounds) setMapBounds(bounds);
+    }
+  }, [map]);
+
   const onLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
 
     if (allItems.length === 0) return;
 
     if (userLocation) {
-      // When we have user location, zoom in close to them and only fit nearby items
-      const nearbyForBounds = allItems.filter(item => {
-        const distMiles = kmToMiles(calculateDistance(
-          userLocation.lat, userLocation.lng, item.latitude, item.longitude
-        ));
-        return distMiles <= NEARBY_RADIUS_MILES;
+      // When we have user location, zoom in close to them
+      const bounds = new google.maps.LatLngBounds();
+      bounds.extend(userLocation);
+
+      // Add some nearby items to the initial bounds
+      const nearbyForBounds = allItems.slice(0, 10);
+      nearbyForBounds.forEach(item => {
+        bounds.extend({ lat: item.latitude, lng: item.longitude });
       });
 
-      if (nearbyForBounds.length > 0) {
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(userLocation);
-        nearbyForBounds.forEach(item => {
-          bounds.extend({ lat: item.latitude, lng: item.longitude });
-        });
-        mapInstance.fitBounds(bounds, 50);
-        // Ensure we don't zoom out too far even with spread-out nearby items
-        google.maps.event.addListenerOnce(mapInstance, 'idle', () => {
-          const zoom = mapInstance.getZoom();
-          if (zoom && zoom < 10) {
-            mapInstance.setZoom(10);
-          }
-        });
-      } else {
-        // No nearby items, just center on user at city level
-        mapInstance.setCenter(userLocation);
-        mapInstance.setZoom(12);
-      }
+      mapInstance.fitBounds(bounds, 50);
+      // Ensure we don't zoom out too far
+      google.maps.event.addListenerOnce(mapInstance, 'idle', () => {
+        const zoom = mapInstance.getZoom();
+        if (zoom && zoom < 10) {
+          mapInstance.setZoom(10);
+        }
+      });
     } else {
       // No user location - fit all items
       const bounds = new google.maps.LatLngBounds();
@@ -392,19 +384,11 @@ export default function ExploreMap({
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {nearbyItems.length} Places {userLocation && !showAllPlaces ? `Within ${NEARBY_RADIUS_MILES} mi` : 'Nearby'}
+                    {viewportItems.length} Places in View
                   </p>
-                  {userLocation && sortedItems.length !== nearbyItems.length && (
-                    <button
-                      onClick={() => setShowAllPlaces(!showAllPlaces)}
-                      className="text-xs text-primary font-medium hover:underline"
-                    >
-                      {showAllPlaces ? 'Show nearby' : `Show all (${sortedItems.length})`}
-                    </button>
-                  )}
                 </div>
                 <div className="space-y-2">
-                  {nearbyItems.map(item => (
+                  {viewportItems.map(item => (
                     <SheetClose asChild key={`${item.type}-${item.id}`}>
                       <button
                         onClick={() => handleMarkerClick(item)}
@@ -486,6 +470,7 @@ export default function ExploreMap({
         center={center}
         zoom={10}
         onLoad={onLoad}
+        onBoundsChanged={handleBoundsChanged}
         options={mapOptions}
       >
         {/* User location marker */}
@@ -626,20 +611,12 @@ export default function ExploreMap({
         <div className="p-4 border-b">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">
-              {nearbyItems.length} places {userLocation && !showAllPlaces ? `within ${NEARBY_RADIUS_MILES} mi` : 'nearby'}
+              {viewportItems.length} Places in View
             </h3>
-            {userLocation && sortedItems.length !== nearbyItems.length && (
-              <button
-                onClick={() => setShowAllPlaces(!showAllPlaces)}
-                className="text-xs text-primary font-medium hover:underline"
-              >
-                {showAllPlaces ? 'Show nearby' : `All (${sortedItems.length})`}
-              </button>
-            )}
           </div>
         </div>
         <div className="overflow-y-auto h-[calc(100%-60px)]">
-          {nearbyItems.map(item => (
+          {viewportItems.map(item => (
             <button
               key={`${item.type}-${item.id}`}
               onClick={() => handleMarkerClick(item)}
