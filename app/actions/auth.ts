@@ -4,12 +4,7 @@ import { getSupabaseServer } from '@/lib/supabase-server';
 import { getAuthRedirectUrl } from '@/lib/supabase-config';
 import jwt from 'jsonwebtoken';
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL');
-}
-if (!process.env.SUPABASE_JWT_SECRET) {
-  throw new Error('Missing env.SUPABASE_JWT_SECRET');
-}
+// Env vars validated at runtime inside functions, not at module load
 
 export async function signInWithEmail(email: string, password: string) {
   const supabase = await getSupabaseServer();
