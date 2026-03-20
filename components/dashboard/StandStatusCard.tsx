@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
 import { toggleStandOpen } from "@/app/actions/stand-portal";
 import { useRouter } from "next/navigation";
 
@@ -111,42 +112,31 @@ export function StandStatusCard({ standId, standName, isOpen: initialIsOpen, hou
 
   return (
     <Card>
-      <CardContent className="p-6 space-y-4">
-        <div>
-          <h3 className="font-semibold text-lg mb-2">{standName}</h3>
-          <div>
-            {isOpen ? (
-              <div>
-                <span className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-800 text-lg font-medium">
-                  {getStatusLabel()}
-                </span>
-              </div>
-            ) : (
-              <span className="inline-flex items-center px-4 py-2 rounded-full bg-gray-100 text-gray-800 text-lg font-medium">
-                Closed
-              </span>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className={`flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${
+              isOpen ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'
+            }`}>
+              {isOpen ? '● Open' : '○ Closed'}
+            </span>
+            {buttonInfo.subtitle && (
+              <span className="text-xs text-gray-500 truncate">{buttonInfo.subtitle}</span>
             )}
           </div>
+          <Button
+            onClick={handleToggle}
+            disabled={isToggling}
+            size="sm"
+            className={isOpen ? "bg-gray-600 hover:bg-gray-700 flex-shrink-0" : "bg-green-600 hover:bg-green-700 flex-shrink-0"}
+          >
+            {isToggling ? "..." : buttonInfo.label}
+          </Button>
         </div>
-        <div className="flex gap-2">
-          <div className="flex flex-col gap-1">
-            <Button
-              onClick={handleToggle}
-              disabled={isToggling}
-              className={isOpen ? "bg-gray-600 hover:bg-gray-700" : "bg-green-600 hover:bg-green-700"}
-            >
-              {isToggling ? "Updating..." : buttonInfo.label}
-            </Button>
-            {buttonInfo.subtitle && !isToggling && (
-              <p className="text-xs text-gray-500 text-center">
-                {buttonInfo.subtitle}
-              </p>
-            )}
-          </div>
-          <Link href={`/stand-portal/${standId}`}>
-            <Button variant="outline">
-              Go to Stand Portal →
-            </Button>
+        <div className="mt-3">
+          <Link href={`/stand-portal/${standId}`} className="text-sm text-[#0B4D2C] hover:underline flex items-center gap-1">
+            <ExternalLink className="h-3.5 w-3.5" />
+            Open Stand Portal
           </Link>
         </div>
       </CardContent>

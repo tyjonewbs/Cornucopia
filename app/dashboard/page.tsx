@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { AlertCircle, Package, Truck, ShoppingBag, Calendar, ExternalLink } from "lucide-react";
+import { AlertCircle, Package, Truck, ShoppingBag, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -220,17 +220,11 @@ export default async function DashboardPage() {
                 hours={stand.hours as any}
               />
               {lastRestock && (
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 mt-1 ml-1">
                   Last restocked {timeAgo(lastRestock)}
                 </p>
               )}
-              <div className="flex gap-2 mt-3">
-                <Link href={`/stand-portal/${stand.id}`}>
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View QR Portal
-                  </Button>
-                </Link>
+              <div className="flex gap-2 mt-2 ml-1">
                 <Link href={`/dashboard/market-stand`}>
                   <Button variant="outline" size="sm">
                     Edit Stand
