@@ -125,14 +125,13 @@ export function InlineProductList({
     return (
       <div className="text-center py-4">
         <p className="text-sm text-gray-500 mb-3">No products yet</p>
-        <Button
-          variant="outline"
-          size="sm"
+        <button
           onClick={onAddProduct}
-          className="w-full"
+          className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1"
         >
-          + Add product
-        </Button>
+          <Plus className="h-4 w-4" />
+          Add Product
+        </button>
       </div>
     );
   }
@@ -217,20 +216,14 @@ export function InlineProductList({
       )}
 
       {/* Add product */}
-      <div className="mt-3 flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
+      <div className="mt-3">
+        <button
           onClick={onAddProduct}
-          className="flex-1 text-xs"
+          className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1"
         >
-          + Add product
-        </Button>
-        <Link href="/onboarding/producer" className="flex-1">
-          <Button variant="ghost" size="sm" className="w-full text-xs text-gray-500">
-            + Create new
-          </Button>
-        </Link>
+          <Plus className="h-4 w-4" />
+          Add Product
+        </button>
       </div>
     </div>
   );

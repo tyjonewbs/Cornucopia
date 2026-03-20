@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { AlertCircle, Package, Truck, ShoppingBag, Calendar } from "lucide-react";
+import { AlertCircle, Package, Truck, ShoppingBag, Calendar, Store, Pencil } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { StandStatusCard } from "@/components/dashboard/StandStatusCard";
+import { StandTogglePill } from "@/components/dashboard/StandTogglePill";
 import { InlineProductList } from "@/components/dashboard/InlineProductList";
 import Image from "next/image";
 
@@ -211,7 +211,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Stands */}
-      {stands.map((stand) => {
+      {stands.map((stand, idx) => {
         // Filter to only show approved, active products
         const activeProducts = stand.productListings
           .filter(listing => listing.product.isActive)
@@ -222,119 +222,95 @@ export default async function DashboardPage() {
 
         return (
           <div key={stand.id}>
-            <div className="border-t border-gray-100 my-6" />
+            {/* Visual separator between stands */}
+            {idx > 0 && <div className="border-t border-gray-200 my-4" />}
 
-            {/* Stand header with status toggle */}
-            <div className="mb-4">
-              <StandStatusCard
-                standId={stand.id}
-                standName={stand.name}
-                isOpen={stand.isOpen}
-                hours={stand.hours as any}
-              />
-              {lastRestock && (
-                <p className="text-sm text-gray-500 mt-1 ml-1">
-                  Last restocked {timeAgo(lastRestock)}
-                </p>
-              )}
-              <div className="flex gap-2 mt-2 ml-1">
-                <Link href={`/dashboard/market-stand`}>
-                  <Button variant="outline" size="sm">
-                    Edit Stand
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            {/* Products section */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Package className="h-5 w-5 text-gray-600" />
-                  Products
-                </h3>
-              </div>
-
-              <InlineProductList
-                mode="stand"
-                contextId={stand.id}
-                userId={user.id}
-                products={activeProducts.map(listing => ({
-                  listingId: listing.id,
-                  productId: listing.product.id,
-                  name: listing.product.name,
-                  price: listing.customPrice ?? listing.product.price,
-                  images: listing.product.images,
-                  inventory: listing.customInventory ?? listing.product.inventory,
-                  updatedAt: listing.updatedAt instanceof Date ? listing.updatedAt.toISOString() : listing.updatedAt,
-                  status: listing.product.status,
-                }))}
-              />
-            </div>
-
-            {/* Delivery zones section */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Truck className="h-5 w-5 text-gray-600" />
-                  Delivery Zones
-                </h3>
-                <Link href="/dashboard/delivery-zones/new">
-                  <Button variant="outline" size="sm">
-                    + Add Zone
-                  </Button>
-                </Link>
-              </div>
-
-              {deliveryZones.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6 text-center text-gray-500">
-                    No delivery zones set up yet.
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-2">
-                  {deliveryZones.map((zone) => {
-                    const productCount = zone.productListings.length;
-
-                    return (
-                      <Card key={zone.id}>
-                        <CardContent className="p-3 flex items-center gap-3">
-                          <Truck className="h-5 w-5 text-gray-600 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm truncate">{zone.name}</h4>
-                            <p className="text-xs text-gray-600">
-                              {zone.zipCodes.slice(0, 3).join(', ')}
-                              {zone.zipCodes.length > 3 && ` +${zone.zipCodes.length - 3} more`}
-                              {' · '}
-                              {zone.deliveryDays.slice(0, 2).join(', ')}
-                              {zone.deliveryDays.length > 2 && ` +${zone.deliveryDays.length - 2}`}
-                              {' · '}
-                              ${zone.deliveryFee === 0 ? "Free delivery" : "$" + (zone.deliveryFee / 100).toFixed(2) + " fee"}
-                            </p>
-                          </div>
-                          <InlineProductList
-                            mode="delivery"
-                            contextId={zone.id}
-                            userId={user.id}
-                            products={zone.productListings.map(listing => ({
-                              listingId: listing.id,
-                              productId: listing.product.id,
-                              name: listing.product.name,
-                              price: listing.product.price,
-                              images: listing.product.images,
-                              inventory: listing.inventory,
-                              updatedAt: listing.updatedAt.toISOString(),
-                              status: listing.product.status,
-                            }))}
-                          />
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+            {/* Stand header row */}
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Store className="h-5 w-5 text-[#0B4D2C] flex-shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-base truncate">{stand.name}</h3>
+                  {lastRestock && (
+                    <p className="text-xs text-gray-500">Restocked {timeAgo(lastRestock)}</p>
+                  )}
                 </div>
-              )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <StandTogglePill standId={stand.id} isOpen={stand.isOpen} hours={stand.hours as any} />
+                <Link href={`/dashboard/market-stand/setup/edit/${stand.id}`}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
             </div>
+
+            {/* Products */}
+            <InlineProductList
+              mode="stand"
+              contextId={stand.id}
+              userId={user.id}
+              products={activeProducts.map(listing => ({
+                listingId: listing.id,
+                productId: listing.product.id,
+                name: listing.product.name,
+                price: listing.customPrice ?? listing.product.price,
+                images: listing.product.images,
+                inventory: listing.customInventory ?? listing.product.inventory,
+                updatedAt: listing.updatedAt instanceof Date ? listing.updatedAt.toISOString() : listing.updatedAt,
+                status: listing.product.status,
+              }))}
+            />
+
+            {/* Delivery zones */}
+            {deliveryZones.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {deliveryZones.map((zone) => (
+                  <div key={zone.id}>
+                    {/* Zone header row */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Truck className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-base truncate">{zone.name}</h3>
+                          <p className="text-xs text-gray-500">
+                            {zone.zipCodes.slice(0, 2).join(', ')}
+                            {zone.zipCodes.length > 2 && ` +${zone.zipCodes.length - 2}`}
+                            {' · '}
+                            {zone.deliveryDays.slice(0, 2).join(', ')}
+                            {' · '}
+                            {zone.deliveryFee === 0 ? 'Free' : `$${(zone.deliveryFee / 100).toFixed(2)}`}
+                          </p>
+                        </div>
+                      </div>
+                      <Link href={`/dashboard/delivery-zones/${zone.id}/edit`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </div>
+
+                    {/* Zone products */}
+                    <InlineProductList
+                      mode="delivery"
+                      contextId={zone.id}
+                      userId={user.id}
+                      products={zone.productListings.map(listing => ({
+                        listingId: listing.id,
+                        productId: listing.product.id,
+                        name: listing.product.name,
+                        price: listing.product.price,
+                        images: listing.product.images,
+                        inventory: listing.inventory,
+                        updatedAt: listing.updatedAt.toISOString(),
+                        status: listing.product.status,
+                      }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
