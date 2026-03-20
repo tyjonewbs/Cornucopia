@@ -201,10 +201,10 @@ export default async function DashboardPage() {
       {stands.map((stand) => {
         // Filter to only show approved, active products
         const activeProducts = stand.productListings
-          .filter(listing => listing.product.isActive && listing.product.status === 'APPROVED')
+          .filter(listing => listing.product.isActive)
           .slice(0, 5);
         const productCount = activeProducts.length;
-        const totalProducts = stand.productListings.filter(listing => listing.product.isActive && listing.product.status === 'APPROVED').length;
+        const totalProducts = stand.productListings.filter(listing => listing.product.isActive).length;
         const lastRestock = activeProducts[0]?.updatedAt;
 
         return (
@@ -278,7 +278,12 @@ export default async function DashboardPage() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm truncate">{product.name}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-sm truncate">{product.name}</h4>
+                              {product.status === 'PENDING' && (
+                                <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">Pending review</span>
+                              )}
+                            </div>
                             <p className="text-xs text-gray-600">
                               ${((listing.customPrice ?? product.price) / 100).toFixed(2)} · {inventory} left
                             </p>
