@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StandStatusCard } from "@/components/dashboard/StandStatusCard";
-import { ProductSheet } from "@/components/dashboard/ProductSheet";
+import { InlineProductList } from "@/components/dashboard/InlineProductList";
 import Image from "next/image";
 
 // Helper to calculate time ago
@@ -91,7 +91,15 @@ export default async function DashboardPage() {
         deliveryFee: true,
         deliveryType: true,
         productListings: {
-          select: { productId: true },
+          include: {
+            product: {
+              select: {
+                id: true, name: true, price: true,
+                images: true, inventory: true, updatedAt: true, status: true
+              }
+            }
+          },
+          orderBy: { updatedAt: 'desc' },
           distinct: ['productId']
         }
       },
@@ -247,17 +255,20 @@ export default async function DashboardPage() {
                 </h3>
               </div>
 
-              <ProductSheet
+              <InlineProductList
                 mode="stand"
                 contextId={stand.id}
-                contextName={stand.name}
                 userId={user.id}
-                trigger={
-                  <Button variant="outline" className="w-full flex items-center gap-2 text-sm text-gray-600">
-                    <Package className="h-4 w-4" />
-                    {productCount > 0 ? `${productCount} ${productCount === 1 ? 'product' : 'products'} ▾` : 'Add products'}
-                  </Button>
-                }
+                products={activeProducts.map(listing => ({
+                  listingId: listing.id,
+                  productId: listing.product.id,
+                  name: listing.product.name,
+                  price: listing.customPrice ?? listing.product.price,
+                  images: listing.product.images,
+                  inventory: listing.customInventory ?? listing.product.inventory,
+                  updatedAt: listing.updatedAt instanceof Date ? listing.updatedAt.toISOString() : listing.updatedAt,
+                  status: listing.product.status,
+                }))}
               />
             </div>
 
@@ -302,17 +313,20 @@ export default async function DashboardPage() {
                               ${zone.deliveryFee === 0 ? "Free delivery" : "$" + (zone.deliveryFee / 100).toFixed(2) + " fee"}
                             </p>
                           </div>
-                          <ProductSheet
+                          <InlineProductList
                             mode="delivery"
                             contextId={zone.id}
-                            contextName={zone.name}
                             userId={user.id}
-                            trigger={
-                              <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-600">
-                                <Package className="h-4 w-4" />
-                                {productCount > 0 ? `${productCount} ${productCount === 1 ? 'product' : 'products'} ▾` : 'Add products'}
-                              </Button>
-                            }
+                            products={zone.productListings.map(listing => ({
+                              listingId: listing.id,
+                              productId: listing.product.id,
+                              name: listing.product.name,
+                              price: listing.product.price,
+                              images: listing.product.images,
+                              inventory: listing.inventory,
+                              updatedAt: listing.updatedAt.toISOString(),
+                              status: listing.product.status,
+                            }))}
                           />
                         </CardContent>
                       </Card>
