@@ -255,7 +255,7 @@ export default async function DashboardPage() {
                 trigger={
                   <Button variant="outline" className="w-full flex items-center gap-2 text-sm text-gray-600">
                     <Package className="h-4 w-4" />
-                    {productCount > 0 ? `${productCount} products ▾` : 'Add products'}
+                    {productCount > 0 ? `${productCount} ${productCount === 1 ? 'product' : 'products'} ▾` : 'Add products'}
                   </Button>
                 }
               />
@@ -299,7 +299,7 @@ export default async function DashboardPage() {
                               {zone.deliveryDays.slice(0, 2).join(', ')}
                               {zone.deliveryDays.length > 2 && ` +${zone.deliveryDays.length - 2}`}
                               {' · '}
-                              ${(zone.deliveryFee / 100).toFixed(2)} fee
+                              ${zone.deliveryFee === 0 ? "Free delivery" : "$" + (zone.deliveryFee / 100).toFixed(2) + " fee"}
                             </p>
                           </div>
                           <ProductSheet
@@ -310,7 +310,7 @@ export default async function DashboardPage() {
                             trigger={
                               <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-600">
                                 <Package className="h-4 w-4" />
-                                {productCount > 0 ? `${productCount} products ▾` : 'Add products'}
+                                {productCount > 0 ? `${productCount} ${productCount === 1 ? 'product' : 'products'} ▾` : 'Add products'}
                               </Button>
                             }
                           />
