@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StandStatusCard } from "@/components/dashboard/StandStatusCard";
+import { ProductSheet } from "@/components/dashboard/ProductSheet";
 import Image from "next/image";
 
 // Helper to calculate time ago
@@ -88,7 +89,11 @@ export default async function DashboardPage() {
         zipCodes: true,
         deliveryDays: true,
         deliveryFee: true,
-        deliveryType: true
+        deliveryType: true,
+        productListings: {
+          select: { productId: true },
+          distinct: ['productId']
+        }
       },
       orderBy: { createdAt: 'desc' },
       take: 3
@@ -240,69 +245,20 @@ export default async function DashboardPage() {
                   <Package className="h-5 w-5 text-gray-600" />
                   Products
                 </h3>
-                <Link href="/onboarding/producer">
-                  <Button variant="outline" size="sm">
-                    + Add Product
-                  </Button>
-                </Link>
               </div>
 
-              {productCount === 0 ? (
-                <Card>
-                  <CardContent className="p-6 text-center text-gray-500">
-                    No products yet. Add your first product to get started!
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-2">
-                  {activeProducts.map((listing) => {
-                    const product = listing.product;
-                    const inventory = listing.customInventory ?? product.inventory;
-                    return (
-                      <Card key={listing.id}>
-                        <CardContent className="p-3 flex items-center gap-3">
-                          {product.images[0] && (
-                            <div className="relative w-14 h-14 flex-shrink-0 rounded overflow-hidden bg-gray-100">
-                              <Image
-                                src={product.images[0]}
-                                alt={product.name}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium text-sm truncate">{product.name}</h4>
-                              {product.status === 'PENDING' && (
-                                <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">Pending review</span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              ${((listing.customPrice ?? product.price) / 100).toFixed(2)} · {inventory} left
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              Updated {timeAgo(listing.updatedAt)}
-                            </p>
-                          </div>
-                          <Link href="/dashboard/products">
-                            <Button variant="ghost" size="sm">
-                              Edit →
-                            </Button>
-                          </Link>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                  {totalProducts > 5 && (
-                    <Link href="/dashboard/products">
-                      <Button variant="link" className="w-full">
-                        View all {totalProducts} products →
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              )}
+              <ProductSheet
+                mode="stand"
+                contextId={stand.id}
+                contextName={stand.name}
+                userId={user.id}
+                trigger={
+                  <Button variant="outline" className="w-full flex items-center gap-2 text-sm text-gray-600">
+                    <Package className="h-4 w-4" />
+                    {productCount > 0 ? `${productCount} products ▾` : 'Add products'}
+                  </Button>
+                }
+              />
             </div>
 
             {/* Delivery zones section */}
@@ -327,30 +283,41 @@ export default async function DashboardPage() {
                 </Card>
               ) : (
                 <div className="space-y-2">
-                  {deliveryZones.map((zone) => (
-                    <Card key={zone.id}>
-                      <CardContent className="p-3 flex items-center gap-3">
-                        <Truck className="h-5 w-5 text-gray-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">{zone.name}</h4>
-                          <p className="text-xs text-gray-600">
-                            {zone.zipCodes.slice(0, 3).join(', ')}
-                            {zone.zipCodes.length > 3 && ` +${zone.zipCodes.length - 3} more`}
-                            {' · '}
-                            {zone.deliveryDays.slice(0, 2).join(', ')}
-                            {zone.deliveryDays.length > 2 && ` +${zone.deliveryDays.length - 2}`}
-                            {' · '}
-                            ${(zone.deliveryFee / 100).toFixed(2)} fee
-                          </p>
-                        </div>
-                        <Link href={`/dashboard/delivery-zones`}>
-                          <Button variant="ghost" size="sm">
-                            Edit →
-                          </Button>
-                        </Link>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {deliveryZones.map((zone) => {
+                    const productCount = zone.productListings.length;
+
+                    return (
+                      <Card key={zone.id}>
+                        <CardContent className="p-3 flex items-center gap-3">
+                          <Truck className="h-5 w-5 text-gray-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm truncate">{zone.name}</h4>
+                            <p className="text-xs text-gray-600">
+                              {zone.zipCodes.slice(0, 3).join(', ')}
+                              {zone.zipCodes.length > 3 && ` +${zone.zipCodes.length - 3} more`}
+                              {' · '}
+                              {zone.deliveryDays.slice(0, 2).join(', ')}
+                              {zone.deliveryDays.length > 2 && ` +${zone.deliveryDays.length - 2}`}
+                              {' · '}
+                              ${(zone.deliveryFee / 100).toFixed(2)} fee
+                            </p>
+                          </div>
+                          <ProductSheet
+                            mode="delivery"
+                            contextId={zone.id}
+                            contextName={zone.name}
+                            userId={user.id}
+                            trigger={
+                              <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-600">
+                                <Package className="h-4 w-4" />
+                                {productCount > 0 ? `${productCount} products ▾` : 'Add products'}
+                              </Button>
+                            }
+                          />
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </div>
