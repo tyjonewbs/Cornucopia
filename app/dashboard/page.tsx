@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { AlertCircle, Package, Truck, ShoppingBag, Calendar, Store, Pencil } from "lucide-react";
+import { AlertCircle, Package, Truck, ShoppingBag, Calendar, Store, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -262,58 +262,77 @@ export default async function DashboardPage() {
                 status: listing.product.status,
               }))}
             />
-
-            {/* Delivery zones */}
-            {deliveryZones.length > 0 && (
-              <div className="mt-4 space-y-3">
-                {deliveryZones.map((zone) => (
-                  <div key={zone.id}>
-                    {/* Zone header row */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Truck className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-base truncate">{zone.name}</h3>
-                          <p className="text-xs text-gray-500">
-                            {zone.zipCodes.slice(0, 2).join(', ')}
-                            {zone.zipCodes.length > 2 && ` +${zone.zipCodes.length - 2}`}
-                            {' · '}
-                            {zone.deliveryDays.slice(0, 2).join(', ')}
-                            {' · '}
-                            {zone.deliveryFee === 0 ? 'Free' : `$${(zone.deliveryFee / 100).toFixed(2)}`}
-                          </p>
-                        </div>
-                      </div>
-                      <Link href={`/dashboard/delivery-zones/${zone.id}/edit`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-
-                    {/* Zone products */}
-                    <InlineProductList
-                      mode="delivery"
-                      contextId={zone.id}
-                      userId={user.id}
-                      products={zone.productListings.map(listing => ({
-                        listingId: listing.id,
-                        productId: listing.product.id,
-                        name: listing.product.name,
-                        price: listing.product.price,
-                        images: listing.product.images,
-                        inventory: listing.inventory,
-                        updatedAt: listing.updatedAt.toISOString(),
-                        status: listing.product.status,
-                      }))}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         );
       })}
+
+      {/* Add Stand button — after all stands */}
+      <Link href="/dashboard/market-stand/setup/new">
+        <button className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 mt-2">
+          <Plus className="h-4 w-4" />
+          Add Stand
+        </button>
+      </Link>
+
+      {/* Delivery zones */}
+      {deliveryZones.length > 0 && (
+        <>
+          <div className="border-t border-gray-100 my-6" />
+          <div className="space-y-3">
+            {deliveryZones.map((zone) => (
+              <div key={zone.id}>
+                {/* Zone header row */}
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Truck className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-base truncate">{zone.name}</h3>
+                      <p className="text-xs text-gray-500">
+                        {zone.zipCodes.slice(0, 2).join(', ')}
+                        {zone.zipCodes.length > 2 && ` +${zone.zipCodes.length - 2}`}
+                        {' · '}
+                        {zone.deliveryDays.slice(0, 2).join(', ')}
+                        {' · '}
+                        {zone.deliveryFee === 0 ? 'Free' : `$${(zone.deliveryFee / 100).toFixed(2)}`}
+                      </p>
+                    </div>
+                  </div>
+                  <Link href={`/dashboard/delivery-zones/${zone.id}/edit`}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+
+                {/* Zone products */}
+                <InlineProductList
+                  mode="delivery"
+                  contextId={zone.id}
+                  userId={user.id}
+                  products={zone.productListings.map(listing => ({
+                    listingId: listing.id,
+                    productId: listing.product.id,
+                    name: listing.product.name,
+                    price: listing.product.price,
+                    images: listing.product.images,
+                    inventory: listing.inventory,
+                    updatedAt: listing.updatedAt.toISOString(),
+                    status: listing.product.status,
+                  }))}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Add Delivery Zone button */}
+      <Link href="/dashboard/delivery-zones/new">
+        <button className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 mt-2">
+          <Plus className="h-4 w-4" />
+          Add Delivery Zone
+        </button>
+      </Link>
 
       <div className="border-t border-gray-100 my-6" />
 
@@ -348,44 +367,44 @@ export default async function DashboardPage() {
       </div>
 
       {/* Events section */}
-      {upcomingEvents.length > 0 && (
-        <>
-          <div className="border-t border-gray-100 my-6" />
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-gray-600" />
-                Upcoming Events
-              </h3>
-              <Link href="/dashboard/events">
-                <Button variant="outline" size="sm">
-                  + Create Event
-                </Button>
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {upcomingEvents.map((eventVendor) => (
-                <Card key={eventVendor.id}>
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-gray-600 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{eventVendor.event.name}</h4>
-                      <p className="text-xs text-gray-600">
-                        {formatDate(eventVendor.event.startDate)} · {eventVendor.event.locationName}
-                      </p>
-                    </div>
-                    <Link href={`/events/${eventVendor.event.id}`}>
-                      <Button variant="ghost" size="sm">
-                        View →
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+      <div className="border-t border-gray-100 my-6" />
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-gray-600" />
+            Events
+          </h3>
+        </div>
+
+        {upcomingEvents.length === 0 ? (
+          <p className="text-sm text-gray-500 mb-3">No upcoming events</p>
+        ) : (
+          <div className="space-y-2 mb-3">
+            {upcomingEvents.map((eventVendor) => (
+              <div key={eventVendor.id} className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm truncate">{eventVendor.event.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(eventVendor.event.startDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {' · '}{eventVendor.event.locationName}
+                  </p>
+                </div>
+                <Link href={`/events/${eventVendor.event.id}`}>
+                  <Button variant="ghost" size="sm" className="text-xs flex-shrink-0">View →</Button>
+                </Link>
+              </div>
+            ))}
           </div>
-        </>
-      )}
+        )}
+
+        {/* Add Event dashed button */}
+        <Link href="/dashboard/events/setup/new">
+          <button className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1">
+            <Plus className="h-4 w-4" />
+            Add Event
+          </button>
+        </Link>
+      </div>
     </div>
   );
 }
