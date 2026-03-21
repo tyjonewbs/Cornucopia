@@ -248,3 +248,34 @@ cd /home/tyler/Desktop/Cornucopia && claude --permission-mode bypassPermissions 
 - Customer inventory self-reporting via QR
 - Farm profile in search
 - Events in "Where to get it" (blue rows — built, needs event-product linking)
+
+## Update 2026-03-21
+
+### Dashboard Current State
+Dashboard uses inline section headers pattern:
+```
+[🏪 Stand Name]  [●Open/Closed pill]  [✎]
+   Restocked X ago
+   [product rows with [-][N][+] inventory]
+   [- - + Add Product - -]
+[- - + Add Stand - -]
+
+[🚚 Zone Name]  [days · fee]  [✎]
+   [product rows]
+   [- - + Add Product - -]
+[- - + Add Delivery Zone - -]
+
+[📅 Events]
+   No upcoming events
+[- - + Add Event - -]
+```
+
+Components:
+- `components/dashboard/StandTogglePill.tsx` — compact toggle pill
+- `components/dashboard/InlineProductList.tsx` — [-][N][+] product rows, show 3/expand
+- `app/actions/dashboard-products.ts` — server actions for inventory updates
+
+### Design Context
+- Mockups received from Google Stitch for dashboard and account page
+- Structure matches mockup intent but still needs QA
+- Account page design brief written for designer
