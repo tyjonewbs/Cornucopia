@@ -334,38 +334,6 @@ export default async function DashboardPage() {
         </button>
       </Link>
 
-      <div className="border-t border-gray-100 my-6" />
-
-      {/* Orders section */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-gray-600" />
-            Orders
-          </h3>
-          <Link href="/dashboard/orders">
-            <Button variant="outline" size="sm">
-              View all →
-            </Button>
-          </Link>
-        </div>
-        <Card className={pendingOrdersCount > 0 ? "border-red-200 bg-red-50" : ""}>
-          <CardContent className="p-4 text-center">
-            {pendingOrdersCount > 0 ? (
-              <>
-                <p className="text-2xl font-bold text-red-900">{pendingOrdersCount}</p>
-                <p className="text-sm text-red-700 font-medium">pending {pendingOrdersCount === 1 ? 'order' : 'orders'} need attention</p>
-              </>
-            ) : (
-              <>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-                <p className="text-sm text-gray-600">No pending orders — all caught up!</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Events section */}
       <div className="border-t border-gray-100 my-6" />
       <div>
