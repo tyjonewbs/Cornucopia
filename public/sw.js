@@ -1,7 +1,7 @@
 // Service Worker for Cornucopia
 // Provides offline capability and improved caching
 
-const CACHE_NAME = 'cornucopia-v5';
+const CACHE_NAME = 'cornucopia-v6';
 const STATIC_CACHE = 'cornucopia-static-v5';
 const DYNAMIC_CACHE = 'cornucopia-dynamic-v5';
 
