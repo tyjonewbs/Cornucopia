@@ -210,6 +210,18 @@ export default async function DashboardPage() {
         </Card>
       )}
 
+      {/* Market Stand section header */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          Market Stand
+        </span>
+        <Link href="/dashboard/market-stand/setup/new">
+          <Button variant="outline" size="sm" className="h-7 text-xs">
+            + New Stand
+          </Button>
+        </Link>
+      </div>
+
       {/* Stands */}
       {stands.map((stand, idx) => {
         // Filter to only show approved, active products
@@ -266,18 +278,23 @@ export default async function DashboardPage() {
         );
       })}
 
-      {/* Add Stand button — after all stands */}
-      <Link href="/dashboard/market-stand/setup/new">
-        <button className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 mt-2">
-          <Plus className="h-4 w-4" />
-          Add Stand
-        </button>
-      </Link>
-
       {/* Delivery zones */}
       {deliveryZones.length > 0 && (
         <>
           <div className="border-t border-gray-100 my-6" />
+
+          {/* Delivery Zones section header */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Delivery Zones
+            </span>
+            <Link href="/dashboard/delivery-zones/new">
+              <Button variant="outline" size="sm" className="h-7 text-xs">
+                + Add Zone
+              </Button>
+            </Link>
+          </div>
+
           <div className="space-y-3">
             {deliveryZones.map((zone) => (
               <div key={zone.id}>
@@ -326,23 +343,22 @@ export default async function DashboardPage() {
         </>
       )}
 
-      {/* Add Delivery Zone button */}
-      <Link href="/dashboard/delivery-zones/new">
-        <button className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1 mt-2">
-          <Plus className="h-4 w-4" />
-          Add Delivery Zone
-        </button>
-      </Link>
-
       {/* Events section */}
       <div className="border-t border-gray-100 my-6" />
+
+      {/* Events section header */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          Events
+        </span>
+        <Link href="/dashboard/events/setup/new">
+          <Button variant="outline" size="sm" className="h-7 text-xs">
+            + Add Event
+          </Button>
+        </Link>
+      </div>
+
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-gray-600" />
-            Events
-          </h3>
-        </div>
 
         {upcomingEvents.length === 0 ? (
           <p className="text-sm text-gray-500 mb-3">No upcoming events</p>
@@ -364,14 +380,6 @@ export default async function DashboardPage() {
             ))}
           </div>
         )}
-
-        {/* Add Event dashed button */}
-        <Link href="/dashboard/events/setup/new">
-          <button className="w-full border-2 border-dashed border-gray-300 rounded-lg py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1">
-            <Plus className="h-4 w-4" />
-            Add Event
-          </button>
-        </Link>
       </div>
     </div>
   );
